@@ -30,8 +30,8 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
 
   const gradeLevels = [
-    'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
-    'Grade 11', 'Grade 12', 'Year 1', 'Year 2', 'Year 3', 'Year 4',
+    'Upper Primary School (Grades 4–6)',
+    'Lower High School (Grades 7–9)',
   ];
 
   useFocusEffect(
@@ -49,7 +49,11 @@ export default function Settings() {
     }, [])
   );
 
-  const addMember = () => setMembers([...members, '']);
+  const addMember = () => {
+    if (members.length < 5) {
+      setMembers([...members, '']);
+    }
+  };
 
   const removeMember = (index: number) => {
     setMembers(members.filter((_, i) => i !== index));
@@ -180,14 +184,21 @@ export default function Settings() {
               </View>
             ))}
 
-            <Button
-              title="Add Member"
-              onPress={addMember}
-              variant="outlined"
-              fullWidth
-              icon={<Ionicons name="add" size={18} color={Colors.primary} />}
-              style={{ marginTop: Spacing.sm }}
-            />
+            {members.length < 5 && (
+              <Button
+                title="Add Member"
+                onPress={addMember}
+                variant="outlined"
+                fullWidth
+                icon={<Ionicons name="add" size={18} color={Colors.primary} />}
+                style={{ marginTop: Spacing.sm }}
+              />
+            )}
+            {members.length >= 5 && (
+              <View style={{ marginTop: Spacing.sm, alignItems: 'center' }}>
+                <Text style={{ ...Typography.caption, color: Colors.textMuted }}>Maximum of 5 members per team reached</Text>
+              </View>
+            )}
           </Card>
 
           {/* Action buttons */}

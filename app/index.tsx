@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { Input } from '../src/components/Input';
 import { Button } from '../src/components/Button';
 import { Select } from '../src/components/Select';
-import { saveTeam, generateDiscriminator } from '../src/utils/storage';
+import { saveTeam, generateDiscriminator, signInTeam } from '../src/utils/storage';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../src/theme';
 import type { Team } from '../src/types';
 
@@ -24,13 +24,31 @@ export default function TeamSetup() {
   const [password, setPassword] = useState('');
   const [members, setMembers] = useState(['']);
   const [gradeLevel, setGradeLevel] = useState('');
+  const [isSignIn, setIsSignIn] = useState(false);
 
   const gradeLevels = [
-    'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
-    'Grade 11', 'Grade 12', 'Year 1', 'Year 2', 'Year 3', 'Year 4',
+    'Upper Primary School (Grades 4–6)',
+    'Lower High School (Grades 7–9)',
   ];
 
-  const addMember = () => setMembers([...members, '']);
+  const handleSignIn = async () => {
+    if (!teamName || !password) {
+      Alert.alert('Missing Fields', 'Please enter your team name and password');
+      return;
+    }
+    const success = await signInTeam(teamName, password);
+    if (success) {
+      router.replace('/(tabs)');
+    } else {
+      Alert.alert('Error', 'Invalid team name or password. Please try again or create a new team.');
+    }
+  };
+
+  const addMember = () => {
+    if (members.length < 5) {
+      setMembers([...members, '']);
+    }
+  };
 
   const removeMember = (index: number) => {
     setMembers(members.filter((_, i) => i !== index));
@@ -80,6 +98,15 @@ export default function TeamSetup() {
           </View>
 
           <View style={styles.formCard}>
+            <View style={styles.tabsContainer}>
+              <TouchableOpacity onPress={() => setIsSignIn(false)} style={[styles.tab, !isSignIn && styles.activeTab]}>
+                <Text style={[styles.tabText, !isSignIn && styles.activeTabText]}>Create Team</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setIsSignIn(true)} style={[styles.tab, isSignIn && styles.activeTab]}>
+                <Text style={[styles.tabText, isSignIn && styles.activeTabText]}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+
             <Input
               label="Team Name"
               value={teamName}
@@ -95,52 +122,73 @@ export default function TeamSetup() {
               secureTextEntry
             />
 
-            <Select
-              label="Grade or Year Level"
-              value={gradeLevel}
-              options={gradeLevels}
-              onValueChange={setGradeLevel}
-              placeholder="Select level..."
-            />
+            {!isSignIn && (
+              <>
+                <Select
+                  label="Grade or Year Level"
+                  value={gradeLevel}
+                  options={gradeLevels}
+                  onValueChange={setGradeLevel}
+                  placeholder="Select level..."
+                />
 
-            <Text style={styles.sectionLabel}>Team Members</Text>
+                <Text style={styles.sectionLabel}>Team Members</Text>
 
-            {members.map((member, index) => (
-              <View key={index} style={styles.memberRow}>
-                <View style={styles.memberInput}>
-                  <Input
-                    value={member}
-                    onChangeText={(v) => updateMember(index, v)}
-                    placeholder={`Member ${index + 1}`}
-                    containerStyle={{ marginBottom: 0 }}
+                {members.map((member, index) => (
+                  <View key={index} style={styles.memberRow}>
+                    <View style={styles.memberInput}>
+                      <Input
+                        value={member}
+                        onChangeText={(v) => updateMember(index, v)}
+                        placeholder={`Member ${index + 1}`}
+                        containerStyle={{ marginBottom: 0 }}
+                      />
+                    </View>
+                    {members.length > 1 && (
+                      <TouchableOpacity
+                        onPress={() => removeMember(index)}
+                        style={styles.removeBtn}
+                      >
+                        <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+
+                {members.length < 5 && (
+                  <Button
+                    title="Add Member"
+                    onPress={addMember}
+                    variant="outlined"
+                    fullWidth
+                    icon={<Ionicons name="add" size={18} color={Colors.primary} />}
+                    style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }}
                   />
-                </View>
-                {members.length > 1 && (
-                  <TouchableOpacity
-                    onPress={() => removeMember(index)}
-                    style={styles.removeBtn}
-                  >
-                    <Ionicons name="trash-outline" size={20} color={Colors.danger} />
-                  </TouchableOpacity>
                 )}
-              </View>
-            ))}
+                {members.length >= 5 && (
+                  <View style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl, alignItems: 'center' }}>
+                    <Text style={{ ...Typography.caption, color: Colors.textMuted }}>Maximum of 5 members per team reached</Text>
+                  </View>
+                )}
 
-            <Button
-              title="Add Member"
-              onPress={addMember}
-              variant="outlined"
-              fullWidth
-              icon={<Ionicons name="add" size={18} color={Colors.primary} />}
-              style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }}
-            />
+                <Button
+                  title="Create Team"
+                  onPress={handleSubmit}
+                  size="lg"
+                  fullWidth
+                />
+              </>
+            )}
 
-            <Button
-              title="Create Team"
-              onPress={handleSubmit}
-              size="lg"
-              fullWidth
-            />
+            {isSignIn && (
+              <Button
+                title="Sign In"
+                onPress={handleSignIn}
+                size="lg"
+                fullWidth
+                style={{ marginTop: Spacing.xl }}
+              />
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -189,6 +237,31 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     padding: Spacing.xxl,
     ...Shadows.lg,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    marginBottom: Spacing.xl,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: BorderRadius.sm,
+  },
+  activeTab: {
+    backgroundColor: Colors.white,
+    ...Shadows.sm,
+  },
+  tabText: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  activeTabText: {
+    color: Colors.primary,
   },
   sectionLabel: {
     ...Typography.label,

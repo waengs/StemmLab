@@ -3,6 +3,7 @@ import { Team, ActivityResult, SensorLog, ForumPost } from '../types';
 
 const STORAGE_KEYS = {
   TEAM: 'stem_app_team',
+  ALL_TEAMS: 'stem_app_all_teams',
   RESULTS: 'stem_app_results',
   SENSOR_LOGS: 'stem_app_sensor_logs',
   FORUM_POSTS: 'stem_app_forum_posts',
@@ -12,8 +13,33 @@ export function generateDiscriminator(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+export async function getAllTeams(): Promise<Team[]> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.ALL_TEAMS);
+  return data ? JSON.parse(data) : [];
+}
+
 export async function saveTeam(team: Team): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.TEAM, JSON.stringify(team));
+  
+  const allTeams = await getAllTeams();
+  const existingIndex = allTeams.findIndex(t => t.discriminator === team.discriminator || t.name === team.name);
+  if (existingIndex !== -1) {
+    allTeams[existingIndex] = team;
+  } else {
+    allTeams.push(team);
+  }
+  await AsyncStorage.setItem(STORAGE_KEYS.ALL_TEAMS, JSON.stringify(allTeams));
+}
+
+export async function signInTeam(name: string, password: string): Promise<boolean> {
+  const allTeams = await getAllTeams();
+  const team = allTeams.find(t => t.name.toLowerCase() === name.toLowerCase() && t.password === password);
+  
+  if (team) {
+    await AsyncStorage.setItem(STORAGE_KEYS.TEAM, JSON.stringify(team));
+    return true;
+  }
+  return false;
 }
 
 export async function getTeam(): Promise<Team | null> {
