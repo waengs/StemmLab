@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/Card';
 import { Avatar } from '../../src/components/Avatar';
@@ -24,20 +25,21 @@ interface LeaderboardEntry {
   count: number;
 }
 
-const categories = [
-  { label: 'Overall', key: 'overall' },
-  { label: 'Parachute Drop', key: 'parachute-drop' },
-  { label: 'Sound Pollution', key: 'sound-pollution' },
-  { label: 'Hand Fan', key: 'hand-fan' },
-  { label: 'Earthquake', key: 'earthquake' },
-  { label: 'Human Performance', key: 'human-performance' },
-  { label: 'Reaction Board', key: 'reaction-board' },
-  { label: 'Breathing Pace', key: 'breathing-pace' },
-];
-
 export default function Leaderboard() {
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState(0);
   const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({});
+
+  const categories = [
+    { label: t('leaderboard.overall'), key: 'overall' },
+    { label: t('data.activities.parachute-drop.name', { defaultValue: 'Parachute Drop' }), key: 'parachute-drop' },
+    { label: t('data.activities.sound-pollution.name', { defaultValue: 'Sound Pollution' }), key: 'sound-pollution' },
+    { label: t('data.activities.hand-fan.name', { defaultValue: 'Hand Fan' }), key: 'hand-fan' },
+    { label: t('data.activities.earthquake.name', { defaultValue: 'Earthquake' }), key: 'earthquake' },
+    { label: t('data.activities.human-performance.name', { defaultValue: 'Human Performance' }), key: 'human-performance' },
+    { label: t('data.activities.reaction-board.name', { defaultValue: 'Reaction Board' }), key: 'reaction-board' },
+    { label: t('data.activities.breathing-pace.name', { defaultValue: 'Breathing Pace' }), key: 'breathing-pace' },
+  ];
 
   useEffect(() => {
     (async () => {
@@ -148,7 +150,7 @@ export default function Leaderboard() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>Leaderboard</Text>
+        <Text style={styles.pageTitle}>{t('leaderboard.pageTitle')}</Text>
 
         {/* Tab bar */}
         <ScrollView
@@ -174,7 +176,7 @@ export default function Leaderboard() {
         {/* Leaderboard entries */}
         {currentBoard.length === 0 ? (
           <Card style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No results yet for this category</Text>
+            <Text style={styles.emptyText}>{t('leaderboard.noResults')}</Text>
           </Card>
         ) : (
           <View>
@@ -204,11 +206,11 @@ export default function Leaderboard() {
                     <View style={styles.entryInfo}>
                       <Text style={styles.entryName}>{entry.teamName}</Text>
                       <Text style={styles.entryAttempts}>
-                        {entry.count} {entry.count === 1 ? 'attempt' : 'attempts'}
+                        {entry.count} {entry.count === 1 ? t('leaderboard.attempt') : t('leaderboard.attempt_plural')}
                       </Text>
                     </View>
                     <Chip
-                      label={`${entry.score.toFixed(1)} pts`}
+                      label={`${entry.score.toFixed(1)} ${t('leaderboard.pts')}`}
                       variant={index === 0 ? 'filled' : 'outlined'}
                       color={Colors.primary}
                       size="md"

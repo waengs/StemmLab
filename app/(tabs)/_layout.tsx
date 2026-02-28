@@ -2,18 +2,22 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/theme';
 
+import { useTranslation } from 'react-i18next';
+
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
-const TAB_ITEMS: { name: string; title: string; icon: IoniconsName; iconFocused: IoniconsName }[] = [
-  { name: 'index', title: 'Home', icon: 'home-outline', iconFocused: 'home' },
-  { name: 'activities/index', title: 'Activities', icon: 'flask-outline', iconFocused: 'flask' },
-  { name: 'sensors', title: 'Sensors', icon: 'radio-outline', iconFocused: 'radio' },
-  { name: 'leaderboard', title: 'Leaderboard', icon: 'trophy-outline', iconFocused: 'trophy' },
-  { name: 'forum', title: 'Forum', icon: 'chatbubbles-outline', iconFocused: 'chatbubbles' },
-  { name: 'settings', title: 'Settings', icon: 'settings-outline', iconFocused: 'settings' },
-];
-
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
+  const TAB_ITEMS: { name: string; title: string; icon: IoniconsName; iconFocused: IoniconsName }[] = [
+    { name: 'index', title: t('tabs.home'), icon: 'home-outline', iconFocused: 'home' },
+    { name: 'activities/index', title: t('tabs.activities'), icon: 'flask-outline', iconFocused: 'flask' },
+    { name: 'sensors', title: t('tabs.sensors'), icon: 'radio-outline', iconFocused: 'radio' },
+    { name: 'leaderboard', title: t('tabs.leaderboard'), icon: 'trophy-outline', iconFocused: 'trophy' },
+    { name: 'forum', title: t('tabs.forum'), icon: 'chatbubbles-outline', iconFocused: 'chatbubbles' },
+    { name: 'settings', title: t('tabs.settings'), icon: 'settings-outline', iconFocused: 'settings' },
+  ];
+
   return (
     <Tabs
       screenOptions={{

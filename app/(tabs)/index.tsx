@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/Card';
 import { Avatar } from '../../src/components/Avatar';
@@ -18,47 +19,48 @@ import type { Team } from '../../src/types';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
-const quickActions: {
-  title: string;
-  description: string;
-  icon: IoniconsName;
-  color: string;
-  path: string;
-}[] = [
-  {
-    title: 'Start Activity',
-    description: 'Choose from 7 STEM challenges',
-    icon: 'flask',
-    color: '#3B82F6',
-    path: '/(tabs)/activities',
-  },
-  {
-    title: 'Use Sensors',
-    description: 'Measure and record data',
-    icon: 'radio',
-    color: '#10B981',
-    path: '/(tabs)/sensors',
-  },
-  {
-    title: 'View Leaderboard',
-    description: 'See team rankings',
-    icon: 'trophy',
-    color: '#F59E0B',
-    path: '/(tabs)/leaderboard',
-  },
-  {
-    title: 'Forum',
-    description: 'Ask questions & share ideas',
-    icon: 'chatbubbles',
-    color: '#8B5CF6',
-    path: '/(tabs)/forum',
-  },
-];
-
 export default function Dashboard() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [team, setTeam] = useState<Team | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
+
+  const quickActions: {
+    title: string;
+    description: string;
+    icon: IoniconsName;
+    color: string;
+    path: string;
+  }[] = [
+    {
+      title: t('dashboard.startActivity'),
+      description: t('dashboard.startActivityDesc'),
+      icon: 'flask',
+      color: '#3B82F6',
+      path: '/(tabs)/activities',
+    },
+    {
+      title: t('dashboard.useSensors'),
+      description: t('dashboard.useSensorsDesc'),
+      icon: 'radio',
+      color: '#10B981',
+      path: '/(tabs)/sensors',
+    },
+    {
+      title: t('dashboard.viewLeaderboard'),
+      description: t('dashboard.viewLeaderboardDesc'),
+      icon: 'trophy',
+      color: '#F59E0B',
+      path: '/(tabs)/leaderboard',
+    },
+    {
+      title: t('dashboard.forum'),
+      description: t('dashboard.forumDesc'),
+      icon: 'chatbubbles',
+      color: '#8B5CF6',
+      path: '/(tabs)/forum',
+    },
+  ];
 
   useFocusEffect(
     useCallback(() => {
@@ -85,20 +87,20 @@ export default function Dashboard() {
         {/* Header */}
         <View style={styles.header}>
           <Avatar name={team.name} size={72} backgroundColor={Colors.primary} />
-          <Text style={styles.welcomeText}>Welcome, {team.name}!</Text>
+          <Text style={styles.welcomeText}>{t('dashboard.welcome', { name: team.name })}</Text>
           <Text style={styles.teamInfo}>
-            Team ID: {team.discriminator} • {team.gradeLevel}
+            {t('dashboard.teamId', { id: team.discriminator })} • {team.gradeLevel}
           </Text>
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{team.members.length}</Text>
-              <Text style={styles.statLabel}>Members</Text>
+              <Text style={styles.statLabel}>{t('dashboard.members')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{completedCount}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={styles.statLabel}>{t('dashboard.completed')}</Text>
             </View>
           </View>
         </View>
@@ -128,9 +130,9 @@ export default function Dashboard() {
           <View style={styles.progressCard}>
             <Ionicons name="flash" size={28} color={Colors.white} />
             <View style={styles.progressText}>
-              <Text style={styles.progressTitle}>Great Progress!</Text>
+              <Text style={styles.progressTitle}>{t('dashboard.progressTitle')}</Text>
               <Text style={styles.progressSubtitle}>
-                You've completed {completedCount} {completedCount === 1 ? 'activity' : 'activities'}. Keep exploring!
+                {t('dashboard.progressSubtitle', { count: completedCount })}
               </Text>
             </View>
           </View>

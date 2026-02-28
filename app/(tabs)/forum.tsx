@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../../src/components/Card';
 import { Avatar } from '../../src/components/Avatar';
 import { Button } from '../../src/components/Button';
@@ -20,6 +21,7 @@ import { Colors, Spacing, BorderRadius, Typography } from '../../src/theme';
 import type { ForumPost, ForumReply, Team } from '../../src/types';
 
 export default function Forum() {
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
@@ -92,24 +94,24 @@ export default function Forum() {
         style={{ flex: 1 }}
       >
         <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.pageTitle}>Team Forum</Text>
+          <Text style={styles.pageTitle}>{t('forum.pageTitle')}</Text>
 
           {/* New post card */}
           <Card style={styles.newPostCard}>
             <View style={styles.newPostHeader}>
               <Avatar name={team.name} size={36} backgroundColor={Colors.primary} />
-              <Text style={styles.newPostLabel}>Share with the community</Text>
+              <Text style={styles.newPostLabel}>{t('forum.shareCommunity')}</Text>
             </View>
             <Input
               value={newPostContent}
               onChangeText={setNewPostContent}
-              placeholder="Ask a question or share an idea..."
+              placeholder={t('forum.askPlaceholder')}
               multiline
               numberOfLines={3}
               containerStyle={{ marginBottom: Spacing.sm }}
             />
             <Button
-              title="Post"
+              title={t('forum.post')}
               onPress={handleCreatePost}
               disabled={!newPostContent.trim()}
               icon={<Ionicons name="send" size={16} color={Colors.white} />}
@@ -120,8 +122,8 @@ export default function Forum() {
           {posts.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Ionicons name="chatbubbles-outline" size={48} color={Colors.textMuted} />
-              <Text style={styles.emptyTitle}>No posts yet</Text>
-              <Text style={styles.emptyText}>Be the first to start a discussion!</Text>
+              <Text style={styles.emptyTitle}>{t('forum.noPosts')}</Text>
+              <Text style={styles.emptyText}>{t('forum.noPostsDesc')}</Text>
             </Card>
           ) : (
             posts.map((post) => (
@@ -147,7 +149,7 @@ export default function Forum() {
                     onPress={() => toggleExpand(post.id)}
                   >
                     <Text style={styles.repliesToggleText}>
-                      {post.replies.length} {post.replies.length === 1 ? 'Reply' : 'Replies'}
+                      {post.replies.length} {post.replies.length === 1 ? t('forum.reply') : t('forum.reply_plural')}
                     </Text>
                     <Ionicons
                       name={expandedPosts[post.id] ? 'chevron-up' : 'chevron-down'}
@@ -181,7 +183,7 @@ export default function Forum() {
                     <Input
                       value={replyContent[post.id] || ''}
                       onChangeText={(v) => setReplyContent({ ...replyContent, [post.id]: v })}
-                      placeholder="Write a reply..."
+                      placeholder={t('forum.writeReply')}
                       containerStyle={{ marginBottom: 0, flex: 1 }}
                     />
                   </View>

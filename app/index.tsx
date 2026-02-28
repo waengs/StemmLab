@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Input } from '../src/components/Input';
 import { Button } from '../src/components/Button';
 import { Select } from '../src/components/Select';
@@ -19,6 +20,7 @@ import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../src/theme
 import type { Team } from '../src/types';
 
 export default function TeamSetup() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [teamName, setTeamName] = useState('');
   const [password, setPassword] = useState('');
@@ -27,20 +29,20 @@ export default function TeamSetup() {
   const [isSignIn, setIsSignIn] = useState(false);
 
   const gradeLevels = [
-    'Upper Primary School (Grades 4–6)',
-    'Lower High School (Grades 7–9)',
+    t('setup.gradeUpperPrimary'),
+    t('setup.gradeLowerHigh'),
   ];
 
   const handleSignIn = async () => {
     if (!teamName || !password) {
-      Alert.alert('Missing Fields', 'Please enter your team name and password');
+      Alert.alert(t('setup.missingFields'), t('setup.missingSignInMsg'));
       return;
     }
     const success = await signInTeam(teamName, password);
     if (success) {
       router.replace('/(tabs)');
     } else {
-      Alert.alert('Error', 'Invalid team name or password. Please try again or create a new team.');
+      Alert.alert(t('setup.signInError'), t('setup.signInErrorMsg'));
     }
   };
 
@@ -63,7 +65,7 @@ export default function TeamSetup() {
   const handleSubmit = async () => {
     const filteredMembers = members.filter(m => m.trim() !== '');
     if (!teamName || !password || filteredMembers.length === 0 || !gradeLevel) {
-      Alert.alert('Missing Fields', 'Please fill in all fields and add at least one team member');
+      Alert.alert(t('setup.missingFields'), t('setup.missingFieldsMsg'));
       return;
     }
 
@@ -93,46 +95,46 @@ export default function TeamSetup() {
             <View style={styles.iconContainer}>
               <Ionicons name="people" size={36} color={Colors.white} />
             </View>
-            <Text style={styles.title}>STEM Lab</Text>
-            <Text style={styles.subtitle}>Create your team to get started</Text>
+            <Text style={styles.title}>{t('setup.title')}</Text>
+            <Text style={styles.subtitle}>{t('setup.subtitle')}</Text>
           </View>
 
           <View style={styles.formCard}>
             <View style={styles.tabsContainer}>
               <TouchableOpacity onPress={() => setIsSignIn(false)} style={[styles.tab, !isSignIn && styles.activeTab]}>
-                <Text style={[styles.tabText, !isSignIn && styles.activeTabText]}>Create Team</Text>
+                <Text style={[styles.tabText, !isSignIn && styles.activeTabText]}>{t('setup.createTeamTab')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setIsSignIn(true)} style={[styles.tab, isSignIn && styles.activeTab]}>
-                <Text style={[styles.tabText, isSignIn && styles.activeTabText]}>Sign In</Text>
+                <Text style={[styles.tabText, isSignIn && styles.activeTabText]}>{t('setup.signInTab')}</Text>
               </TouchableOpacity>
             </View>
 
             <Input
-              label="Team Name"
+              label={t('setup.teamName')}
               value={teamName}
               onChangeText={setTeamName}
-              placeholder="Enter team name"
+              placeholder={t('setup.teamNamePlaceholder')}
             />
 
             <Input
-              label="Team Password"
+              label={t('setup.teamPassword')}
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter a password"
+              placeholder={t('setup.teamPasswordPlaceholder')}
               secureTextEntry
             />
 
             {!isSignIn && (
               <>
                 <Select
-                  label="Grade or Year Level"
+                  label={t('setup.gradeLevel')}
                   value={gradeLevel}
                   options={gradeLevels}
                   onValueChange={setGradeLevel}
-                  placeholder="Select level..."
+                  placeholder={t('setup.gradeLevelPlaceholder')}
                 />
 
-                <Text style={styles.sectionLabel}>Team Members</Text>
+                <Text style={styles.sectionLabel}>{t('setup.teamMembers')}</Text>
 
                 {members.map((member, index) => (
                   <View key={index} style={styles.memberRow}>
@@ -140,7 +142,7 @@ export default function TeamSetup() {
                       <Input
                         value={member}
                         onChangeText={(v) => updateMember(index, v)}
-                        placeholder={`Member ${index + 1}`}
+                        placeholder={t('setup.memberPlaceholder', { count: index + 1 })}
                         containerStyle={{ marginBottom: 0 }}
                       />
                     </View>
@@ -157,7 +159,7 @@ export default function TeamSetup() {
 
                 {members.length < 5 && (
                   <Button
-                    title="Add Member"
+                    title={t('setup.addMember')}
                     onPress={addMember}
                     variant="outlined"
                     fullWidth
@@ -167,12 +169,12 @@ export default function TeamSetup() {
                 )}
                 {members.length >= 5 && (
                   <View style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl, alignItems: 'center' }}>
-                    <Text style={{ ...Typography.caption, color: Colors.textMuted }}>Maximum of 5 members per team reached</Text>
+                    <Text style={{ ...Typography.caption, color: Colors.textMuted }}>{t('setup.maxMembers')}</Text>
                   </View>
                 )}
 
                 <Button
-                  title="Create Team"
+                  title={t('setup.createTeamBtn')}
                   onPress={handleSubmit}
                   size="lg"
                   fullWidth
@@ -182,7 +184,7 @@ export default function TeamSetup() {
 
             {isSignIn && (
               <Button
-                title="Sign In"
+                title={t('setup.signInBtn')}
                 onPress={handleSignIn}
                 size="lg"
                 fullWidth

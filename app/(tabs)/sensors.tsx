@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/Card';
 import { Chip } from '../../src/components/Chip';
@@ -21,6 +22,7 @@ import type { SensorLog, Team } from '../../src/types';
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function Sensors() {
+  const { t } = useTranslation();
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sensorValue, setSensorValue] = useState('');
@@ -78,7 +80,7 @@ export default function Sensors() {
 
     const log: SensorLog = {
       id: Date.now().toString(),
-      sensorType: SENSORS[selectedSensor as keyof typeof SENSORS].name,
+      sensorType: selectedSensor,
       timestamp: Date.now(),
       data: sensorValue,
       teamDiscriminator: team.discriminator,
@@ -100,7 +102,7 @@ export default function Sensors() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>Sensors</Text>
+        <Text style={styles.pageTitle}>{t('sensors.pageTitle')}</Text>
 
         <View style={styles.grid}>
           {Object.values(SENSORS).map((s) => (
@@ -114,8 +116,8 @@ export default function Sensors() {
                 <View style={styles.sensorIcon}>
                   <Ionicons name={s.icon as IoniconsName} size={24} color={Colors.primary} />
                 </View>
-                <Text style={styles.sensorName}>{s.name}</Text>
-                <Text style={styles.sensorDesc}>{s.description}</Text>
+                <Text style={styles.sensorName}>{t(`data.sensors.${s.id}.name`, { defaultValue: s.name })}</Text>
+                <Text style={styles.sensorDesc}>{t(`data.sensors.${s.id}.desc`, { defaultValue: s.description })}</Text>
               </Card>
             </TouchableOpacity>
           ))}
@@ -124,12 +126,12 @@ export default function Sensors() {
         {/* Recent Logs */}
         {logs.length > 0 && (
           <View style={styles.logsSection}>
-            <Text style={styles.logsTitle}>Recent Logs</Text>
+            <Text style={styles.logsTitle}>{t('sensors.recentLogs')}</Text>
             {logs.map((log) => (
               <Card key={log.id} style={styles.logCard} variant="outlined">
                 <View style={styles.logRow}>
                   <View style={styles.logInfo}>
-                    <Chip label={log.sensorType} variant="filled" color={Colors.primary} size="sm" />
+                    <Chip label={t(`data.sensors.${log.sensorType}.name`, { defaultValue: log.sensorType })} variant="filled" color={Colors.primary} size="sm" />
                     <Text style={styles.logData}>{log.data}</Text>
                   </View>
                   <Text style={styles.logDate}>
@@ -156,18 +158,18 @@ export default function Sensors() {
                 <View style={styles.modalHeader}>
                   <View style={styles.modalIconRow}>
                     <Ionicons name={sensor.icon as IoniconsName} size={24} color={Colors.primary} />
-                    <Text style={styles.modalTitle}>{sensor.name}</Text>
+                    <Text style={styles.modalTitle}>{t(`data.sensors.${sensor.id}.name`, { defaultValue: sensor.name })}</Text>
                   </View>
                   <TouchableOpacity onPress={handleClose}>
                     <Ionicons name="close" size={24} color={Colors.textMuted} />
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.modalDesc}>{sensor.description}</Text>
+                <Text style={styles.modalDesc}>{t(`data.sensors.${sensor.id}.desc`, { defaultValue: sensor.description })}</Text>
 
                 {!isRecording ? (
                   <Button
-                    title="Start Measurement"
+                    title={t('sensors.startMeasurement')}
                     onPress={simulateSensorData}
                     size="lg"
                     fullWidth
@@ -179,14 +181,15 @@ export default function Sensors() {
                       <Text style={styles.measurementValue}>{sensorValue}</Text>
                     </View>
                     <Input
-                      label="Notes (optional)"
+                      label={t('common.notes')}
                       value={sensorValue}
                       onChangeText={setSensorValue}
                       multiline
                       numberOfLines={2}
+                      placeholder={t('sensors.notesPlaceholder')}
                     />
                     <Button
-                      title="Save to Log"
+                      title={t('sensors.saveLog')}
                       onPress={handleSave}
                       size="lg"
                       fullWidth

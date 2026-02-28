@@ -1,0 +1,203 @@
+{
+  "common": {
+    "back": "Kembali ke Aktivitas",
+    "save": "Simpan Hasil",
+    "delete": "Hapus",
+    "cancel": "Batal",
+    "notes": "Catatan (opsional)"
+  },
+  "setup": {
+    "title": "STEM Lab",
+    "subtitle": "Buat tim Anda untuk memulai",
+    "createTeamTab": "Buat Tim",
+    "signInTab": "Masuk",
+    "teamName": "Nama Tim",
+    "teamNamePlaceholder": "Masukkan nama tim",
+    "teamPassword": "Kata Sandi Tim",
+    "teamPasswordPlaceholder": "Masukkan kata sandi",
+    "gradeLevel": "Tingkat Kelas",
+    "gradeLevelPlaceholder": "Pilih tingkat...",
+    "teamMembers": "Anggota Tim",
+    "memberPlaceholder": "Anggota {{count}}",
+    "addMember": "Tambah Anggota",
+    "maxMembers": "Maksimal 5 anggota per tim telah tercapai",
+    "createTeamBtn": "Buat Tim",
+    "signInBtn": "Masuk",
+    "missingFields": "Data Tidak Lengkap",
+    "missingFieldsMsg": "Harap isi semua kolom dan tambahkan setidaknya satu anggota tim",
+    "missingSignInMsg": "Harap masukkan nama tim dan kata sandi Anda",
+    "signInError": "Kesalahan",
+    "signInErrorMsg": "Nama tim atau kata sandi tidak valid. Silakan coba lagi atau buat tim baru.",
+    "gradeUpperPrimary": "SD Kelas Atas (Kelas 4–6)",
+    "gradeLowerHigh": "SMP (Kelas 7–9)"
+  },
+  "tabs": {
+    "home": "Beranda",
+    "activities": "Aktivitas",
+    "sensors": "Sensor",
+    "leaderboard": "Papan Peringkat",
+    "forum": "Forum",
+    "settings": "Pengaturan"
+  },
+  "dashboard": {
+    "welcome": "Selamat datang, {{name}}!",
+    "teamId": "ID Tim: {{id}}",
+    "members": "Anggota",
+    "completed": "Selesai",
+    "startActivity": "Mulai Aktivitas",
+    "startActivityDesc": "Pilih dari 7 tantangan STEM",
+    "useSensors": "Gunakan Sensor",
+    "useSensorsDesc": "Ukur dan catat data",
+    "viewLeaderboard": "Lihat Peringkat",
+    "viewLeaderboardDesc": "Lihat peringkat tim",
+    "forum": "Forum",
+    "forumDesc": "Tanya jawab & berbagi ide",
+    "progressTitle": "Kemajuan Luar Biasa!",
+    "progressSubtitle": "Anda telah menyelesaikan {{count}} aktivitas. Terus bereksplorasi!",
+    "progressSubtitle_plural": "Anda telah menyelesaikan {{count}} aktivitas. Terus bereksplorasi!"
+  },
+  "activities": {
+    "pageTitle": "Aktivitas STEM",
+    "engineering": "Tantangan Rekayasa",
+    "health": "Kesehatan & Medis",
+    "infoAlert": "Catat pengukuran dan hasil Anda di bawah. Semua data akan disimpan di profil tim Anda.",
+    "pastResults": "Hasil Sebelumnya ({{count}})",
+    "deleteResult": "Hapus Hasil",
+    "deleteConfirm": "Apakah Anda yakin ingin menghapus hasil ini?",
+    "savedTitle": "Tersimpan!",
+    "savedMsg": "Hasil Anda telah dicatat.",
+    "enterValue": "Masukkan {{label}}"
+  },
+  "sensors": {
+    "pageTitle": "Sensor",
+    "recentLogs": "Catatan Terbaru",
+    "startMeasurement": "Mulai Pengukuran",
+    "saveLog": "Simpan ke Catatan",
+    "notesPlaceholder": "Tambahkan catatan..."
+  },
+  "leaderboard": {
+    "pageTitle": "Papan Peringkat",
+    "overall": "Keseluruhan",
+    "noResults": "Belum ada hasil untuk kategori ini",
+    "attempt": "percobaan",
+    "attempt_plural": "percobaan",
+    "pts": "poin"
+  },
+  "forum": {
+    "pageTitle": "Forum Tim",
+    "shareCommunity": "Bagikan dengan komunitas",
+    "askPlaceholder": "Tanyakan sesuatu atau bagikan ide...",
+    "post": "Kirim",
+    "noPosts": "Belum ada kiriman",
+    "noPostsDesc": "Jadilah yang pertama memulai diskusi!",
+    "reply": "Balasan",
+    "reply_plural": "Balasan",
+    "writeReply": "Tulis balasan..."
+  },
+  "settings": {
+    "pageTitle": "Pengaturan Tim",
+    "success": "Perubahan berhasil disimpan!",
+    "teamInfo": "Informasi Tim",
+    "teamIdDesc": "Kode unik ini mengidentifikasi tim Anda di papan peringkat",
+    "saveChanges": "Simpan Perubahan",
+    "logout": "Keluar",
+    "logoutConfirm": "Apakah Anda yakin ingin keluar? Anda harus masuk kembali dengan kredensial tim Anda.",
+    "language": "Bahasa",
+    "english": "Bahasa Inggris",
+    "indonesian": "Bahasa Indonesia"
+  },
+  "data": {
+    "categories": {
+      "Engineering": "Rekayasa",
+      "Health/Medical": "Kesehatan/Medis"
+    },
+    "activities": {
+      "parachute-drop": {
+        "name": "Tantangan Terjun Payung",
+        "desc": "Rancang dan uji parasut untuk meminimalkan gaya benturan",
+        "fields": {
+          "gForce": "Gaya G Diukur",
+          "dropHeight": "Tinggi Jatuh (cm)",
+          "parachuteSize": "Ukuran Parasut (cm²)"
+        }
+      },
+      "sound-pollution": {
+        "name": "Pemburu Polusi Suara",
+        "desc": "Ukur dan petakan tingkat suara di berbagai lingkungan",
+        "fields": {
+          "maxDecibels": "Tingkat Suara Maksimal (dB)",
+          "avgDecibels": "Tingkat Suara Rata-rata (dB)",
+          "location": "Lokasi"
+        }
+      },
+      "hand-fan": {
+        "name": "Tantangan Kipas Tangan",
+        "desc": "Buat kipas bertenaga tangan yang efisien",
+        "fields": {
+          "windSpeed": "Kecepatan Angin (m/s)",
+          "fanSize": "Diameter Kipas (cm)"
+        }
+      },
+      "earthquake": {
+        "name": "Struktur Tahan Gempa",
+        "desc": "Rancang struktur yang tahan terhadap simulasi gempa bumi",
+        "fields": {
+          "vibrationLevel": "Getaran Maksimal (Hz)",
+          "structureHeight": "Tinggi Struktur (cm)",
+          "survived": "Struktur Bertahan"
+        }
+      },
+      "human-performance": {
+        "name": "Laboratorium Kinerja Manusia",
+        "desc": "Uji kecepatan peregangan dan keanggunan",
+        "fields": {
+          "bendAngle": "Sudut Tekuk Maksimal (derajat)",
+          "speed": "Kecepatan Gerak (1-10)",
+          "gracefulness": "Skor Keanggunan (1-10)"
+        }
+      },
+      "reaction-board": {
+        "name": "Tantangan Papan Reaksi",
+        "desc": "Ukur waktu dan akurasi reaksi",
+        "fields": {
+          "reactionTime": "Waktu Reaksi (md)",
+          "accuracy": "Akurasi (%)"
+        }
+      },
+      "breathing-pace": {
+        "name": "Pelatih Kecepatan Pernapasan",
+        "desc": "Pantau dan tingkatkan pola pernapasan",
+        "fields": {
+          "breathsPerMinute": "Napas Per Menit",
+          "consistency": "Skor Konsistensi (1-10)"
+        }
+      }
+    },
+    "sensors": {
+      "slow-mo": {
+        "name": "Video Gerak Lambat",
+        "desc": "Rekam video berkecepatan tinggi untuk analisis detail"
+      },
+      "g-force": {
+        "name": "Pengukur Gaya G",
+        "desc": "Ukur gaya percepatan"
+      },
+      "sound-meter": {
+        "name": "Pengukur Suara Langsung",
+        "desc": "Pengukuran desibel waktu nyata"
+      },
+      "location": {
+        "name": "Label Lokasi",
+        "desc": "Pelacakan lokasi GPS"
+      },
+      "vibration": {
+        "name": "Sensor Getaran",
+        "desc": "Deteksi dan ukur getaran"
+      },
+      "movement-detector": {
+        "name": "Detektor Gerakan",
+        "desc": "Lacak gerakan dan kecepatan"
+      }
+    }
+  }
+}

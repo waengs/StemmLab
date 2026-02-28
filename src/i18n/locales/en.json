@@ -1,0 +1,203 @@
+{
+  "common": {
+    "back": "Back to Activities",
+    "save": "Save Results",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "notes": "Notes (optional)"
+  },
+  "setup": {
+    "title": "STEM Lab",
+    "subtitle": "Create your team to get started",
+    "createTeamTab": "Create Team",
+    "signInTab": "Sign In",
+    "teamName": "Team Name",
+    "teamNamePlaceholder": "Enter team name",
+    "teamPassword": "Team Password",
+    "teamPasswordPlaceholder": "Enter a password",
+    "gradeLevel": "Grade or Year Level",
+    "gradeLevelPlaceholder": "Select level...",
+    "teamMembers": "Team Members",
+    "memberPlaceholder": "Member {{count}}",
+    "addMember": "Add Member",
+    "maxMembers": "Maximum of 5 members per team reached",
+    "createTeamBtn": "Create Team",
+    "signInBtn": "Sign In",
+    "missingFields": "Missing Fields",
+    "missingFieldsMsg": "Please fill in all fields and add at least one team member",
+    "missingSignInMsg": "Please enter your team name and password",
+    "signInError": "Error",
+    "signInErrorMsg": "Invalid team name or password. Please try again or create a new team.",
+    "gradeUpperPrimary": "Upper Primary School (Grades 4–6)",
+    "gradeLowerHigh": "Lower High School (Grades 7–9)"
+  },
+  "tabs": {
+    "home": "Home",
+    "activities": "Activities",
+    "sensors": "Sensors",
+    "leaderboard": "Leaderboard",
+    "forum": "Forum",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}!",
+    "teamId": "Team ID: {{id}}",
+    "members": "Members",
+    "completed": "Completed",
+    "startActivity": "Start Activity",
+    "startActivityDesc": "Choose from 7 STEM challenges",
+    "useSensors": "Use Sensors",
+    "useSensorsDesc": "Measure and record data",
+    "viewLeaderboard": "View Leaderboard",
+    "viewLeaderboardDesc": "See team rankings",
+    "forum": "Forum",
+    "forumDesc": "Ask questions & share ideas",
+    "progressTitle": "Great Progress!",
+    "progressSubtitle": "You've completed {{count}} activity. Keep exploring!",
+    "progressSubtitle_plural": "You've completed {{count}} activities. Keep exploring!"
+  },
+  "activities": {
+    "pageTitle": "STEM Activities",
+    "engineering": "Engineering Challenges",
+    "health": "Health & Medical",
+    "infoAlert": "Record your measurements and results below. All data will be saved to your team profile.",
+    "pastResults": "Past Results ({{count}})",
+    "deleteResult": "Delete Result",
+    "deleteConfirm": "Are you sure you want to delete this result?",
+    "savedTitle": "Saved!",
+    "savedMsg": "Your results have been recorded.",
+    "enterValue": "Enter {{label}}"
+  },
+  "sensors": {
+    "pageTitle": "Sensors",
+    "recentLogs": "Recent Logs",
+    "startMeasurement": "Start Measurement",
+    "saveLog": "Save to Log",
+    "notesPlaceholder": "Add any notes..."
+  },
+  "leaderboard": {
+    "pageTitle": "Leaderboard",
+    "overall": "Overall",
+    "noResults": "No results yet for this category",
+    "attempt": "attempt",
+    "attempt_plural": "attempts",
+    "pts": "pts"
+  },
+  "forum": {
+    "pageTitle": "Team Forum",
+    "shareCommunity": "Share with the community",
+    "askPlaceholder": "Ask a question or share an idea...",
+    "post": "Post",
+    "noPosts": "No posts yet",
+    "noPostsDesc": "Be the first to start a discussion!",
+    "reply": "Reply",
+    "reply_plural": "Replies",
+    "writeReply": "Write a reply..."
+  },
+  "settings": {
+    "pageTitle": "Team Settings",
+    "success": "Changes saved successfully!",
+    "teamInfo": "Team Information",
+    "teamIdDesc": "This unique code identifies your team on the leaderboard",
+    "saveChanges": "Save Changes",
+    "logout": "Logout",
+    "logoutConfirm": "Are you sure you want to logout? You'll need to log back in with your team credentials.",
+    "language": "Language",
+    "english": "English",
+    "indonesian": "Indonesian"
+  },
+  "data": {
+    "categories": {
+      "Engineering": "Engineering",
+      "Health/Medical": "Health/Medical"
+    },
+    "activities": {
+      "parachute-drop": {
+        "name": "Parachute Drop Challenge",
+        "desc": "Design and test a parachute to minimize impact force",
+        "fields": {
+          "gForce": "G-Force Measured",
+          "dropHeight": "Drop Height (cm)",
+          "parachuteSize": "Parachute Size (cm²)"
+        }
+      },
+      "sound-pollution": {
+        "name": "Sound Pollution Hunter",
+        "desc": "Measure and map sound levels in different environments",
+        "fields": {
+          "maxDecibels": "Max Sound Level (dB)",
+          "avgDecibels": "Average Sound Level (dB)",
+          "location": "Location"
+        }
+      },
+      "hand-fan": {
+        "name": "Hand Fan Challenge",
+        "desc": "Build an efficient hand-powered fan",
+        "fields": {
+          "windSpeed": "Wind Speed (m/s)",
+          "fanSize": "Fan Diameter (cm)"
+        }
+      },
+      "earthquake": {
+        "name": "Earthquake-Resistant Structure",
+        "desc": "Design a structure that withstands simulated earthquakes",
+        "fields": {
+          "vibrationLevel": "Max Vibration (Hz)",
+          "structureHeight": "Structure Height (cm)",
+          "survived": "Structure Survived"
+        }
+      },
+      "human-performance": {
+        "name": "Human Performance Lab",
+        "desc": "Test stretch speed and gracefulness",
+        "fields": {
+          "bendAngle": "Max Bend Angle (degrees)",
+          "speed": "Movement Speed (1-10)",
+          "gracefulness": "Gracefulness Score (1-10)"
+        }
+      },
+      "reaction-board": {
+        "name": "Reaction Board Challenge",
+        "desc": "Measure reaction time and accuracy",
+        "fields": {
+          "reactionTime": "Reaction Time (ms)",
+          "accuracy": "Accuracy (%)"
+        }
+      },
+      "breathing-pace": {
+        "name": "Breathing Pace Trainer",
+        "desc": "Monitor and improve breathing patterns",
+        "fields": {
+          "breathsPerMinute": "Breaths Per Minute",
+          "consistency": "Consistency Score (1-10)"
+        }
+      }
+    },
+    "sensors": {
+      "slow-mo": {
+        "name": "Slow-Mo Video",
+        "desc": "Record high-speed video for detailed analysis"
+      },
+      "g-force": {
+        "name": "G-Force Meter",
+        "desc": "Measure acceleration forces"
+      },
+      "sound-meter": {
+        "name": "Live Sound Meter",
+        "desc": "Real-time decibel measurements"
+      },
+      "location": {
+        "name": "Location Tag",
+        "desc": "GPS location tracking"
+      },
+      "vibration": {
+        "name": "Vibration Sensor",
+        "desc": "Detect and measure vibrations"
+      },
+      "movement-detector": {
+        "name": "Movement Detector",
+        "desc": "Track motion and speed"
+      }
+    }
+  }
+}

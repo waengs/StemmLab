@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../../src/components/Card';
 import { Chip } from '../../../src/components/Chip';
@@ -17,6 +18,7 @@ import { Colors, Spacing, BorderRadius, Typography } from '../../../src/theme';
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function Activities() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const engineeringActivities = Object.values(ACTIVITIES).filter(a => a.category === 'Engineering');
@@ -47,13 +49,13 @@ export default function Activities() {
           <Card style={styles.activityCard}>
             <View style={styles.activityRow}>
               <View style={styles.activityInfo}>
-                <Text style={styles.activityName}>{activity.name}</Text>
-                <Text style={styles.activityDesc}>{activity.description}</Text>
+                <Text style={styles.activityName}>{t(`data.activities.${activity.id}.name`, { defaultValue: activity.name })}</Text>
+                <Text style={styles.activityDesc}>{t(`data.activities.${activity.id}.desc`, { defaultValue: activity.description })}</Text>
                 <View style={styles.sensorChips}>
                   {activity.sensors.map((sensor: string) => (
                     <Chip
                       key={sensor}
-                      label={sensor.replace('-', ' ')}
+                      label={t(`data.sensors.${sensor}.name`, { defaultValue: sensor.replace('-', ' ') })}
                       size="sm"
                     />
                   ))}
@@ -70,17 +72,17 @@ export default function Activities() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>STEM Activities</Text>
+        <Text style={styles.pageTitle}>{t('activities.pageTitle')}</Text>
 
         <CategorySection
-          title="Engineering Challenges"
+          title={t('activities.engineering')}
           activities={engineeringActivities}
           icon="construct"
           color={Colors.engineering}
         />
 
         <CategorySection
-          title="Health & Medical"
+          title={t('activities.health')}
           activities={healthActivities}
           icon="medkit"
           color={Colors.health}

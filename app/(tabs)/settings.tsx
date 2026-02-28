@@ -7,20 +7,23 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/Card';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { Select } from '../../src/components/Select';
 import { getTeam, saveTeam, clearTeam } from '../../src/utils/storage';
-import { Colors, Spacing, BorderRadius, Typography } from '../../src/theme';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../src/theme';
 import type { Team } from '../../src/types';
 
 export default function Settings() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const [team, setTeam] = useState<Team | null>(null);
   const [teamName, setTeamName] = useState('');
@@ -30,8 +33,8 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
 
   const gradeLevels = [
-    'Upper Primary School (Grades 4–6)',
-    'Lower High School (Grades 7–9)',
+    t('setup.gradeUpperPrimary'),
+    t('setup.gradeLowerHigh'),
   ];
 
   useFocusEffect(
@@ -70,7 +73,7 @@ export default function Settings() {
 
     const filteredMembers = members.filter(m => m.trim() !== '');
     if (!teamName || !password || filteredMembers.length === 0 || !gradeLevel) {
-      Alert.alert('Missing Fields', 'Please fill in all fields and add at least one team member');
+      Alert.alert(t('setup.missingFields'), t('setup.missingFieldsMsg'));
       return;
     }
 
@@ -90,12 +93,12 @@ export default function Settings() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      "Are you sure you want to logout? You'll need to log back in with your team credentials.",
+      t('settings.logout'),
+      t('settings.logoutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('settings.logout'),
           style: 'destructive',
           onPress: async () => {
             await clearTeam();
@@ -115,53 +118,76 @@ export default function Settings() {
         style={{ flex: 1 }}
       >
         <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.pageTitle}>Team Settings</Text>
+          <Text style={styles.pageTitle}>{t('settings.pageTitle')}</Text>
 
           {/* Success message */}
           {saved && (
             <View style={styles.successBanner}>
               <Ionicons name="checkmark-circle" size={18} color={Colors.secondary} />
-              <Text style={styles.successText}>Changes saved successfully!</Text>
+              <Text style={styles.successText}>{t('settings.success')}</Text>
             </View>
           )}
 
+          {/* Language Switch */}
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+            <View style={styles.languageContainer}>
+              <TouchableOpacity
+                style={[styles.langTab, i18n.language === 'en' && styles.langTabActive]}
+                onPress={() => i18n.changeLanguage('en')}
+              >
+                <Text style={[styles.langText, i18n.language === 'en' && styles.langTextActive]}>
+                  {t('settings.english')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.langTab, i18n.language === 'id' && styles.langTabActive]}
+                onPress={() => i18n.changeLanguage('id')}
+              >
+                <Text style={[styles.langText, i18n.language === 'id' && styles.langTextActive]}>
+                  {t('settings.indonesian')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
+
           {/* Team Information */}
           <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Team Information</Text>
+            <Text style={styles.sectionTitle}>{t('settings.teamInfo')}</Text>
 
             <Input
-              label="Team Name"
+              label={t('setup.teamName')}
               value={teamName}
               onChangeText={setTeamName}
-              placeholder="Enter team name"
+              placeholder={t('setup.teamNamePlaceholder')}
             />
 
             <Input
-              label="Team Password"
+              label={t('setup.teamPassword')}
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter password"
+              placeholder={t('setup.teamPasswordPlaceholder')}
               secureTextEntry
             />
 
             <Select
-              label="Grade or Year Level"
+              label={t('setup.gradeLevel')}
               value={gradeLevel}
               options={gradeLevels}
               onValueChange={setGradeLevel}
             />
 
             <View style={styles.teamIdBox}>
-              <Text style={styles.teamIdLabel}>Team ID: {team.discriminator}</Text>
+              <Text style={styles.teamIdLabel}>{t('dashboard.teamId', { id: team.discriminator })}</Text>
               <Text style={styles.teamIdHint}>
-                This unique code identifies your team on the leaderboard
+                {t('settings.teamIdDesc')}
               </Text>
             </View>
           </Card>
 
           {/* Team Members */}
           <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Team Members</Text>
+            <Text style={styles.sectionTitle}>{t('setup.teamMembers')}</Text>
 
             {members.map((member, index) => (
               <View key={index} style={styles.memberRow}>
@@ -169,7 +195,7 @@ export default function Settings() {
                   <Input
                     value={member}
                     onChangeText={(v) => updateMember(index, v)}
-                    placeholder={`Member ${index + 1}`}
+                    placeholder={t('setup.memberPlaceholder', { count: index + 1 })}
                     containerStyle={{ marginBottom: 0 }}
                   />
                 </View>
@@ -186,7 +212,7 @@ export default function Settings() {
 
             {members.length < 5 && (
               <Button
-                title="Add Member"
+                title={t('setup.addMember')}
                 onPress={addMember}
                 variant="outlined"
                 fullWidth
@@ -196,7 +222,7 @@ export default function Settings() {
             )}
             {members.length >= 5 && (
               <View style={{ marginTop: Spacing.sm, alignItems: 'center' }}>
-                <Text style={{ ...Typography.caption, color: Colors.textMuted }}>Maximum of 5 members per team reached</Text>
+                <Text style={{ ...Typography.caption, color: Colors.textMuted }}>{t('setup.maxMembers')}</Text>
               </View>
             )}
           </Card>
@@ -204,7 +230,7 @@ export default function Settings() {
           {/* Action buttons */}
           <View style={styles.actions}>
             <Button
-              title="Save Changes"
+              title={t('settings.saveChanges')}
               onPress={handleSave}
               fullWidth
               size="lg"
@@ -212,7 +238,7 @@ export default function Settings() {
             />
 
             <Button
-              title="Logout"
+              title={t('settings.logout')}
               onPress={handleLogout}
               variant="danger"
               fullWidth
@@ -285,5 +311,29 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: Spacing.md,
+  },
+  languageContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: 4,
+  },
+  langTab: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: BorderRadius.sm,
+  },
+  langTabActive: {
+    backgroundColor: Colors.white,
+    ...Shadows.sm,
+  },
+  langText: {
+    ...Typography.bodySmall,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  langTextActive: {
+    color: Colors.primary,
   },
 });

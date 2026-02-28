@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../../src/components/Card';
 import { Chip } from '../../../src/components/Chip';
@@ -35,6 +36,7 @@ interface FormField {
 }
 
 export default function ActivityDetail() {
+  const { t } = useTranslation();
   const { activityId } = useLocalSearchParams<{ activityId: string }>();
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -72,14 +74,14 @@ export default function ActivityDetail() {
     await saveActivityResult(result);
     setFormData({});
     setPastResults([result, ...pastResults]);
-    Alert.alert('Saved!', 'Your results have been recorded.');
+    Alert.alert(t('activities.savedTitle'), t('activities.savedMsg'));
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Delete Result', 'Are you sure you want to delete this result?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('activities.deleteResult'), t('activities.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteActivityResult(id);
@@ -93,42 +95,42 @@ export default function ActivityDetail() {
     switch (activity.id) {
       case 'parachute-drop':
         return [
-          { name: 'gForce', label: 'G-Force Measured', type: 'number' },
-          { name: 'dropHeight', label: 'Drop Height (cm)', type: 'number' },
-          { name: 'parachuteSize', label: 'Parachute Size (cm²)', type: 'number' },
+          { name: 'gForce', label: t('data.activities.parachute-drop.fields.gForce'), type: 'number' },
+          { name: 'dropHeight', label: t('data.activities.parachute-drop.fields.dropHeight'), type: 'number' },
+          { name: 'parachuteSize', label: t('data.activities.parachute-drop.fields.parachuteSize'), type: 'number' },
         ];
       case 'sound-pollution':
         return [
-          { name: 'maxDecibels', label: 'Max Sound Level (dB)', type: 'number' },
-          { name: 'avgDecibels', label: 'Average Sound Level (dB)', type: 'number' },
-          { name: 'location', label: 'Location', type: 'text' },
+          { name: 'maxDecibels', label: t('data.activities.sound-pollution.fields.maxDecibels'), type: 'number' },
+          { name: 'avgDecibels', label: t('data.activities.sound-pollution.fields.avgDecibels'), type: 'number' },
+          { name: 'location', label: t('data.activities.sound-pollution.fields.location'), type: 'text' },
         ];
       case 'hand-fan':
         return [
-          { name: 'windSpeed', label: 'Wind Speed (m/s)', type: 'number' },
-          { name: 'fanSize', label: 'Fan Diameter (cm)', type: 'number' },
+          { name: 'windSpeed', label: t('data.activities.hand-fan.fields.windSpeed'), type: 'number' },
+          { name: 'fanSize', label: t('data.activities.hand-fan.fields.fanSize'), type: 'number' },
         ];
       case 'earthquake':
         return [
-          { name: 'vibrationLevel', label: 'Max Vibration (Hz)', type: 'number' },
-          { name: 'structureHeight', label: 'Structure Height (cm)', type: 'number' },
-          { name: 'survived', label: 'Structure Survived', type: 'select', options: ['Yes', 'No'] },
+          { name: 'vibrationLevel', label: t('data.activities.earthquake.fields.vibrationLevel'), type: 'number' },
+          { name: 'structureHeight', label: t('data.activities.earthquake.fields.structureHeight'), type: 'number' },
+          { name: 'survived', label: t('data.activities.earthquake.fields.survived'), type: 'select', options: ['Yes', 'No'] },
         ];
       case 'human-performance':
         return [
-          { name: 'bendAngle', label: 'Max Bend Angle (degrees)', type: 'number' },
-          { name: 'speed', label: 'Movement Speed (1-10)', type: 'number' },
-          { name: 'gracefulness', label: 'Gracefulness Score (1-10)', type: 'number' },
+          { name: 'bendAngle', label: t('data.activities.human-performance.fields.bendAngle'), type: 'number' },
+          { name: 'speed', label: t('data.activities.human-performance.fields.speed'), type: 'number' },
+          { name: 'gracefulness', label: t('data.activities.human-performance.fields.gracefulness'), type: 'number' },
         ];
       case 'reaction-board':
         return [
-          { name: 'reactionTime', label: 'Reaction Time (ms)', type: 'number' },
-          { name: 'accuracy', label: 'Accuracy (%)', type: 'number' },
+          { name: 'reactionTime', label: t('data.activities.reaction-board.fields.reactionTime'), type: 'number' },
+          { name: 'accuracy', label: t('data.activities.reaction-board.fields.accuracy'), type: 'number' },
         ];
       case 'breathing-pace':
         return [
-          { name: 'breathsPerMinute', label: 'Breaths Per Minute', type: 'number' },
-          { name: 'consistency', label: 'Consistency Score (1-10)', type: 'number' },
+          { name: 'breathsPerMinute', label: t('data.activities.breathing-pace.fields.breathsPerMinute'), type: 'number' },
+          { name: 'consistency', label: t('data.activities.breathing-pace.fields.consistency'), type: 'number' },
         ];
       default:
         return [];
@@ -150,18 +152,18 @@ export default function ActivityDetail() {
             onPress={() => router.back()}
           >
             <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-            <Text style={styles.backText}>Back to Activities</Text>
+            <Text style={styles.backText}>{t('common.back')}</Text>
           </TouchableOpacity>
 
           {/* Activity info */}
           <Card style={styles.infoCard}>
-            <Text style={styles.activityName}>{activity.name}</Text>
-            <Text style={styles.activityDesc}>{activity.description}</Text>
+            <Text style={styles.activityName}>{t(`data.activities.${activity.id}.name`, { defaultValue: activity.name })}</Text>
+            <Text style={styles.activityDesc}>{t(`data.activities.${activity.id}.desc`, { defaultValue: activity.description })}</Text>
 
             <View style={styles.chipRow}>
-              <Chip label={activity.category} variant="filled" color={Colors.primary} size="md" />
+              <Chip label={t(`data.categories.${activity.category}`, { defaultValue: activity.category })} variant="filled" color={Colors.primary} size="md" />
               {activity.sensors.map((sensor) => (
-                <Chip key={sensor} label={sensor.replace('-', ' ')} size="sm" />
+                <Chip key={sensor} label={t(`data.sensors.${sensor}.name`, { defaultValue: sensor.replace('-', ' ') })} size="sm" />
               ))}
             </View>
 
@@ -169,7 +171,7 @@ export default function ActivityDetail() {
             <View style={styles.alert}>
               <Ionicons name="information-circle" size={18} color={Colors.primary} />
               <Text style={styles.alertText}>
-                Record your measurements and results below. All data will be saved to your team profile.
+                {t('activities.infoAlert')}
               </Text>
             </View>
 
@@ -190,22 +192,22 @@ export default function ActivityDetail() {
                   value={formData[field.name] || ''}
                   onChangeText={(v) => setFormData({ ...formData, [field.name]: v })}
                   keyboardType={field.type === 'number' ? 'numeric' : 'default'}
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
+                  placeholder={t('activities.enterValue', { label: field.label.toLowerCase() })}
                 />
               )
             )}
 
             <Input
-              label="Notes (optional)"
+              label={t('common.notes')}
               value={formData.notes || ''}
               onChangeText={(v) => setFormData({ ...formData, notes: v })}
               multiline
               numberOfLines={3}
-              placeholder="Add any notes..."
+              placeholder={t('sensors.notesPlaceholder')}
             />
 
             <Button
-              title="Save Results"
+              title={t('common.save')}
               onPress={handleSubmit}
               size="lg"
               fullWidth
@@ -217,7 +219,7 @@ export default function ActivityDetail() {
           {pastResults.length > 0 && (
             <View style={styles.resultsSection}>
               <Text style={styles.resultsTitle}>
-                Past Results ({pastResults.length})
+                {t('activities.pastResults', { count: pastResults.length })}
               </Text>
               {pastResults.map((result) => (
                 <Card key={result.id} style={styles.resultCard}>
