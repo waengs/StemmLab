@@ -12,16 +12,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input } from '../src/components/Input';
 import { Button } from '../src/components/Button';
 import { Select } from '../src/components/Select';
 import { saveTeam, generateDiscriminator, signInTeam } from '../src/utils/storage';
+import { hasProfanity } from '../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../src/theme';
 import type { Team } from '../src/types';
 
 export default function TeamSetup() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [teamName, setTeamName] = useState('');
   const [password, setPassword] = useState('');
   const [members, setMembers] = useState(['']);
@@ -69,6 +72,11 @@ export default function TeamSetup() {
       return;
     }
 
+    if (hasProfanity(teamName) || hasProfanity(password) || filteredMembers.some(hasProfanity)) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
+
     const team: Team = {
       name: teamName,
       password,
@@ -83,10 +91,26 @@ export default function TeamSetup() {
 
   return (
     <View style={styles.gradient}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-      >
+      <SafeAreaView style={styles.flex}>
+        <View style={[styles.langToggleContainer, { top: Math.max(insets.top, 16) + 16 }]}>
+          <TouchableOpacity
+            style={[styles.langToggleBtn, i18n.language === 'en' && styles.langToggleBtnActive]}
+            onPress={() => i18n.changeLanguage('en')}
+          >
+            <Text style={[styles.langToggleText, i18n.language === 'en' && styles.langToggleTextActive]}>EN</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.langToggleBtn, i18n.language === 'id' && styles.langToggleBtnActive]}
+            onPress={() => i18n.changeLanguage('id')}
+          >
+            <Text style={[styles.langToggleText, i18n.language === 'id' && styles.langToggleTextActive]}>ID</Text>
+          </TouchableOpacity>
+        </View>
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.flex}
+        >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -194,6 +218,7 @@ export default function TeamSetup() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -282,5 +307,32 @@ const styles = StyleSheet.create({
   removeBtn: {
     padding: Spacing.sm,
     marginTop: -Spacing.sm,
+  },
+  langToggleContainer: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.xl,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: BorderRadius.md,
+    padding: 4,
+    zIndex: 10,
+  },
+  langToggleBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  langToggleBtnActive: {
+    backgroundColor: Colors.white,
+    ...Shadows.sm,
+  },
+  langToggleText: {
+    ...Typography.bodySmall,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  langToggleTextActive: {
+    color: Colors.primary,
   },
 });

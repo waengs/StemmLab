@@ -4,7 +4,9 @@
     "save": "Save Results",
     "delete": "Delete",
     "cancel": "Cancel",
-    "notes": "Notes (optional)"
+    "notes": "Notes (optional)",
+    "profanityWarningTitle": "Inappropriate Language",
+    "profanityWarningMsg": "Please remove inappropriate language before submitting."
   },
   "setup": {
     "title": "STEM Lab",

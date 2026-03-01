@@ -19,6 +19,7 @@ import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { Select } from '../../src/components/Select';
 import { getTeam, saveTeam, clearTeam } from '../../src/utils/storage';
+import { hasProfanity } from '../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../src/theme';
 import type { Team } from '../../src/types';
 
@@ -77,6 +78,11 @@ export default function Settings() {
       return;
     }
 
+    if (hasProfanity(teamName) || hasProfanity(password) || filteredMembers.some(hasProfanity)) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
+
     const updatedTeam: Team = {
       ...team,
       name: teamName,
@@ -92,21 +98,27 @@ export default function Settings() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      t('settings.logout'),
-      t('settings.logoutConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('settings.logout'),
-          style: 'destructive',
-          onPress: async () => {
-            await clearTeam();
-            router.replace('/');
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('settings.logoutConfirm'))) {
+        clearTeam().then(() => router.replace('/'));
+      }
+    } else {
+      Alert.alert(
+        t('settings.logout'),
+        t('settings.logoutConfirm'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('settings.logout'),
+            style: 'destructive',
+            onPress: async () => {
+              await clearTeam();
+              router.replace('/');
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   if (!team) return null;

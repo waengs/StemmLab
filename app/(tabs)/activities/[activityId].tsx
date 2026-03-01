@@ -25,6 +25,7 @@ import {
   getActivityResults,
   deleteActivityResult,
 } from '../../../src/utils/storage';
+import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
 import type { ActivityResult, Team } from '../../../src/types';
 
@@ -62,6 +63,12 @@ export default function ActivityDetail() {
   if (!activity || !team) return null;
 
   const handleSubmit = async () => {
+    const hasBadWords = Object.values(formData).some(val => typeof val === 'string' && hasProfanity(val));
+    if (hasBadWords) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
+
     const result: ActivityResult = {
       id: Date.now().toString(),
       activityId: activity.id,

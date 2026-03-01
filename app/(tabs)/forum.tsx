@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +18,7 @@ import { Avatar } from '../../src/components/Avatar';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
 import { getTeam, getForumPosts, saveForumPost, updateForumPost } from '../../src/utils/storage';
+import { hasProfanity } from '../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography } from '../../src/theme';
 import type { ForumPost, ForumReply, Team } from '../../src/types';
 
@@ -42,6 +44,11 @@ export default function Forum() {
   const handleCreatePost = async () => {
     if (!team || !newPostContent.trim()) return;
 
+    if (hasProfanity(newPostContent)) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
+
     const post: ForumPost = {
       id: Date.now().toString(),
       teamName: team.name,
@@ -58,6 +65,11 @@ export default function Forum() {
 
   const handleReply = async (postId: string) => {
     if (!team || !replyContent[postId]?.trim()) return;
+
+    if (hasProfanity(replyContent[postId])) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
 
     const post = posts.find(p => p.id === postId);
     if (!post) return;

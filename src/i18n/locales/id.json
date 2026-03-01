@@ -4,7 +4,9 @@
     "save": "Simpan Hasil",
     "delete": "Hapus",
     "cancel": "Batal",
-    "notes": "Catatan (opsional)"
+    "notes": "Catatan (opsional)",
+    "profanityWarningTitle": "Bahasa Tidak Pantas",
+    "profanityWarningMsg": "Harap hapus kata-kata yang tidak pantas sebelum mengirim."
   },
   "setup": {
     "title": "STEM Lab",

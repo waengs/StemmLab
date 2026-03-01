@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +17,7 @@ import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
 import { SENSORS } from '../../src/types';
 import { getTeam, saveSensorLog, getSensorLogs } from '../../src/utils/storage';
+import { hasProfanity } from '../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../src/theme';
 import type { SensorLog, Team } from '../../src/types';
 
@@ -77,6 +79,11 @@ export default function Sensors() {
 
   const handleSave = async () => {
     if (!team || !selectedSensor) return;
+
+    if (hasProfanity(sensorValue)) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
 
     const log: SensorLog = {
       id: Date.now().toString(),
