@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, BorderRadius, Spacing } from '../theme';
+import { Colors, BorderRadius, Spacing } from '../../theme';
 
 interface ChipProps {
   label: string;
@@ -46,25 +46,10 @@ export function Chip({
 }
 
 const styles = StyleSheet.create({
-  base: {
-    borderRadius: BorderRadius.full,
-    alignSelf: 'flex-start',
-  },
-  sm: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-  },
-  md: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  text: {
-    fontWeight: '600',
-  },
-  textSm: {
-    fontSize: 11,
-  },
-  textMd: {
-    fontSize: 13,
-  },
+  base: { borderRadius: BorderRadius.full, alignSelf: 'flex-start' },
+  sm: { paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+  md: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs },
+  text: { fontWeight: '600' },
+  textSm: { fontSize: 11 },
+  textMd: { fontSize: 13 },
 });

@@ -1,6 +1,13 @@
 import React from 'react';
-import { View, TextInput as RNTextInput, Text, StyleSheet, ViewStyle, TextInputProps as RNTextInputProps } from 'react-native';
-import { Colors, BorderRadius, Spacing, Typography } from '../theme';
+import {
+  View,
+  TextInput as RNTextInput,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TextInputProps as RNTextInputProps,
+} from 'react-native';
+import { Colors, BorderRadius, Spacing, Typography } from '../../theme';
 
 interface InputProps extends Omit<RNTextInputProps, 'style'> {
   label?: string;
@@ -23,13 +30,8 @@ export function Input({ label, error, containerStyle, ...props }: InputProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: Spacing.md,
-  },
-  label: {
-    ...Typography.label,
-    marginBottom: Spacing.xs,
-  },
+  container: { marginBottom: Spacing.md },
+  label: { ...Typography.label, marginBottom: Spacing.xs },
   input: {
     backgroundColor: Colors.background,
     borderWidth: 1,
@@ -40,16 +42,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
   },
-  inputError: {
-    borderColor: Colors.danger,
-  },
-  multiline: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  error: {
-    ...Typography.caption,
-    color: Colors.danger,
-    marginTop: Spacing.xs,
-  },
+  inputError: { borderColor: Colors.danger },
+  multiline: { minHeight: 80, textAlignVertical: 'top' },
+  error: { ...Typography.caption, color: Colors.danger, marginTop: Spacing.xs },
 });

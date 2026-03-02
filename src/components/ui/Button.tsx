@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
-import { Colors, BorderRadius, Spacing, Typography } from '../theme';
+import { Colors, BorderRadius, Spacing, Typography } from '../../theme';
 
 interface ButtonProps {
   title: string;
@@ -25,34 +25,28 @@ export function Button({
   icon,
   style,
 }: ButtonProps) {
-  const buttonStyles = [
-    styles.base,
-    variantStyles[variant],
-    sizeStyles[size],
-    fullWidth && styles.fullWidth,
-    disabled && styles.disabled,
-    style,
-  ];
-
-  const textStyles = [
-    styles.text,
-    textVariants[variant],
-    textSizes[size],
-  ];
-
   return (
     <TouchableOpacity
-      style={buttonStyles}
+      style={[
+        styles.base,
+        variantStyles[variant],
+        sizeStyles[size],
+        fullWidth && styles.fullWidth,
+        disabled && styles.disabled,
+        style,
+      ]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? Colors.white : Colors.primary} />
+        <ActivityIndicator
+          color={variant === 'primary' || variant === 'danger' ? Colors.white : Colors.primary}
+        />
       ) : (
         <>
           {icon}
-          <Text style={textStyles}>{title}</Text>
+          <Text style={[styles.text, textVariants[variant], textSizes[size]]}>{title}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -67,32 +61,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     borderRadius: BorderRadius.md,
   },
-  fullWidth: {
-    width: '100%',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  text: {
-    ...Typography.button,
-  },
+  fullWidth: { width: '100%' },
+  disabled: { opacity: 0.5 },
+  text: { ...Typography.button },
 });
 
 const variantStyles: Record<string, ViewStyle> = {
-  primary: {
-    backgroundColor: Colors.primary,
-  },
-  outlined: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-  },
-  danger: {
-    backgroundColor: Colors.danger,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
+  primary: { backgroundColor: Colors.primary },
+  outlined: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Colors.primary },
+  danger: { backgroundColor: Colors.danger },
+  ghost: { backgroundColor: 'transparent' },
 };
 
 const textVariants = StyleSheet.create({

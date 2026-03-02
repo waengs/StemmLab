@@ -9,7 +9,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, BorderRadius, Spacing, Typography, Shadows } from '../theme';
+import { Colors, BorderRadius, Spacing, Typography, Shadows } from '../../theme';
 
 interface SelectProps {
   label?: string;
@@ -33,28 +33,13 @@ export function Select({
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <TouchableOpacity
-        style={styles.trigger}
-        onPress={() => setVisible(true)}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.triggerText, !value && styles.placeholder]}>
-          {value || placeholder}
-        </Text>
+      <TouchableOpacity style={styles.trigger} onPress={() => setVisible(true)} activeOpacity={0.7}>
+        <Text style={[styles.triggerText, !value && styles.placeholder]}>{value || placeholder}</Text>
         <Ionicons name="chevron-down" size={18} color={Colors.textMuted} />
       </TouchableOpacity>
 
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setVisible(false)}
-        >
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setVisible(false)}>
           <View style={styles.dropdown}>
             <Text style={styles.dropdownTitle}>{label || 'Select'}</Text>
             <FlatList
@@ -71,9 +56,7 @@ export function Select({
                   <Text style={[styles.optionText, item === value && styles.optionTextSelected]}>
                     {item}
                   </Text>
-                  {item === value && (
-                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
-                  )}
+                  {item === value && <Ionicons name="checkmark" size={20} color={Colors.primary} />}
                 </TouchableOpacity>
               )}
             />
@@ -85,13 +68,8 @@ export function Select({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: Spacing.md,
-  },
-  label: {
-    ...Typography.label,
-    marginBottom: Spacing.xs,
-  },
+  container: { marginBottom: Spacing.md },
+  label: { ...Typography.label, marginBottom: Spacing.xs },
   trigger: {
     backgroundColor: Colors.background,
     borderWidth: 1,
@@ -103,13 +81,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  triggerText: {
-    fontSize: 15,
-    color: Colors.text,
-  },
-  placeholder: {
-    color: Colors.textMuted,
-  },
+  triggerText: { fontSize: 15, color: Colors.text },
+  placeholder: { color: Colors.textMuted },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -137,14 +110,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderLight,
   },
-  optionSelected: {
-    backgroundColor: Colors.background,
-  },
-  optionText: {
-    ...Typography.body,
-  },
-  optionTextSelected: {
-    color: Colors.primary,
-    fontWeight: '600',
-  },
+  optionSelected: { backgroundColor: Colors.background },
+  optionText: { ...Typography.body },
+  optionTextSelected: { color: Colors.primary, fontWeight: '600' },
 });

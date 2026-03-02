@@ -13,11 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card } from '../../../src/components/Card';
-import { Chip } from '../../../src/components/Chip';
-import { Input } from '../../../src/components/Input';
-import { Button } from '../../../src/components/Button';
-import { Select } from '../../../src/components/Select';
+import { Card, Chip, Input, Button, Select } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import {
   getTeam,
