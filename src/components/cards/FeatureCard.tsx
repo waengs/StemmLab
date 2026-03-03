@@ -3,7 +3,8 @@ import { Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../ui/Card';
 import { IconBadge } from '../ui/IconBadge';
-import { Typography, Spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Spacing } from '../../theme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -16,13 +17,15 @@ interface FeatureCardProps {
 }
 
 export function FeatureCard({ title, description, icon, iconColor, onPress }: FeatureCardProps) {
+  const { typography } = useTheme();
+
   return (
     <Card fill onPress={onPress} style={styles.card}>
       <IconBadge name={icon} color={iconColor} />
-      <Text style={styles.title} numberOfLines={2}>
+      <Text style={[typography.h3, styles.title]} numberOfLines={2}>
         {title}
       </Text>
-      <Text style={styles.description} numberOfLines={2}>
+      <Text style={[typography.caption, styles.description]} numberOfLines={2}>
         {description}
       </Text>
     </Card>
@@ -30,16 +33,7 @@ export function FeatureCard({ title, description, icon, iconColor, onPress }: Fe
 }
 
 const styles = StyleSheet.create({
-  card: {
-    justifyContent: 'flex-start',
-  },
-  title: {
-    ...Typography.h3,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
-  },
-  description: {
-    ...Typography.caption,
-    flex: 1,
-  },
+  card: { justifyContent: 'flex-start' },
+  title: { marginTop: Spacing.md, marginBottom: Spacing.xs },
+  description: { flex: 1 },
 });

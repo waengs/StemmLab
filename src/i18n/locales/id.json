@@ -6,7 +6,9 @@
     "cancel": "Batal",
     "notes": "Catatan (opsional)",
     "profanityWarningTitle": "Bahasa Tidak Pantas",
-    "profanityWarningMsg": "Harap hapus kata-kata yang tidak pantas sebelum mengirim."
+    "profanityWarningMsg": "Harap hapus kata-kata yang tidak pantas sebelum mengirim.",
+    "searchPlaceholder": "Cari...",
+    "noSearchResults": "Tidak ada hasil ditemukan"
   },
   "setup": {
     "title": "STEM Lab",
@@ -68,10 +70,12 @@
     "deleteConfirm": "Apakah Anda yakin ingin menghapus hasil ini?",
     "savedTitle": "Tersimpan!",
     "savedMsg": "Hasil Anda telah dicatat.",
-    "enterValue": "Masukkan {{label}}"
+    "enterValue": "Masukkan {{label}}",
+    "searchPlaceholder": "Cari aktivitas..."
   },
   "sensors": {
     "pageTitle": "Sensor",
+    "searchPlaceholder": "Cari sensor atau catatan...",
     "recentLogs": "Catatan Terbaru",
     "startMeasurement": "Mulai Pengukuran",
     "saveLog": "Simpan ke Catatan",
@@ -83,10 +87,12 @@
     "noResults": "Belum ada hasil untuk kategori ini",
     "attempt": "percobaan",
     "attempt_plural": "percobaan",
-    "pts": "poin"
+    "pts": "poin",
+    "searchPlaceholder": "Cari tim atau kategori..."
   },
   "forum": {
     "pageTitle": "Forum Tim",
+    "searchPlaceholder": "Cari kiriman dan balasan...",
     "shareCommunity": "Bagikan dengan komunitas",
     "askPlaceholder": "Tanyakan sesuatu atau bagikan ide...",
     "post": "Kirim",
@@ -97,7 +103,7 @@
     "writeReply": "Tulis balasan..."
   },
   "settings": {
-    "pageTitle": "Pengaturan Tim",
+    "pageTitle": "Pengaturan",
     "success": "Perubahan berhasil disimpan!",
     "teamInfo": "Informasi Tim",
     "teamIdDesc": "Kode unik ini mengidentifikasi tim Anda di papan peringkat",
@@ -106,7 +112,15 @@
     "logoutConfirm": "Apakah Anda yakin ingin keluar? Anda harus masuk kembali dengan kredensial tim Anda.",
     "language": "Bahasa",
     "english": "Bahasa Inggris",
-    "indonesian": "Bahasa Indonesia"
+    "indonesian": "Bahasa Indonesia",
+    "appearance": "Tampilan",
+    "lightMode": "Terang",
+    "darkMode": "Gelap"
+  },
+  "profile": {
+    "title": "Profil Tim",
+    "back": "Kembali",
+    "openProfile": "Buka profil tim"
   },
   "data": {
     "categories": {

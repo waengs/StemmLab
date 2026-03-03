@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   Modal,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Colors, Spacing, BorderRadius, Typography } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { BorderRadius, Spacing } from '../../theme';
 import { SENSORS } from '../../types';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
@@ -35,7 +37,49 @@ export function SensorModal({
   onSave,
 }: SensorModalProps) {
   const { t } = useTranslation();
+  const { colors, typography } = useTheme();
   const sensor = sensorId ? SENSORS[sensorId as keyof typeof SENSORS] : null;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        overlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          justifyContent: 'flex-end',
+        },
+        content: {
+          backgroundColor: colors.surface,
+          borderTopLeftRadius: BorderRadius.xl,
+          borderTopRightRadius: BorderRadius.xl,
+          padding: Spacing.xxl,
+          paddingBottom: 40,
+        },
+        header: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: Spacing.lg,
+        },
+        iconRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.sm,
+          flex: 1,
+        },
+        title: { ...typography.h2 },
+        desc: { ...typography.body, color: colors.textSecondary, marginBottom: Spacing.xl },
+        measurement: {
+          backgroundColor: colors.primary,
+          borderRadius: BorderRadius.lg,
+          padding: Spacing.xxl,
+          alignItems: 'center',
+          marginBottom: Spacing.lg,
+        },
+        measurementValue: { fontSize: 28, fontWeight: '700', color: colors.white },
+      }),
+    [colors, typography]
+  );
 
   return (
     <Modal visible={!!sensorId} transparent animationType="slide" onRequestClose={onClose}>
@@ -45,14 +89,14 @@ export function SensorModal({
             <>
               <View style={styles.header}>
                 <View style={styles.iconRow}>
-                  <Ionicons name={sensor.icon as IoniconsName} size={24} color={Colors.primary} />
+                  <Ionicons name={sensor.icon as IoniconsName} size={24} color={colors.primary} />
                   <Text style={styles.title}>
                     {t(`data.sensors.${sensor.id}.name`, { defaultValue: sensor.name })}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={onClose} hitSlop={12}>
-                  <Ionicons name="close" size={24} color={Colors.textMuted} />
-                </TouchableOpacity>
+                <Pressable onPress={onClose} hitSlop={12} android_ripple={{ color: 'transparent' }}>
+                  <Ionicons name="close" size={24} color={colors.textMuted} />
+                </Pressable>
               </View>
 
               <Text style={styles.desc}>
@@ -65,7 +109,7 @@ export function SensorModal({
                   onPress={onStartMeasurement}
                   size="lg"
                   fullWidth
-                  icon={<Ionicons name="play" size={18} color={Colors.white} />}
+                  icon={<Ionicons name="play" size={18} color={colors.white} />}
                 />
               ) : (
                 <View>
@@ -85,7 +129,7 @@ export function SensorModal({
                     onPress={onSave}
                     size="lg"
                     fullWidth
-                    icon={<Ionicons name="save" size={18} color={Colors.white} />}
+                    icon={<Ionicons name="save" size={18} color={colors.white} />}
                   />
                 </View>
               )}
@@ -96,48 +140,3 @@ export function SensorModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  content: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
-    paddingBottom: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  title: { ...Typography.h2 },
-  desc: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
-  },
-  measurement: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xxl,
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  measurementValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-});

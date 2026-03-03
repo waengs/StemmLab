@@ -1,27 +1,52 @@
-import React, { useState, useCallback } from 'react';
-import { Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   PageTitle,
+  SearchBar,
   ForumComposer,
   ForumPostCard,
   EmptyState,
 } from '../../src/components';
-import { ScrollView, StyleSheet } from 'react-native';
+import { matchesSearch } from '../../src/utils/search';
 import { getTeam, getForumPosts, saveForumPost, updateForumPost } from '../../src/utils/storage';
 import { hasProfanity } from '../../src/utils/profanity';
-import { Colors, Spacing } from '../../src/theme';
+import { useTheme } from '../../src/context/ThemeContext';
+import { Spacing } from '../../src/theme';
 import type { ForumPost, ForumReply, Team } from '../../src/types';
 
 export default function Forum() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   const [team, setTeam] = useState<Team | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredPosts = useMemo(() => {
+    if (!searchQuery.trim()) return posts;
+    return posts.filter((post) => {
+      const replyText = post.replies.map((r) => `${r.teamName} ${r.content}`).join(' ');
+      return matchesSearch(`${post.teamName} ${post.content} ${replyText}`, searchQuery);
+    });
+  }, [posts, searchQuery]);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        safe: { flex: 1, backgroundColor: colors.background },
+        flex: { flex: 1 },
+        content: {
+          padding: Spacing.xl,
+          paddingBottom: Spacing.xxxl,
+        },
+      }),
+    [colors]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -92,12 +117,13 @@ export default function Forum() {
         style={styles.flex}
       >
         <ScrollView
-          style={styles.scroll}
+          style={styles.flex}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <PageTitle>{t('forum.pageTitle')}</PageTitle>
+          <PageTitle showSettings>{t('forum.pageTitle')}</PageTitle>
+          <SearchBar value={searchQuery} onChangeText={setSearchQuery} placeholder={t('forum.searchPlaceholder')} />
 
           <ForumComposer
             team={team}
@@ -112,8 +138,10 @@ export default function Forum() {
               title={t('forum.noPosts')}
               message={t('forum.noPostsDesc')}
             />
+          ) : filteredPosts.length === 0 ? (
+            <EmptyState message={t('common.noSearchResults')} />
           ) : (
-            posts.map((post) => (
+            filteredPosts.map((post) => (
               <ForumPostCard
                 key={post.id}
                 post={post}
@@ -132,13 +160,3 @@ export default function Forum() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  flex: { flex: 1 },
-  scroll: { flex: 1 },
-  content: {
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
-  },
-});

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, BorderRadius, Spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { BorderRadius, Spacing } from '../../theme';
 
 interface ChipProps {
   label: string;
@@ -13,10 +14,12 @@ interface ChipProps {
 export function Chip({
   label,
   variant = 'outlined',
-  color = Colors.primary,
+  color,
   size = 'sm',
   style,
 }: ChipProps) {
+  const { colors } = useTheme();
+  const chipColor = color ?? colors.primary;
   const isFilled = variant === 'filled';
 
   return (
@@ -25,8 +28,8 @@ export function Chip({
         styles.base,
         size === 'sm' ? styles.sm : styles.md,
         {
-          backgroundColor: isFilled ? color : 'transparent',
-          borderColor: color,
+          backgroundColor: isFilled ? chipColor : 'transparent',
+          borderColor: chipColor,
           borderWidth: isFilled ? 0 : 1,
         },
         style,
@@ -36,7 +39,7 @@ export function Chip({
         style={[
           styles.text,
           size === 'sm' ? styles.textSm : styles.textMd,
-          { color: isFilled ? Colors.white : color },
+          { color: isFilled ? colors.white : chipColor },
         ]}
       >
         {label}

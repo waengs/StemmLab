@@ -11,6 +11,9 @@ export { IconBadge } from './ui/IconBadge';
 // Layout
 export { Screen } from './layout/Screen';
 export { PageTitle } from './layout/PageTitle';
+export { SearchBar } from './layout/SearchBar';
+export { SettingsButton } from './layout/SettingsButton';
+export { CustomTabBar } from './layout/CustomTabBar';
 export { Grid } from './layout/Grid';
 export { SectionHeader } from './layout/SectionHeader';
 export { EmptyState } from './layout/EmptyState';

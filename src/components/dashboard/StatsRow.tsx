@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Spacing, BorderRadius, Shadows } from '../../theme';
 
 interface StatsRowProps {
   memberCount: number;
@@ -10,6 +11,28 @@ interface StatsRowProps {
 
 export function StatsRow({ memberCount, completedCount }: StatsRowProps) {
   const { t } = useTranslation();
+  const { colors, typography } = useTheme();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginTop: Spacing.xl,
+          backgroundColor: colors.surface,
+          borderRadius: BorderRadius.lg,
+          paddingVertical: Spacing.lg,
+          paddingHorizontal: Spacing.xxxl,
+          ...Shadows.sm,
+        },
+        stat: { alignItems: 'center', paddingHorizontal: Spacing.xl },
+        number: { fontSize: 24, fontWeight: '700', color: colors.primary },
+        label: { ...typography.caption, marginTop: 2 },
+        divider: { width: 1, height: 32, backgroundColor: colors.border },
+      }),
+    [colors, typography]
+  );
 
   return (
     <View style={styles.row}>
@@ -25,34 +48,3 @@ export function StatsRow({ memberCount, completedCount }: StatsRowProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.xl,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xxxl,
-    ...Shadows.sm,
-  },
-  stat: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  number: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  label: {
-    ...Typography.caption,
-    marginTop: 2,
-  },
-  divider: {
-    width: 1,
-    height: 32,
-    backgroundColor: Colors.border,
-  },
-});

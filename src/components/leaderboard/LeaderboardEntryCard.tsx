@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Chip } from '../ui/Chip';
-import { Colors, Spacing, Typography } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { Spacing } from '../../theme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -21,35 +22,51 @@ interface LeaderboardEntryCardProps {
   rank: number;
 }
 
-function getRankIcon(rank: number): { name: IoniconsName; color: string } | null {
+function getRankIcon(rank: number, colors: ReturnType<typeof useTheme>['colors']): { name: IoniconsName; color: string } | null {
   switch (rank) {
     case 0:
-      return { name: 'trophy', color: Colors.gold };
+      return { name: 'trophy', color: colors.gold };
     case 1:
-      return { name: 'medal', color: Colors.silver };
+      return { name: 'medal', color: colors.silver };
     case 2:
-      return { name: 'ribbon', color: Colors.bronze };
+      return { name: 'ribbon', color: colors.bronze };
     default:
       return null;
   }
 }
 
-function getRankColor(rank: number) {
+function getRankColor(rank: number, colors: ReturnType<typeof useTheme>['colors']) {
   switch (rank) {
     case 0:
-      return Colors.gold;
+      return colors.gold;
     case 1:
-      return Colors.silver;
+      return colors.silver;
     case 2:
-      return Colors.bronze;
+      return colors.bronze;
     default:
-      return Colors.primary;
+      return colors.primary;
   }
 }
 
 export function LeaderboardEntryCard({ entry, rank }: LeaderboardEntryCardProps) {
   const { t } = useTranslation();
-  const rankIcon = getRankIcon(rank);
+  const { colors, typography } = useTheme();
+  const rankIcon = getRankIcon(rank, colors);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: { marginBottom: Spacing.sm },
+        cardFirst: { borderWidth: 2, borderColor: colors.gold },
+        row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+        rank: { width: 32, alignItems: 'center' },
+        rankNumber: { ...typography.h3, color: colors.textMuted },
+        info: { flex: 1 },
+        name: { ...typography.h3 },
+        attempts: { ...typography.caption },
+      }),
+    [colors, typography]
+  );
 
   return (
     <Card style={[styles.card, rank === 0 && styles.cardFirst]}>
@@ -61,7 +78,7 @@ export function LeaderboardEntryCard({ entry, rank }: LeaderboardEntryCardProps)
             <Text style={styles.rankNumber}>#{rank + 1}</Text>
           )}
         </View>
-        <Avatar name={entry.teamName} size={40} backgroundColor={getRankColor(rank)} />
+        <Avatar name={entry.teamName} size={40} backgroundColor={getRankColor(rank, colors)} />
         <View style={styles.info}>
           <Text style={styles.name}>{entry.teamName}</Text>
           <Text style={styles.attempts}>
@@ -72,25 +89,10 @@ export function LeaderboardEntryCard({ entry, rank }: LeaderboardEntryCardProps)
         <Chip
           label={`${entry.score.toFixed(1)} ${t('leaderboard.pts')}`}
           variant={rank === 0 ? 'filled' : 'outlined'}
-          color={Colors.primary}
+          color={colors.primary}
           size="md"
         />
       </View>
     </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { marginBottom: Spacing.sm },
-  cardFirst: { borderWidth: 2, borderColor: Colors.gold },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  rank: { width: 32, alignItems: 'center' },
-  rankNumber: { ...Typography.h3, color: Colors.textMuted },
-  info: { flex: 1 },
-  name: { ...Typography.h3 },
-  attempts: { ...Typography.caption },
-});

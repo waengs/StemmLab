@@ -1,32 +1,77 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Screen, PageTitle, ActivityCategorySection } from '../../../src/components';
+import { Screen, PageTitle, ActivityCategorySection, SearchBar } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
-import { Colors } from '../../../src/theme';
+import { useTheme } from '../../../src/context/ThemeContext';
+import { matchesSearch } from '../../../src/utils/search';
 
 export default function Activities() {
   const { t } = useTranslation();
+  const { colors, typography } = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const engineeringActivities = Object.values(ACTIVITIES).filter((a) => a.category === 'Engineering');
-  const healthActivities = Object.values(ACTIVITIES).filter((a) => a.category === 'Health/Medical');
+  const filterActivity = (id: string, name: string, description: string, category: string) => {
+    const translatedName = t(`data.activities.${id}.name`, { defaultValue: name });
+    const translatedDesc = t(`data.activities.${id}.desc`, { defaultValue: description });
+    const translatedCategory = t(`data.categories.${category}`, { defaultValue: category });
+    return matchesSearch(`${translatedName} ${translatedDesc} ${translatedCategory}`, searchQuery);
+  };
+
+  const engineeringActivities = useMemo(
+    () =>
+      Object.values(ACTIVITIES).filter(
+        (a) =>
+          a.category === 'Engineering' &&
+          filterActivity(a.id, a.name, a.description, a.category)
+      ),
+    [searchQuery, t]
+  );
+
+  const healthActivities = useMemo(
+    () =>
+      Object.values(ACTIVITIES).filter(
+        (a) =>
+          a.category === 'Health/Medical' &&
+          filterActivity(a.id, a.name, a.description, a.category)
+      ),
+    [searchQuery, t]
+  );
+
+  const hasResults = engineeringActivities.length > 0 || healthActivities.length > 0;
 
   return (
     <Screen>
-      <PageTitle>{t('activities.pageTitle')}</PageTitle>
+      <PageTitle showSettings>{t('activities.pageTitle')}</PageTitle>
+      <SearchBar value={searchQuery} onChangeText={setSearchQuery} placeholder={t('activities.searchPlaceholder')} />
 
-      <ActivityCategorySection
-        title={t('activities.engineering')}
-        activities={engineeringActivities}
-        icon="construct"
-        iconColor={Colors.engineering}
-      />
+      {engineeringActivities.length > 0 && (
+        <ActivityCategorySection
+          title={t('activities.engineering')}
+          activities={engineeringActivities}
+          icon="construct"
+          iconColor={colors.engineering}
+        />
+      )}
 
-      <ActivityCategorySection
-        title={t('activities.health')}
-        activities={healthActivities}
-        icon="medkit"
-        iconColor={Colors.health}
-      />
+      {healthActivities.length > 0 && (
+        <ActivityCategorySection
+          title={t('activities.health')}
+          activities={healthActivities}
+          icon="medkit"
+          iconColor={colors.health}
+        />
+      )}
+
+      {!hasResults && (
+        <Text style={[typography.body, styles.empty, { color: colors.textMuted }]}>
+          {t('common.noSearchResults')}
+        </Text>
+      )}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  empty: { textAlign: 'center', marginTop: 24 },
+});

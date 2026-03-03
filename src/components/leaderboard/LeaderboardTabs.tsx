@@ -1,6 +1,7 @@
-import React from 'react';
-import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing, BorderRadius, Typography } from '../../theme';
+import React, { useMemo } from 'react';
+import { ScrollView, Pressable, Text, StyleSheet, Platform } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
+import { Spacing, BorderRadius } from '../../theme';
 
 interface TabItem {
   key: string;
@@ -14,56 +15,40 @@ interface LeaderboardTabsProps {
 }
 
 export function LeaderboardTabs({ tabs, selectedIndex, onSelect }: LeaderboardTabsProps) {
+  const { colors, typography } = useTheme();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        bar: { marginBottom: Spacing.xl, marginHorizontal: -Spacing.xl },
+        content: { paddingHorizontal: Spacing.xl, gap: Spacing.sm },
+        tab: {
+          paddingHorizontal: Spacing.lg,
+          paddingVertical: Spacing.sm,
+          borderRadius: BorderRadius.full,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
+        tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+        tabText: { ...typography.bodySmall, fontWeight: '600', color: colors.textSecondary },
+        tabTextActive: { color: colors.white },
+      }),
+    [colors, typography]
+  );
+
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={styles.bar}
-      contentContainerStyle={styles.content}
-    >
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bar} contentContainerStyle={styles.content}>
       {tabs.map((tab, idx) => (
-        <TouchableOpacity
+        <Pressable
           key={tab.key}
           style={[styles.tab, idx === selectedIndex && styles.tabActive]}
           onPress={() => onSelect(idx)}
-          activeOpacity={0.7}
+          android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
         >
-          <Text style={[styles.tabText, idx === selectedIndex && styles.tabTextActive]}>
-            {tab.label}
-          </Text>
-        </TouchableOpacity>
+          <Text style={[styles.tabText, idx === selectedIndex && styles.tabTextActive]}>{tab.label}</Text>
+        </Pressable>
       ))}
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    marginBottom: Spacing.xl,
-    marginHorizontal: -Spacing.xl,
-  },
-  content: {
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  tab: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  tabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  tabText: {
-    ...Typography.bodySmall,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  tabTextActive: {
-    color: Colors.white,
-  },
-});

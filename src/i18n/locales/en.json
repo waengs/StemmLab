@@ -6,7 +6,9 @@
     "cancel": "Cancel",
     "notes": "Notes (optional)",
     "profanityWarningTitle": "Inappropriate Language",
-    "profanityWarningMsg": "Please remove inappropriate language before submitting."
+    "profanityWarningMsg": "Please remove inappropriate language before submitting.",
+    "searchPlaceholder": "Search...",
+    "noSearchResults": "No results found"
   },
   "setup": {
     "title": "STEM Lab",
@@ -68,10 +70,12 @@
     "deleteConfirm": "Are you sure you want to delete this result?",
     "savedTitle": "Saved!",
     "savedMsg": "Your results have been recorded.",
-    "enterValue": "Enter {{label}}"
+    "enterValue": "Enter {{label}}",
+    "searchPlaceholder": "Search activities..."
   },
   "sensors": {
     "pageTitle": "Sensors",
+    "searchPlaceholder": "Search sensors or logs...",
     "recentLogs": "Recent Logs",
     "startMeasurement": "Start Measurement",
     "saveLog": "Save to Log",
@@ -83,10 +87,12 @@
     "noResults": "No results yet for this category",
     "attempt": "attempt",
     "attempt_plural": "attempts",
-    "pts": "pts"
+    "pts": "pts",
+    "searchPlaceholder": "Search teams or categories..."
   },
   "forum": {
     "pageTitle": "Team Forum",
+    "searchPlaceholder": "Search posts and replies...",
     "shareCommunity": "Share with the community",
     "askPlaceholder": "Ask a question or share an idea...",
     "post": "Post",
@@ -97,7 +103,7 @@
     "writeReply": "Write a reply..."
   },
   "settings": {
-    "pageTitle": "Team Settings",
+    "pageTitle": "Settings",
     "success": "Changes saved successfully!",
     "teamInfo": "Team Information",
     "teamIdDesc": "This unique code identifies your team on the leaderboard",
@@ -106,7 +112,15 @@
     "logoutConfirm": "Are you sure you want to logout? You'll need to log back in with your team credentials.",
     "language": "Language",
     "english": "English",
-    "indonesian": "Indonesian"
+    "indonesian": "Indonesian",
+    "appearance": "Appearance",
+    "lightMode": "Light",
+    "darkMode": "Dark"
+  },
+  "profile": {
+    "title": "Team Profile",
+    "back": "Back",
+    "openProfile": "Open team profile"
   },
   "data": {
     "categories": {

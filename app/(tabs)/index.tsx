@@ -1,11 +1,14 @@
 import React, { useState, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Screen,
+  SettingsButton,
   DashboardHeader,
   QuickActionsGrid,
   ProgressBanner,
 } from '../../src/components';
+import { Spacing } from '../../src/theme';
 import { getTeam, getActivityResults } from '../../src/utils/storage';
 import type { Team } from '../../src/types';
 
@@ -35,9 +38,24 @@ export default function Dashboard() {
 
   return (
     <Screen>
-      <DashboardHeader team={team} completedCount={completedCount} />
+      <View style={styles.settingsRow}>
+        <SettingsButton />
+      </View>
+      <DashboardHeader
+        team={team}
+        completedCount={completedCount}
+        onProfilePress={() => router.push('/(tabs)/profile')}
+      />
       <QuickActionsGrid />
       <ProgressBanner completedCount={completedCount} />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  settingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: Spacing.sm,
+  },
+});

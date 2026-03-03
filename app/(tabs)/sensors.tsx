@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Screen,
   PageTitle,
+  SearchBar,
   SensorGrid,
   SensorLogList,
   SensorModal,
@@ -14,6 +15,7 @@ import type { SensorLog, Team } from '../../src/types';
 
 export default function Sensors() {
   const { t } = useTranslation();
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sensorValue, setSensorValue] = useState('');
@@ -96,9 +98,10 @@ export default function Sensors() {
   return (
     <>
       <Screen>
-        <PageTitle>{t('sensors.pageTitle')}</PageTitle>
-        <SensorGrid onSensorPress={handleSensorClick} />
-        <SensorLogList logs={logs} />
+        <PageTitle showSettings>{t('sensors.pageTitle')}</PageTitle>
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} placeholder={t('sensors.searchPlaceholder')} />
+        <SensorGrid onSensorPress={handleSensorClick} searchQuery={searchQuery} />
+        <SensorLogList logs={logs} searchQuery={searchQuery} />
       </Screen>
 
       <SensorModal

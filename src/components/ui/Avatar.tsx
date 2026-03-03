@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 
 interface AvatarProps {
   name: string;
@@ -13,21 +13,24 @@ interface AvatarProps {
 export function Avatar({
   name,
   size = 48,
-  backgroundColor = Colors.primary,
-  textColor = Colors.white,
+  backgroundColor,
+  textColor,
   style,
 }: AvatarProps) {
+  const { colors } = useTheme();
+  const bg = backgroundColor ?? colors.primary;
+  const fg = textColor ?? colors.white;
   const initial = name.charAt(0).toUpperCase();
 
   return (
     <View
       style={[
         styles.container,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor },
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: bg },
         style,
       ]}
     >
-      <Text style={[styles.text, { fontSize: size * 0.4, color: textColor }]}>{initial}</Text>
+      <Text style={[styles.text, { fontSize: size * 0.4, color: fg }]}>{initial}</Text>
     </View>
   );
 }
