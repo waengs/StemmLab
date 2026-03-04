@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,30 +9,19 @@ import {
   SensorLogList,
   SensorModal,
 } from '../../src/components';
-import { getTeam, saveSensorLog, getSensorLogs } from '../../src/utils/storage';
 import { hasProfanity } from '../../src/utils/profanity';
-import type { SensorLog, Team } from '../../src/types';
+import { useAuthStore, useSensorStore, useTeamSensorLogs } from '../../src/stores';
+import type { SensorLog } from '../../src/types';
 
 export default function Sensors() {
   const { t } = useTranslation();
+  const team = useAuthStore((s) => s.team);
+  const logs = useTeamSensorLogs(team?.discriminator);
+  const addLog = useSensorStore((s) => s.addLog);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sensorValue, setSensorValue] = useState('');
-  const [logs, setLogs] = useState<SensorLog[]>([]);
-  const [team, setTeam] = useState<Team | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const teamData = await getTeam();
-      setTeam(teamData);
-      if (teamData) {
-        const allLogs = await getSensorLogs();
-        const teamLogs = allLogs.filter((l) => l.teamDiscriminator === teamData.discriminator);
-        setLogs(teamLogs.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10));
-      }
-    })();
-  }, []);
 
   const handleSensorClick = (sensorId: string) => {
     setSelectedSensor(sensorId);
@@ -84,8 +73,7 @@ export default function Sensors() {
       teamDiscriminator: team.discriminator,
     };
 
-    await saveSensorLog(log);
-    setLogs([log, ...logs].slice(0, 10));
+    await addLog(log);
     handleClose();
   };
 

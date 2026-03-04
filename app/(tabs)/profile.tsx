@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,21 +10,21 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Input, Button, Select, Avatar } from '../../src/components';
-import { getTeam, saveTeam } from '../../src/utils/storage';
 import { hasProfanity } from '../../src/utils/profanity';
-import { useTheme } from '../../src/context/ThemeContext';
+import { useTheme, useAuthStore } from '../../src/stores';
+import { useAuthRedirect } from '../../src/hooks/useAuthRedirect';
 import { Spacing, BorderRadius } from '../../src/theme';
-import type { Team } from '../../src/types';
 
 export default function Profile() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, typography } = useTheme();
-  const [team, setTeam] = useState<Team | null>(null);
+  const { team } = useAuthRedirect();
+  const updateTeam = useAuthStore((s) => s.updateTeam);
   const [teamName, setTeamName] = useState('');
   const [password, setPassword] = useState('');
   const [members, setMembers] = useState<string[]>([]);
@@ -32,6 +32,14 @@ export default function Profile() {
   const [saved, setSaved] = useState(false);
 
   const gradeLevels = [t('setup.gradeUpperPrimary'), t('setup.gradeLowerHigh')];
+
+  useEffect(() => {
+    if (!team) return;
+    setTeamName(team.name);
+    setPassword(team.password);
+    setMembers(team.members);
+    setGradeLevel(team.gradeLevel);
+  }, [team]);
 
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.background },
@@ -75,23 +83,6 @@ export default function Profile() {
     },
   });
 
-  useFocusEffect(
-    useCallback(() => {
-      (async () => {
-        const teamData = await getTeam();
-        if (!teamData) {
-          router.replace('/');
-          return;
-        }
-        setTeam(teamData);
-        setTeamName(teamData.name);
-        setPassword(teamData.password);
-        setMembers(teamData.members);
-        setGradeLevel(teamData.gradeLevel);
-      })();
-    }, [router])
-  );
-
   const addMember = () => {
     if (members.length < 5) setMembers([...members, '']);
   };
@@ -120,7 +111,7 @@ export default function Profile() {
       return;
     }
 
-    const updatedTeam: Team = {
+    const updatedTeam = {
       ...team,
       name: teamName,
       password,
@@ -128,8 +119,7 @@ export default function Profile() {
       gradeLevel,
     };
 
-    await saveTeam(updatedTeam);
-    setTeam(updatedTeam);
+    await updateTeam(updatedTeam);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

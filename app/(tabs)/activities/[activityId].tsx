@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,15 +15,11 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Chip, Input, Button, Select } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
-import {
-  getTeam,
-  saveActivityResult,
-  getActivityResults,
-  deleteActivityResult,
-} from '../../../src/utils/storage';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
-import type { ActivityResult, Team } from '../../../src/types';
+import { useAuthRedirect } from '../../../src/hooks/useAuthRedirect';
+import { useActivityResultsStore, useResultsForActivity } from '../../../src/stores';
+import type { ActivityResult } from '../../../src/types';
 
 interface FormField {
   name: string;
@@ -37,24 +33,12 @@ export default function ActivityDetail() {
   const { activityId } = useLocalSearchParams<{ activityId: string }>();
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [pastResults, setPastResults] = useState<ActivityResult[]>([]);
-  const [team, setTeam] = useState<Team | null>(null);
+  const { team } = useAuthRedirect();
+  const pastResults = useResultsForActivity(team?.discriminator, activityId);
+  const addResult = useActivityResultsStore((s) => s.addResult);
+  const removeResult = useActivityResultsStore((s) => s.removeResult);
 
   const activity = activityId ? ACTIVITIES[activityId as keyof typeof ACTIVITIES] : null;
-
-  useEffect(() => {
-    (async () => {
-      const teamData = await getTeam();
-      setTeam(teamData);
-      if (teamData && activityId) {
-        const allResults = await getActivityResults();
-        const teamResults = allResults.filter(
-          r => r.teamDiscriminator === teamData.discriminator && r.activityId === activityId
-        );
-        setPastResults(teamResults.sort((a, b) => b.timestamp - a.timestamp));
-      }
-    })();
-  }, [activityId]);
 
   if (!activity || !team) return null;
 
@@ -74,9 +58,8 @@ export default function ActivityDetail() {
       data: formData,
     };
 
-    await saveActivityResult(result);
+    await addResult(result);
     setFormData({});
-    setPastResults([result, ...pastResults]);
     Alert.alert(t('activities.savedTitle'), t('activities.savedMsg'));
   };
 
@@ -87,8 +70,7 @@ export default function ActivityDetail() {
         text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
-          await deleteActivityResult(id);
-          setPastResults(pastResults.filter(r => r.id !== id));
+          await removeResult(id);
         },
       },
     ]);

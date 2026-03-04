@@ -8,17 +8,17 @@ import {
   LeaderboardTabs,
   LeaderboardEntryCard,
   EmptyState,
-  type LeaderboardEntry,
 } from '../../src/components';
-import { getActivityResults } from '../../src/utils/storage';
 import { matchesSearch } from '../../src/utils/search';
-import type { ActivityResult } from '../../src/types';
+import { useActivityResultsStore, buildLeaderboards } from '../../src/stores';
 
 export default function Leaderboard() {
   const { t } = useTranslation();
+  const results = useActivityResultsStore((s) => s.results);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
-  const [leaderboards, setLeaderboards] = useState<Record<string, LeaderboardEntry[]>>({});
+
+  const leaderboards = useMemo(() => buildLeaderboards(results), [results]);
 
   const categories = useMemo(
     () => [
@@ -44,93 +44,6 @@ export default function Leaderboard() {
       setSelectedTab(0);
     }
   }, [filteredCategories.length, selectedTab]);
-
-  useEffect(() => {
-    (async () => {
-      const results = await getActivityResults();
-      const boards: Record<string, LeaderboardEntry[]> = {
-        overall: [],
-        'parachute-drop': [],
-        'sound-pollution': [],
-        'hand-fan': [],
-        earthquake: [],
-        'human-performance': [],
-        'reaction-board': [],
-        'breathing-pace': [],
-      };
-
-      const teamStats: Record<string, { count: number; totalScore: number }> = {};
-
-      results.forEach((result: ActivityResult) => {
-        if (!teamStats[result.teamDiscriminator]) {
-          teamStats[result.teamDiscriminator] = { count: 0, totalScore: 0 };
-        }
-        teamStats[result.teamDiscriminator].count += 1;
-
-        const score = calculateScore(result);
-        teamStats[result.teamDiscriminator].totalScore += score;
-
-        const existingEntry = boards[result.activityId]?.find(
-          (e) => e.teamDiscriminator === result.teamDiscriminator
-        );
-
-        if (existingEntry) {
-          existingEntry.score = Math.max(existingEntry.score, score);
-          existingEntry.count += 1;
-        } else {
-          if (!boards[result.activityId]) {
-            boards[result.activityId] = [];
-          }
-          boards[result.activityId].push({
-            teamDiscriminator: result.teamDiscriminator,
-            teamName: `Team ${result.teamDiscriminator}`,
-            score,
-            count: 1,
-          });
-        }
-      });
-
-      Object.entries(teamStats).forEach(([discriminator, stats]) => {
-        boards.overall.push({
-          teamDiscriminator: discriminator,
-          teamName: `Team ${discriminator}`,
-          score: stats.totalScore,
-          count: stats.count,
-        });
-      });
-
-      Object.keys(boards).forEach((key) => {
-        boards[key].sort((a, b) => b.score - a.score);
-      });
-
-      setLeaderboards(boards);
-    })();
-  }, []);
-
-  const calculateScore = (result: ActivityResult): number => {
-    switch (result.activityId) {
-      case 'parachute-drop':
-        return Math.max(0, 100 - (parseFloat(result.data.gForce) || 0) * 10);
-      case 'sound-pollution':
-        return parseFloat(result.data.maxDecibels) || 0;
-      case 'hand-fan':
-        return parseFloat(result.data.windSpeed) || 0;
-      case 'earthquake':
-        return result.data.survived === 'Yes' ? 100 : 0;
-      case 'human-performance':
-        return (
-          (parseFloat(result.data.bendAngle) || 0) +
-          (parseFloat(result.data.speed) || 0) * 2 +
-          (parseFloat(result.data.gracefulness) || 0) * 3
-        );
-      case 'reaction-board':
-        return (parseFloat(result.data.accuracy) || 0) - (parseFloat(result.data.reactionTime) || 1000) / 100;
-      case 'breathing-pace':
-        return (parseFloat(result.data.consistency) || 0) * 10;
-      default:
-        return 0;
-    }
-  };
 
   const activeCategory = filteredCategories[selectedTab]?.key ?? filteredCategories[0]?.key;
   const currentBoard = useMemo(() => {

@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   Screen,
   SettingsButton,
@@ -9,32 +9,15 @@ import {
   ProgressBanner,
 } from '../../src/components';
 import { Spacing } from '../../src/theme';
-import { getTeam, getActivityResults } from '../../src/utils/storage';
-import type { Team } from '../../src/types';
+import { useAuthRedirect } from '../../src/hooks/useAuthRedirect';
+import { useCompletedCount } from '../../src/stores';
 
 export default function Dashboard() {
   const router = useRouter();
-  const [team, setTeam] = useState<Team | null>(null);
-  const [completedCount, setCompletedCount] = useState(0);
+  const { team, isHydrated } = useAuthRedirect();
+  const completedCount = useCompletedCount(team?.discriminator);
 
-  useFocusEffect(
-    useCallback(() => {
-      (async () => {
-        const teamData = await getTeam();
-        if (!teamData) {
-          router.replace('/');
-          return;
-        }
-        setTeam(teamData);
-
-        const results = await getActivityResults();
-        const teamResults = results.filter((r) => r.teamDiscriminator === teamData.discriminator);
-        setCompletedCount(teamResults.length);
-      })();
-    }, [router])
-  );
-
-  if (!team) return null;
+  if (!isHydrated || !team) return null;
 
   return (
     <Screen>

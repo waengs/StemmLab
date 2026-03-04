@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import '../src/i18n';
-import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
+import { StoreHydrator } from '../src/components/StoreHydrator';
+import { useTheme } from '../src/stores/themeStore';
 
 function RootNavigator() {
   const { isDark } = useTheme();
@@ -19,8 +20,8 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
+    <StoreHydrator>
       <RootNavigator />
-    </ThemeProvider>
+    </StoreHydrator>
   );
 }

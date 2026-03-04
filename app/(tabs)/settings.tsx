@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,22 +9,20 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Button, PageTitle, SegmentedControl } from '../../src/components';
 import { SettingsLinkRow } from '../../src/components/settings/SettingsLinkRow';
-import { getTeam, clearTeam } from '../../src/utils/storage';
-import { useTheme } from '../../src/context/ThemeContext';
-import type { ThemeMode } from '../../src/context/ThemeContext';
+import { useTheme, useAuthStore, type ThemeMode } from '../../src/stores';
 import { Spacing } from '../../src/theme';
-import type { Team } from '../../src/types';
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors, typography, mode, setMode } = useTheme();
-  const [team, setTeam] = useState<Team | null>(null);
+  const team = useAuthStore((s) => s.team);
+  const signOut = useAuthStore((s) => s.signOut);
 
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.background },
@@ -35,19 +33,10 @@ export default function Settings() {
     actions: { gap: Spacing.md, marginTop: Spacing.sm },
   });
 
-  useFocusEffect(
-    useCallback(() => {
-      (async () => {
-        const teamData = await getTeam();
-        setTeam(teamData);
-      })();
-    }, [])
-  );
-
   const handleLogout = () => {
     if (Platform.OS === 'web') {
       if (window.confirm(t('settings.logoutConfirm'))) {
-        clearTeam().then(() => router.replace('/'));
+        signOut().then(() => router.replace('/'));
       }
     } else {
       Alert.alert(t('settings.logout'), t('settings.logoutConfirm'), [
@@ -56,7 +45,7 @@ export default function Settings() {
           text: t('settings.logout'),
           style: 'destructive',
           onPress: async () => {
-            await clearTeam();
+            await signOut();
             router.replace('/');
           },
         },

@@ -14,14 +14,14 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input, Button, Select } from '../src/components';
-import { saveTeam, generateDiscriminator, signInTeam } from '../src/utils/storage';
+import { useAuthStore } from '../src/stores';
 import { hasProfanity } from '../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../src/theme';
-import type { Team } from '../src/types';
-
 export default function TeamSetup() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const signIn = useAuthStore((s) => s.signIn);
+  const registerTeam = useAuthStore((s) => s.registerTeam);
   const insets = useSafeAreaInsets();
   const [teamName, setTeamName] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +39,7 @@ export default function TeamSetup() {
       Alert.alert(t('setup.missingFields'), t('setup.missingSignInMsg'));
       return;
     }
-    const success = await signInTeam(teamName, password);
+    const success = await signIn(teamName, password);
     if (success) {
       router.replace('/(tabs)');
     } else {
@@ -75,15 +75,12 @@ export default function TeamSetup() {
       return;
     }
 
-    const team: Team = {
+    await registerTeam({
       name: teamName,
       password,
       members: filteredMembers,
       gradeLevel,
-      discriminator: generateDiscriminator(),
-    };
-
-    await saveTeam(team);
+    });
     router.replace('/(tabs)');
   };
 

@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -11,20 +10,21 @@ import {
   EmptyState,
 } from '../../src/components';
 import { matchesSearch } from '../../src/utils/search';
-import { getTeam, getForumPosts, saveForumPost, updateForumPost } from '../../src/utils/storage';
 import { hasProfanity } from '../../src/utils/profanity';
-import { useTheme } from '../../src/context/ThemeContext';
+import { useTheme, useAuthStore, useForumStore } from '../../src/stores';
 import { Spacing } from '../../src/theme';
-import type { ForumPost, ForumReply, Team } from '../../src/types';
+import type { ForumPost, ForumReply } from '../../src/types';
 
 export default function Forum() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const [posts, setPosts] = useState<ForumPost[]>([]);
+  const team = useAuthStore((s) => s.team);
+  const posts = useForumStore((s) => s.posts);
+  const addPost = useForumStore((s) => s.addPost);
+  const updatePost = useForumStore((s) => s.updatePost);
   const [newPostContent, setNewPostContent] = useState('');
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
-  const [team, setTeam] = useState<Team | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredPosts = useMemo(() => {
@@ -48,17 +48,6 @@ export default function Forum() {
     [colors]
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      (async () => {
-        const teamData = await getTeam();
-        setTeam(teamData);
-        const allPosts = await getForumPosts();
-        setPosts(allPosts.sort((a, b) => b.timestamp - a.timestamp));
-      })();
-    }, [])
-  );
-
   const handleCreatePost = async () => {
     if (!team || !newPostContent.trim()) return;
 
@@ -76,8 +65,7 @@ export default function Forum() {
       replies: [],
     };
 
-    await saveForumPost(post);
-    setPosts([post, ...posts]);
+    await addPost(post);
     setNewPostContent('');
   };
 
@@ -101,9 +89,8 @@ export default function Forum() {
     };
 
     const updatedPost = { ...post, replies: [...post.replies, reply] };
-    await updateForumPost(updatedPost);
+    await updatePost(updatedPost);
 
-    setPosts(posts.map((p) => (p.id === postId ? updatedPost : p)));
     setReplyContent({ ...replyContent, [postId]: '' });
     setExpandedPosts({ ...expandedPosts, [postId]: true });
   };
