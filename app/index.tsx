@@ -14,73 +14,77 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input, Button, Select } from '../src/components';
+import { TeamJoinPanel } from '../src/components/team/TeamJoinPanel';
 import { useAuthStore } from '../src/stores';
 import { hasProfanity } from '../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../src/theme';
-export default function TeamSetup() {
+
+type AuthMode = 'signIn' | 'register';
+type TeamMode = 'create' | 'join';
+
+export default function AuthSetup() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const signIn = useAuthStore((s) => s.signIn);
-  const registerTeam = useAuthStore((s) => s.registerTeam);
   const insets = useSafeAreaInsets();
-  const [teamName, setTeamName] = useState('');
+  const user = useAuthStore((s) => s.user);
+  const needsTeam = useAuthStore((s) => s.needsTeam);
+  const signIn = useAuthStore((s) => s.signIn);
+  const register = useAuthStore((s) => s.register);
+  const createTeamAction = useAuthStore((s) => s.createTeam);
+  const joinTeamAction = useAuthStore((s) => s.joinTeam);
+  const signOut = useAuthStore((s) => s.signOut);
+
+  const [authMode, setAuthMode] = useState<AuthMode>('signIn');
+  const [teamMode, setTeamMode] = useState<TeamMode>('create');
+
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [members, setMembers] = useState(['']);
+
+  const [teamName, setTeamName] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
-  const [isSignIn, setIsSignIn] = useState(false);
+  const [joinPassword, setJoinPassword] = useState('');
 
   const gradeLevels = [
     t('setup.gradeUpperPrimary'),
     t('setup.gradeLowerHigh'),
   ];
 
+  const showTeamStep = Boolean(user && needsTeam);
+
   const handleSignIn = async () => {
-    if (!teamName || !password) {
+    if (!email || !password) {
       Alert.alert(t('setup.missingFields'), t('setup.missingSignInMsg'));
       return;
     }
-    const success = await signIn(teamName, password);
-    if (success) {
-      router.replace('/(tabs)');
-    } else {
+    const success = await signIn(email.trim(), password);
+    if (!success) {
       Alert.alert(t('setup.signInError'), t('setup.signInErrorMsg'));
     }
   };
 
-  const addMember = () => {
-    if (members.length < 5) {
-      setMembers([...members, '']);
-    }
-  };
-
-  const removeMember = (index: number) => {
-    setMembers(members.filter((_, i) => i !== index));
-  };
-
-  const updateMember = (index: number, value: string) => {
-    const updated = [...members];
-    updated[index] = value;
-    setMembers(updated);
-  };
-
-  const handleSubmit = async () => {
-    const filteredMembers = members.filter(m => m.trim() !== '');
-    if (!teamName || !password || filteredMembers.length === 0 || !gradeLevel) {
-      Alert.alert(t('setup.missingFields'), t('setup.missingFieldsMsg'));
+  const handleRegister = async () => {
+    if (!displayName || !email || !password) {
+      Alert.alert(t('setup.missingFields'), t('setup.missingRegisterMsg'));
       return;
     }
-
-    if (hasProfanity(teamName) || hasProfanity(password) || filteredMembers.some(hasProfanity)) {
+    if (hasProfanity(displayName) || hasProfanity(password)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
       return;
     }
+    await register({ displayName: displayName.trim(), email: email.trim(), password });
+  };
 
-    await registerTeam({
-      name: teamName,
-      password,
-      members: filteredMembers,
-      gradeLevel,
-    });
+  const handleCreateTeam = async () => {
+    if (!teamName || !joinPassword || !gradeLevel) {
+      Alert.alert(t('setup.missingFields'), t('setup.missingTeamMsg'));
+      return;
+    }
+    if (hasProfanity(teamName) || hasProfanity(joinPassword)) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
+    await createTeamAction({ name: teamName.trim(), gradeLevel, joinPassword });
     router.replace('/(tabs)');
   };
 
@@ -106,135 +110,165 @@ export default function TeamSetup() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.flex}
         >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="people" size={36} color={Colors.white} />
-            </View>
-            <Text style={styles.title}>{t('setup.title')}</Text>
-            <Text style={styles.subtitle}>{t('setup.subtitle')}</Text>
-          </View>
-
-          <View style={styles.formCard}>
-            <View style={styles.tabsContainer}>
-              <TouchableOpacity onPress={() => setIsSignIn(false)} style={[styles.tab, !isSignIn && styles.activeTab]}>
-                <Text style={[styles.tabText, !isSignIn && styles.activeTabText]}>{t('setup.createTeamTab')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setIsSignIn(true)} style={[styles.tab, isSignIn && styles.activeTab]}>
-                <Text style={[styles.tabText, isSignIn && styles.activeTabText]}>{t('setup.signInTab')}</Text>
-              </TouchableOpacity>
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <Ionicons name={showTeamStep ? 'people' : 'person'} size={36} color={Colors.white} />
+              </View>
+              <Text style={styles.title}>{t('setup.title')}</Text>
+              <Text style={styles.subtitle}>
+                {showTeamStep ? t('setup.teamStepSubtitle') : t('setup.subtitle')}
+              </Text>
             </View>
 
-            <Input
-              label={t('setup.teamName')}
-              value={teamName}
-              onChangeText={setTeamName}
-              placeholder={t('setup.teamNamePlaceholder')}
-            />
-
-            <Input
-              label={t('setup.teamPassword')}
-              value={password}
-              onChangeText={setPassword}
-              placeholder={t('setup.teamPasswordPlaceholder')}
-              secureTextEntry
-            />
-
-            {!isSignIn && (
-              <>
-                <Select
-                  label={t('setup.gradeLevel')}
-                  value={gradeLevel}
-                  options={gradeLevels}
-                  onValueChange={setGradeLevel}
-                  placeholder={t('setup.gradeLevelPlaceholder')}
-                />
-
-                <Text style={styles.sectionLabel}>{t('setup.teamMembers')}</Text>
-
-                {members.map((member, index) => (
-                  <View key={index} style={styles.memberRow}>
-                    <View style={styles.memberInput}>
-                      <Input
-                        value={member}
-                        onChangeText={(v) => updateMember(index, v)}
-                        placeholder={t('setup.memberPlaceholder', { count: index + 1 })}
-                        containerStyle={{ marginBottom: 0 }}
-                      />
-                    </View>
-                    {members.length > 1 && (
-                      <TouchableOpacity
-                        onPress={() => removeMember(index)}
-                        style={styles.removeBtn}
-                      >
-                        <Ionicons name="trash-outline" size={20} color={Colors.danger} />
-                      </TouchableOpacity>
-                    )}
+            <View style={styles.formCard}>
+              {!showTeamStep ? (
+                <>
+                  <View style={styles.tabsContainer}>
+                    <TouchableOpacity
+                      onPress={() => setAuthMode('signIn')}
+                      style={[styles.tab, authMode === 'signIn' && styles.activeTab]}
+                    >
+                      <Text style={[styles.tabText, authMode === 'signIn' && styles.activeTabText]}>
+                        {t('setup.signInTab')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setAuthMode('register')}
+                      style={[styles.tab, authMode === 'register' && styles.activeTab]}
+                    >
+                      <Text style={[styles.tabText, authMode === 'register' && styles.activeTabText]}>
+                        {t('setup.registerTab')}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                ))}
 
-                {members.length < 5 && (
-                  <Button
-                    title={t('setup.addMember')}
-                    onPress={addMember}
-                    variant="outlined"
-                    fullWidth
-                    icon={<Ionicons name="add" size={18} color={Colors.primary} />}
-                    style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }}
+                  {authMode === 'register' && (
+                    <Input
+                      label={t('setup.displayName')}
+                      value={displayName}
+                      onChangeText={setDisplayName}
+                      placeholder={t('setup.displayNamePlaceholder')}
+                      autoCapitalize="words"
+                      onLightSurface
+                    />
+                  )}
+
+                  <Input
+                    label={t('setup.email')}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder={t('setup.emailPlaceholder')}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    onLightSurface
                   />
-                )}
-                {members.length >= 5 && (
-                  <View style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl, alignItems: 'center' }}>
-                    <Text style={{ ...Typography.caption, color: Colors.textMuted }}>{t('setup.maxMembers')}</Text>
+
+                  <Input
+                    label={t('setup.password')}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder={t('setup.passwordPlaceholder')}
+                    secureTextEntry
+                    onLightSurface
+                  />
+
+                  <Button
+                    title={authMode === 'signIn' ? t('setup.signInBtn') : t('setup.registerBtn')}
+                    onPress={authMode === 'signIn' ? handleSignIn : handleRegister}
+                    size="lg"
+                    fullWidth
+                    style={{ marginTop: Spacing.lg }}
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.welcomeUser}>
+                    {t('setup.helloUser', { name: user?.displayName ?? '' })}
+                  </Text>
+
+                  <View style={styles.tabsContainer}>
+                    <TouchableOpacity
+                      onPress={() => setTeamMode('create')}
+                      style={[styles.tab, teamMode === 'create' && styles.activeTab]}
+                    >
+                      <Text style={[styles.tabText, teamMode === 'create' && styles.activeTabText]}>
+                        {t('setup.createTeamTab')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setTeamMode('join')}
+                      style={[styles.tab, teamMode === 'join' && styles.activeTab]}
+                    >
+                      <Text style={[styles.tabText, teamMode === 'join' && styles.activeTabText]}>
+                        {t('setup.joinTeamTab')}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                )}
 
-                <Button
-                  title={t('setup.createTeamBtn')}
-                  onPress={handleSubmit}
-                  size="lg"
-                  fullWidth
-                />
-              </>
-            )}
+                  {teamMode === 'create' ? (
+                    <>
+                      <Input
+                        label={t('setup.teamName')}
+                        value={teamName}
+                        onChangeText={setTeamName}
+                        placeholder={t('setup.teamNamePlaceholder')}
+                        onLightSurface
+                      />
+                      <Select
+                        label={t('setup.gradeLevel')}
+                        value={gradeLevel}
+                        options={gradeLevels}
+                        onValueChange={setGradeLevel}
+                        placeholder={t('setup.gradeLevelPlaceholder')}
+                        onLightSurface
+                      />
+                      <Input
+                        label={t('setup.joinPassword')}
+                        value={joinPassword}
+                        onChangeText={setJoinPassword}
+                        placeholder={t('setup.joinPasswordPlaceholder')}
+                        secureTextEntry
+                        onLightSurface
+                      />
+                      <Text style={styles.hint}>{t('setup.joinPasswordHint')}</Text>
+                      <Button
+                        title={t('setup.createTeamBtn')}
+                        onPress={handleCreateTeam}
+                        size="lg"
+                        fullWidth
+                        style={{ marginTop: Spacing.lg }}
+                      />
+                    </>
+                  ) : (
+                    <TeamJoinPanel
+                      joinTeam={joinTeamAction}
+                      onJoinSuccess={() => router.replace('/(tabs)')}
+                    />
+                  )}
 
-            {isSignIn && (
-              <Button
-                title={t('setup.signInBtn')}
-                onPress={handleSignIn}
-                size="lg"
-                fullWidth
-                style={{ marginTop: Spacing.xl }}
-              />
-            )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+                  <Button
+                    title={t('setup.signOutDifferent')}
+                    onPress={() => void signOut()}
+                    variant="ghost"
+                    fullWidth
+                    style={{ marginTop: Spacing.md }}
+                  />
+                </>
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: Spacing.xxl,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing.xxxl,
-  },
+  gradient: { flex: 1, backgroundColor: Colors.primary },
+  flex: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: Spacing.xxl },
+  header: { alignItems: 'center', marginBottom: Spacing.xxxl },
   iconContainer: {
     width: 72,
     height: 72,
@@ -244,16 +278,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: Colors.white,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    ...Typography.body,
-    color: 'rgba(255,255,255,0.8)',
-  },
+  title: { fontSize: 32, fontWeight: '800', color: Colors.white, marginBottom: Spacing.xs },
+  subtitle: { ...Typography.body, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
   formCard: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
@@ -267,45 +293,19 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: 4,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    borderRadius: BorderRadius.sm,
-  },
-  activeTab: {
-    backgroundColor: Colors.white,
-    ...Shadows.sm,
-  },
-  tabText: {
-    ...Typography.bodySmall,
+  tab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: BorderRadius.sm },
+  activeTab: { backgroundColor: Colors.white, ...Shadows.sm },
+  tabText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  activeTabText: { color: Colors.primary },
+  welcomeUser: {
+    fontSize: 15,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+    color: '#0F172A',
   },
-  activeTabText: {
-    color: Colors.primary,
-  },
-  sectionLabel: {
-    ...Typography.label,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  memberInput: {
-    flex: 1,
-  },
-  removeBtn: {
-    padding: Spacing.sm,
-    marginTop: -Spacing.sm,
-  },
+  hint: { fontSize: 12, color: '#64748B', marginTop: -Spacing.sm, marginBottom: Spacing.md },
   langToggleContainer: {
     position: 'absolute',
-    top: Spacing.md,
     right: Spacing.xl,
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -313,21 +313,8 @@ const styles = StyleSheet.create({
     padding: 4,
     zIndex: 10,
   },
-  langToggleBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  langToggleBtnActive: {
-    backgroundColor: Colors.white,
-    ...Shadows.sm,
-  },
-  langToggleText: {
-    ...Typography.bodySmall,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  langToggleTextActive: {
-    color: Colors.primary,
-  },
+  langToggleBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.sm },
+  langToggleBtnActive: { backgroundColor: Colors.white, ...Shadows.sm },
+  langToggleText: { ...Typography.bodySmall, fontWeight: '700', color: Colors.white },
+  langToggleTextActive: { color: Colors.primary },
 });

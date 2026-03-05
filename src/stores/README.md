@@ -1,6 +1,6 @@
 # Zustand stores
 
-Global state lives in `src/stores/`. AsyncStorage remains the persistence layer in `src/utils/storage.ts`; stores hydrate from it on launch and update both memory and disk on mutations.
+Global state lives in `src/stores/`. Persistence goes through `src/utils/storage.ts` → **SQLite** (local) + **Firestore** (cloud sync). See `docs/FIREBASE_SETUP.md`.
 
 ## Stores
 
@@ -21,6 +21,8 @@ Global state lives in `src/stores/`. AsyncStorage remains the persistence layer 
 5. In screens, use narrow selectors: `useMyStore((s) => s.items)` — keep UI-only state (search text, modals) local with `useState`.
 6. Selectors that return **arrays or objects** must use `useShallow` from `zustand/react/shallow`, or a dedicated hook (see `useResultsForActivity`, `useTeamSensorLogs`). Otherwise React hits "Maximum update depth exceeded".
 
+Auth is **Firebase only** — see `docs/DATA_STORAGE.md` and `docs/FIREBASE_SETUP.md`.
+
 ## Bootstrap
 
 `StoreHydrator` in `app/_layout.tsx` runs `hydrateStores()` once before rendering the app.
@@ -28,4 +30,5 @@ Global state lives in `src/stores/`. AsyncStorage remains the persistence layer 
 ## Hooks
 
 - `useTheme()` — stable API for themed components (backed by `themeStore`).
-- `useAuthRedirect()` — redirects to `/` when no team after hydration.
+- `useRequireAuth()` — read auth state in screens (no navigation).
+- `AuthRedirect` in `app/_layout.tsx` — single app-wide route guard.

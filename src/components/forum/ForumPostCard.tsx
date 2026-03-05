@@ -95,9 +95,9 @@ export function ForumPostCard({
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Avatar name={post.teamName} size={36} />
+        <Avatar name={post.authorName} size={36} />
         <View style={styles.meta}>
-          <Text style={styles.team}>{post.teamName}</Text>
+          <Text style={styles.team}>{post.authorName}</Text>
           <Text style={styles.date}>{new Date(post.timestamp).toLocaleString()}</Text>
         </View>
       </View>
@@ -127,8 +127,8 @@ export function ForumPostCard({
           {post.replies.map((reply) => (
             <View key={reply.id} style={styles.replyItem}>
               <View style={styles.replyHeader}>
-                <Avatar name={reply.teamName} size={22} backgroundColor={colors.primaryLight} />
-                <Text style={styles.replyTeam}>{reply.teamName}</Text>
+                <Avatar name={reply.authorName} size={22} backgroundColor={colors.primaryLight} />
+                <Text style={styles.replyTeam}>{reply.authorName}</Text>
                 <Text style={styles.replyDate}>• {new Date(reply.timestamp).toLocaleString()}</Text>
               </View>
               <Text style={styles.replyContent}>{reply.content}</Text>

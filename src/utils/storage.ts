@@ -1,99 +1,167 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Team, ActivityResult, SensorLog, ForumPost } from '../types';
-
-const STORAGE_KEYS = {
-  TEAM: 'stem_app_team',
-  ALL_TEAMS: 'stem_app_all_teams',
-  RESULTS: 'stem_app_results',
-  SENSOR_LOGS: 'stem_app_sensor_logs',
-  FORUM_POSTS: 'stem_app_forum_posts',
-};
+import { assertFirebaseConfigured } from '../config/env';
+import { initDatabase } from '../database/client';
+import { migrateLegacyContentIfNeeded } from '../database/migrateLegacyContent';
+import * as activityRepo from '../database/repositories/activityResultRepository';
+import * as sensorRepo from '../database/repositories/sensorLogRepository';
+import * as forumRepo from '../database/repositories/forumRepository';
+import {
+  registerAccount,
+  signInWithEmail,
+  createTeamForUser,
+  joinTeamForUser,
+  leaveTeamForUser,
+  getAuthSession,
+  signOut,
+  updateUserProfile,
+} from '../services/auth/authService';
+import {
+  listAvailableTeams,
+  filterTeamListings,
+  fetchTeamMembers,
+} from '../services/team/teamDirectoryService';
+import {
+  syncWhenOnline,
+  queueActivityResultSync,
+  queueActivityResultDelete,
+  queueSensorLogSync,
+  queueForumPostSync,
+  queueForumReplySync,
+} from '../services/sync/syncService';
+import type {
+  AppUser,
+  Team,
+  TeamListing,
+  TeamMemberSummary,
+  ActivityResult,
+  SensorLog,
+  ForumPost,
+} from '../types';
 
 export function generateDiscriminator(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-export async function getAllTeams(): Promise<Team[]> {
-  const data = await AsyncStorage.getItem(STORAGE_KEYS.ALL_TEAMS);
-  return data ? JSON.parse(data) : [];
+export async function initializeDataLayer(): Promise<void> {
+  assertFirebaseConfigured();
+  await initDatabase();
+  await migrateLegacyContentIfNeeded();
 }
 
-export async function saveTeam(team: Team): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEYS.TEAM, JSON.stringify(team));
-  
-  const allTeams = await getAllTeams();
-  const existingIndex = allTeams.findIndex(t => t.discriminator === team.discriminator || t.name === team.name);
-  if (existingIndex !== -1) {
-    allTeams[existingIndex] = team;
-  } else {
-    allTeams.push(team);
-  }
-  await AsyncStorage.setItem(STORAGE_KEYS.ALL_TEAMS, JSON.stringify(allTeams));
+export async function getAuthContext(): Promise<{ user: AppUser; team: Team | null } | null> {
+  return getAuthSession();
 }
 
-export async function signInTeam(name: string, password: string): Promise<boolean> {
-  const allTeams = await getAllTeams();
-  const team = allTeams.find(t => t.name.toLowerCase() === name.toLowerCase() && t.password === password);
-  
-  if (team) {
-    await AsyncStorage.setItem(STORAGE_KEYS.TEAM, JSON.stringify(team));
-    return true;
-  }
-  return false;
-}
-
+/** @deprecated Use getAuthContext */
 export async function getTeam(): Promise<Team | null> {
-  const data = await AsyncStorage.getItem(STORAGE_KEYS.TEAM);
-  return data ? JSON.parse(data) : null;
+  const ctx = await getAuthSession();
+  return ctx?.team ?? null;
 }
 
-export async function clearTeam(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEYS.TEAM);
+export async function getUser(): Promise<AppUser | null> {
+  const ctx = await getAuthSession();
+  return ctx?.user ?? null;
+}
+
+export async function registerUser(input: {
+  displayName: string;
+  email: string;
+  password: string;
+}): Promise<AppUser> {
+  return registerAccount(input);
+}
+
+export async function signInUser(email: string, password: string): Promise<AppUser | null> {
+  return signInWithEmail(email, password);
+}
+
+export async function createTeam(
+  uid: string,
+  input: { name: string; gradeLevel: string; joinPassword: string; discriminator?: string }
+): Promise<{ user: AppUser; team: Team }> {
+  const result = await createTeamForUser(uid, {
+    ...input,
+    discriminator: input.discriminator ?? generateDiscriminator(),
+  });
+  await syncWhenOnline();
+  return result;
+}
+
+export async function joinTeam(
+  uid: string,
+  teamDiscriminator: string,
+  joinPassword: string
+): Promise<{ user: AppUser; team: Team } | null> {
+  const result = await joinTeamForUser(uid, { teamDiscriminator, joinPassword });
+  if (result) await syncWhenOnline();
+  return result;
+}
+
+export async function leaveTeam(uid: string): Promise<AppUser> {
+  return leaveTeamForUser(uid);
+}
+
+export async function browseTeams(): Promise<TeamListing[]> {
+  return listAvailableTeams();
+}
+
+export { filterTeamListings, fetchTeamMembers };
+export type { TeamListing, TeamMemberSummary };
+
+export async function updateProfile(
+  user: AppUser,
+  options?: { displayName?: string; newPassword?: string }
+): Promise<AppUser> {
+  return updateUserProfile(user, options);
+}
+
+export async function clearSession(): Promise<void> {
+  await signOut();
 }
 
 export async function saveActivityResult(result: ActivityResult): Promise<void> {
-  const results = await getActivityResults();
-  results.push(result);
-  await AsyncStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(results));
+  await activityRepo.upsertActivityResult(result);
+  await queueActivityResultSync(result);
+  await syncWhenOnline();
 }
 
 export async function getActivityResults(): Promise<ActivityResult[]> {
-  const data = await AsyncStorage.getItem(STORAGE_KEYS.RESULTS);
-  return data ? JSON.parse(data) : [];
+  return activityRepo.getAllActivityResults();
 }
 
 export async function deleteActivityResult(id: string): Promise<void> {
-  const results = (await getActivityResults()).filter(r => r.id !== id);
-  await AsyncStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(results));
+  await activityRepo.deleteActivityResult(id);
+  await queueActivityResultDelete(id);
+  await syncWhenOnline();
 }
 
 export async function saveSensorLog(log: SensorLog): Promise<void> {
-  const logs = await getSensorLogs();
-  logs.push(log);
-  await AsyncStorage.setItem(STORAGE_KEYS.SENSOR_LOGS, JSON.stringify(logs));
+  await sensorRepo.upsertSensorLog(log);
+  await queueSensorLogSync(log);
+  await syncWhenOnline();
 }
 
 export async function getSensorLogs(): Promise<SensorLog[]> {
-  const data = await AsyncStorage.getItem(STORAGE_KEYS.SENSOR_LOGS);
-  return data ? JSON.parse(data) : [];
+  return sensorRepo.getAllSensorLogs();
 }
 
 export async function saveForumPost(post: ForumPost): Promise<void> {
-  const posts = await getForumPosts();
-  posts.push(post);
-  await AsyncStorage.setItem(STORAGE_KEYS.FORUM_POSTS, JSON.stringify(posts));
+  await forumRepo.upsertForumPost(post);
+  await queueForumPostSync(post);
+  await syncWhenOnline();
 }
 
 export async function updateForumPost(post: ForumPost): Promise<void> {
-  const posts = await getForumPosts();
-  const index = posts.findIndex(p => p.id === post.id);
-  if (index !== -1) {
-    posts[index] = post;
-    await AsyncStorage.setItem(STORAGE_KEYS.FORUM_POSTS, JSON.stringify(posts));
-  }
+  await forumRepo.upsertForumPost(post);
+  await queueForumPostSync(post);
+  const latestReply = post.replies[post.replies.length - 1];
+  if (latestReply) await queueForumReplySync(post.id, latestReply);
+  await syncWhenOnline();
 }
 
 export async function getForumPosts(): Promise<ForumPost[]> {
-  const data = await AsyncStorage.getItem(STORAGE_KEYS.FORUM_POSTS);
-  return data ? JSON.parse(data) : [];
+  return forumRepo.getAllForumPosts();
+}
+
+export async function refreshSharedData(): Promise<void> {
+  await syncWhenOnline();
 }

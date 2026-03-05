@@ -1,5 +1,5 @@
 export { useThemeStore, useTheme, type ThemeMode } from './themeStore';
-export { useAuthStore, useRequireTeam } from './authStore';
+export { useAuthStore, useRequireAuth } from './authStore';
 export {
   useActivityResultsStore,
   useResultsForActivity,

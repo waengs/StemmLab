@@ -2,7 +2,7 @@ import { useActivityResultsStore } from './activityResultsStore';
 import { useForumStore } from './forumStore';
 import { useSensorStore } from './sensorStore';
 
-/** Clears in-memory app data after logout (AsyncStorage session key is cleared separately). */
+/** Clears in-memory app data after logout. */
 export function resetDataStores() {
   useActivityResultsStore.getState().reset();
   useForumStore.getState().reset();

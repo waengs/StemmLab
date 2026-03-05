@@ -9,15 +9,16 @@ import {
   ProgressBanner,
 } from '../../src/components';
 import { Spacing } from '../../src/theme';
-import { useAuthRedirect } from '../../src/hooks/useAuthRedirect';
-import { useCompletedCount } from '../../src/stores';
+import { useRequireAuth } from '../../src/stores';
+import { useCompletedCount } from '../../src/stores/activityResultsStore';
+import { useAuthStore } from '../../src/stores';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { team, isHydrated } = useAuthRedirect();
-  const completedCount = useCompletedCount(team?.discriminator);
+  const { user, team, isHydrated } = useRequireAuth();
+  const completedCount = useCompletedCount(user?.teamDiscriminator ?? undefined);
 
-  if (!isHydrated || !team) return null;
+  if (!isHydrated || !user || !team) return null;
 
   return (
     <Screen>
@@ -25,6 +26,7 @@ export default function Dashboard() {
         <SettingsButton />
       </View>
       <DashboardHeader
+        user={user}
         team={team}
         completedCount={completedCount}
         onProfilePress={() => router.push('/(tabs)/profile')}

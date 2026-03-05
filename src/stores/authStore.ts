@@ -1,66 +1,168 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
+import type { User as FirebaseUser } from 'firebase/auth';
 import {
-  getTeam,
-  saveTeam,
-  signInTeam as signInTeamStorage,
-  clearTeam,
+  getAuthContext,
+  registerUser,
+  signInUser,
+  createTeam,
+  joinTeam,
+  leaveTeam,
+  clearSession,
+  updateProfile,
   generateDiscriminator,
 } from '../utils/storage';
+import { subscribeToAuthState, resolveUserAfterAuth } from '../services/auth/authService';
 import { resetDataStores } from './resetDataStores';
 import { rehydrateAppData } from './rehydrateAppData';
-import type { Team } from '../types';
+import type { AppUser, Team } from '../types';
 
 interface AuthState {
+  user: AppUser | null;
   team: Team | null;
+  firebaseUser: FirebaseUser | null;
   isHydrated: boolean;
+  needsTeam: boolean;
   hydrate: () => Promise<void>;
-  registerTeam: (team: Omit<Team, 'discriminator'> & { discriminator?: string }) => Promise<Team>;
-  signIn: (name: string, password: string) => Promise<boolean>;
-  updateTeam: (team: Team) => Promise<void>;
+  register: (input: { displayName: string; email: string; password: string }) => Promise<AppUser>;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  createTeam: (input: {
+    name: string;
+    gradeLevel: string;
+    joinPassword: string;
+    discriminator?: string;
+  }) => Promise<Team>;
+  joinTeam: (teamDiscriminator: string, joinPassword: string) => Promise<boolean>;
+  leaveTeam: () => Promise<void>;
+  updateUser: (options: { displayName?: string; newPassword?: string }) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+let authSubscription: (() => void) | null = null;
+
+function applyAuthState(
+  set: (partial: Partial<AuthState>) => void,
+  user: AppUser | null,
+  team: Team | null
+) {
+  set({
+    user,
+    team,
+    needsTeam: Boolean(user && !user.teamDiscriminator),
+  });
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
   team: null,
+  firebaseUser: null,
   isHydrated: false,
+  needsTeam: false,
 
   hydrate: async () => {
-    const team = await getTeam();
-    set({ team, isHydrated: true });
+    if (!authSubscription) {
+      authSubscription = subscribeToAuthState(async (firebaseUser) => {
+        set({ firebaseUser });
+        const { user, team } = await resolveUserAfterAuth(firebaseUser);
+        applyAuthState(set, user, team);
+        if (firebaseUser) {
+          try {
+            const { refreshSharedData } = await import('../utils/storage');
+            await refreshSharedData();
+            await rehydrateAppData();
+          } catch (err) {
+            console.warn('[auth] sync after sign-in failed:', err);
+          }
+        }
+      });
+    }
+
+    const ctx = await getAuthContext();
+    if (ctx) applyAuthState(set, ctx.user, ctx.team);
+    set({ isHydrated: true });
+
+    const { getFirebaseAuth } = await import('../config/firebase');
+    if (getFirebaseAuth().currentUser) {
+      try {
+        const { refreshSharedData } = await import('../utils/storage');
+        await refreshSharedData();
+      } catch (err) {
+        console.warn('[auth] startup sync failed:', err);
+      }
+    }
   },
 
-  registerTeam: async (input) => {
-    const team: Team = {
+  register: async (input) => {
+    const user = await registerUser(input);
+    applyAuthState(set, user, null);
+    return user;
+  },
+
+  signIn: async (email, password) => {
+    const user = await signInUser(email, password);
+    if (!user) return false;
+    const ctx = await getAuthContext();
+    applyAuthState(set, ctx?.user ?? user, ctx?.team ?? null);
+    if (ctx?.team) await rehydrateAppData();
+    return true;
+  },
+
+  createTeam: async (input) => {
+    const uid = get().user?.uid;
+    if (!uid) throw new Error('Not signed in');
+    const { user, team } = await createTeam(uid, {
       ...input,
       discriminator: input.discriminator ?? generateDiscriminator(),
-    };
-    await saveTeam(team);
-    set({ team });
+    });
+    applyAuthState(set, user, team);
     await rehydrateAppData();
     return team;
   },
 
-  signIn: async (name, password) => {
-    const success = await signInTeamStorage(name, password);
-    if (!success) return false;
-    const team = await getTeam();
-    set({ team });
+  joinTeam: async (teamDiscriminator, joinPassword) => {
+    const uid = get().user?.uid;
+    if (!uid) return false;
+    const result = await joinTeam(uid, teamDiscriminator, joinPassword);
+    if (!result) return false;
+    applyAuthState(set, result.user, result.team);
     await rehydrateAppData();
     return true;
   },
 
-  updateTeam: async (team) => {
-    await saveTeam(team);
-    set({ team });
+  leaveTeam: async () => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    const user = await leaveTeam(uid);
+    resetDataStores();
+    applyAuthState(set, user, null);
+    const { navigateToAuthSetup } = await import('../navigation/authNavigation');
+    navigateToAuthSetup();
+  },
+
+  updateUser: async (options) => {
+    const { user } = get();
+    if (!user) return;
+    const updated = await updateProfile(user, options);
+    applyAuthState(set, updated, get().team);
   },
 
   signOut: async () => {
-    await clearTeam();
-    set({ team: null });
+    await clearSession();
+    set({ user: null, team: null, firebaseUser: null, needsTeam: false });
     resetDataStores();
+
+    const { navigateToAuthSetup } = await import('../navigation/authNavigation');
+    navigateToAuthSetup();
   },
 }));
 
-export function useRequireTeam() {
-  return useAuthStore((s) => ({ team: s.team, isHydrated: s.isHydrated }));
+export function useRequireAuth() {
+  return useAuthStore(
+    useShallow((s) => ({
+      user: s.user,
+      team: s.team,
+      isHydrated: s.isHydrated,
+      needsTeam: s.needsTeam,
+    }))
+  );
 }

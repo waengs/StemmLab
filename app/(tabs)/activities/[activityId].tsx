@@ -17,7 +17,7 @@ import { Card, Chip, Input, Button, Select } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
-import { useAuthRedirect } from '../../../src/hooks/useAuthRedirect';
+import { useRequireAuth } from '../../../src/stores';
 import { useActivityResultsStore, useResultsForActivity } from '../../../src/stores';
 import type { ActivityResult } from '../../../src/types';
 
@@ -33,7 +33,7 @@ export default function ActivityDetail() {
   const { activityId } = useLocalSearchParams<{ activityId: string }>();
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const { team } = useAuthRedirect();
+  const { user, team } = useRequireAuth();
   const pastResults = useResultsForActivity(team?.discriminator, activityId);
   const addResult = useActivityResultsStore((s) => s.addResult);
   const removeResult = useActivityResultsStore((s) => s.removeResult);
@@ -43,6 +43,8 @@ export default function ActivityDetail() {
   if (!activity || !team) return null;
 
   const handleSubmit = async () => {
+    if (!user || !team) return;
+
     const hasBadWords = Object.values(formData).some(val => typeof val === 'string' && hasProfanity(val));
     if (hasBadWords) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
@@ -54,6 +56,7 @@ export default function ActivityDetail() {
       activityId: activity.id,
       activityName: activity.name,
       teamDiscriminator: team.discriminator,
+      submittedByUid: user.uid,
       timestamp: Date.now(),
       data: formData,
     };

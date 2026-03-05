@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { BorderRadius, Spacing, Shadows } from '../../theme';
+import { BorderRadius, Spacing, Shadows, createTypography, lightColors } from '../../theme';
 
 interface SelectProps {
   label?: string;
@@ -20,6 +20,7 @@ interface SelectProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   containerStyle?: ViewStyle;
+  onLightSurface?: boolean;
 }
 
 export function Select({
@@ -29,19 +30,22 @@ export function Select({
   onValueChange,
   placeholder = 'Select...',
   containerStyle,
+  onLightSurface,
 }: SelectProps) {
   const [visible, setVisible] = useState(false);
   const { colors, typography } = useTheme();
+  const surfaceColors = onLightSurface ? lightColors : colors;
+  const surfaceTypography = onLightSurface ? createTypography(lightColors) : typography;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: { marginBottom: Spacing.md },
-        label: { ...typography.label, marginBottom: Spacing.xs },
+        label: { ...surfaceTypography.label, marginBottom: Spacing.xs },
         trigger: {
-          backgroundColor: colors.background,
+          backgroundColor: surfaceColors.background,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: surfaceColors.border,
           borderRadius: BorderRadius.md,
           paddingHorizontal: Spacing.lg,
           paddingVertical: Spacing.md,
@@ -49,8 +53,8 @@ export function Select({
           alignItems: 'center',
           justifyContent: 'space-between',
         },
-        triggerText: { fontSize: 15, color: colors.text },
-        placeholder: { color: colors.textMuted },
+        triggerText: { fontSize: 15, color: surfaceColors.text },
+        placeholder: { color: surfaceColors.textMuted },
         overlay: {
           flex: 1,
           backgroundColor: 'rgba(0,0,0,0.4)',
@@ -82,7 +86,7 @@ export function Select({
         optionText: { ...typography.body },
         optionTextSelected: { color: colors.primary, fontWeight: '600' },
       }),
-    [colors, typography]
+    [colors, surfaceColors, surfaceTypography]
   );
 
   return (

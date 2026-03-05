@@ -1,0 +1,78 @@
+import { getDatabase } from '../client';
+import type { ForumPostRow, ForumReplyRow } from '../rows';
+import { rowsToForumPost } from '../mappers';
+import type { ForumPost, ForumReply } from '../../types';
+
+export async function upsertForumPost(post: ForumPost): Promise<void> {
+  const db = await getDatabase();
+  const now = Date.now();
+  await db.runAsync(
+    `INSERT INTO forum_posts (
+      id, author_uid, author_name, team_discriminator, team_name, content,
+      timestamp, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      author_uid = excluded.author_uid,
+      author_name = excluded.author_name,
+      team_discriminator = excluded.team_discriminator,
+      content = excluded.content,
+      timestamp = excluded.timestamp,
+      updated_at = excluded.updated_at`,
+    post.id,
+    post.authorUid,
+    post.authorName,
+    post.teamDiscriminator,
+    post.authorName,
+    post.content,
+    post.timestamp,
+    now,
+    now
+  );
+
+  for (const reply of post.replies) {
+    await upsertForumReply(post.id, reply);
+  }
+}
+
+export async function upsertForumReply(postId: string, reply: ForumReply): Promise<void> {
+  const db = await getDatabase();
+  const now = Date.now();
+  await db.runAsync(
+    `INSERT INTO forum_replies (
+      id, post_id, author_uid, author_name, team_discriminator, team_name,
+      content, timestamp, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      author_uid = excluded.author_uid,
+      author_name = excluded.author_name,
+      content = excluded.content,
+      timestamp = excluded.timestamp,
+      updated_at = excluded.updated_at`,
+    reply.id,
+    postId,
+    reply.authorUid,
+    reply.authorName,
+    reply.teamDiscriminator,
+    reply.authorName,
+    reply.content,
+    reply.timestamp,
+    now,
+    now
+  );
+}
+
+export async function getAllForumPosts(): Promise<ForumPost[]> {
+  const db = await getDatabase();
+  const posts = await db.getAllAsync<ForumPostRow>(
+    `SELECT * FROM forum_posts ORDER BY timestamp DESC`
+  );
+  const result: ForumPost[] = [];
+  for (const post of posts) {
+    const replies = await db.getAllAsync<ForumReplyRow>(
+      `SELECT * FROM forum_replies WHERE post_id = ? ORDER BY timestamp ASC`,
+      post.id
+    );
+    result.push(rowsToForumPost(post, replies));
+  }
+  return result;
+}

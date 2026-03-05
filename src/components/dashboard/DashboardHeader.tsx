@@ -5,15 +5,16 @@ import { Avatar } from '../ui/Avatar';
 import { StatsRow } from './StatsRow';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
-import type { Team } from '../../types';
+import type { AppUser, Team } from '../../types';
 
 interface DashboardHeaderProps {
+  user: AppUser;
   team: Team;
   completedCount: number;
   onProfilePress: () => void;
 }
 
-export function DashboardHeader({ team, completedCount, onProfilePress }: DashboardHeaderProps) {
+export function DashboardHeader({ user, team, completedCount, onProfilePress }: DashboardHeaderProps) {
   const { t } = useTranslation();
   const { typography } = useTheme();
 
@@ -22,7 +23,7 @@ export function DashboardHeader({ team, completedCount, onProfilePress }: Dashbo
       StyleSheet.create({
         header: { alignItems: 'center', marginBottom: Spacing.xxl },
         welcome: { ...typography.h1, marginTop: Spacing.lg, textAlign: 'center' },
-        teamInfo: { ...typography.bodySmall, marginTop: Spacing.xs },
+        teamInfo: { ...typography.bodySmall, marginTop: Spacing.xs, textAlign: 'center' },
         avatarBtn: {
           borderRadius: 44,
           ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}),
@@ -40,13 +41,13 @@ export function DashboardHeader({ team, completedCount, onProfilePress }: Dashbo
         style={styles.avatarBtn}
         android_ripple={{ color: 'transparent' }}
       >
-        <Avatar name={team.name} size={72} />
+        <Avatar name={user.displayName} size={72} />
       </Pressable>
-      <Text style={styles.welcome}>{t('dashboard.welcome', { name: team.name })}</Text>
+      <Text style={styles.welcome}>{t('dashboard.welcome', { name: user.displayName })}</Text>
       <Text style={styles.teamInfo}>
-        {t('dashboard.teamId', { id: team.discriminator })} • {team.gradeLevel}
+        {team.name} • {t('dashboard.teamId', { id: team.discriminator })}
       </Text>
-      <StatsRow memberCount={team.members.length} completedCount={completedCount} />
+      <StatsRow completedCount={completedCount} />
     </View>
   );
 }

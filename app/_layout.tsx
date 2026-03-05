@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import '../src/i18n';
 import { StoreHydrator } from '../src/components/StoreHydrator';
+import { AuthRedirect } from '../src/components/AuthRedirect';
 import { useTheme } from '../src/stores/themeStore';
 
 function RootNavigator() {
@@ -21,6 +22,7 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <StoreHydrator>
+      <AuthRedirect />
       <RootNavigator />
     </StoreHydrator>
   );

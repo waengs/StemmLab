@@ -1,9 +1,30 @@
+/** Signed-in individual (Firebase Auth + profile). */
+export interface AppUser {
+  uid: string;
+  displayName: string;
+  email: string;
+  teamDiscriminator: string | null;
+}
+
 export interface Team {
-  name: string;
-  password: string;
-  members: string[];
-  gradeLevel: string;
   discriminator: string;
+  name: string;
+  gradeLevel: string;
+  /** Password teammates use to join this team (not the user's login password). */
+  joinPassword: string;
+  createdByUid: string;
+}
+
+/** Team row for browse/join (no join password). */
+export interface TeamListing {
+  discriminator: string;
+  name: string;
+  gradeLevel: string;
+}
+
+export interface TeamMemberSummary {
+  uid: string;
+  displayName: string;
 }
 
 export interface ActivityResult {
@@ -11,6 +32,7 @@ export interface ActivityResult {
   activityId: string;
   activityName: string;
   teamDiscriminator: string;
+  submittedByUid?: string;
   timestamp: number;
   data: Record<string, any>;
   score?: number;
@@ -22,11 +44,13 @@ export interface SensorLog {
   timestamp: number;
   data: any;
   teamDiscriminator: string;
+  recordedByUid?: string;
 }
 
 export interface ForumPost {
   id: string;
-  teamName: string;
+  authorUid: string;
+  authorName: string;
   teamDiscriminator: string;
   content: string;
   timestamp: number;
@@ -35,7 +59,8 @@ export interface ForumPost {
 
 export interface ForumReply {
   id: string;
-  teamName: string;
+  authorUid: string;
+  authorName: string;
   teamDiscriminator: string;
   content: string;
   timestamp: number;

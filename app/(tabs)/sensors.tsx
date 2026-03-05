@@ -11,11 +11,12 @@ import {
 } from '../../src/components';
 import { hasProfanity } from '../../src/utils/profanity';
 import { useAuthStore, useSensorStore, useTeamSensorLogs } from '../../src/stores';
+import { useRequireAuth } from '../../src/stores';
 import type { SensorLog } from '../../src/types';
 
 export default function Sensors() {
   const { t } = useTranslation();
-  const team = useAuthStore((s) => s.team);
+  const { user, team } = useRequireAuth();
   const logs = useTeamSensorLogs(team?.discriminator);
   const addLog = useSensorStore((s) => s.addLog);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,7 +59,7 @@ export default function Sensors() {
   };
 
   const handleSave = async () => {
-    if (!team || !selectedSensor) return;
+    if (!user || !team || !selectedSensor) return;
 
     if (hasProfanity(sensorValue)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
@@ -71,6 +72,7 @@ export default function Sensors() {
       timestamp: Date.now(),
       data: sensorValue,
       teamDiscriminator: team.discriminator,
+      recordedByUid: user.uid,
     };
 
     await addLog(log);

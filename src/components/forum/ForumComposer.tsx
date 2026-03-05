@@ -1,25 +1,24 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
-import type { Team } from '../../types';
+import type { AppUser } from '../../types';
+import { useTranslation } from 'react-i18next';
 
 interface ForumComposerProps {
-  team: Team;
+  user: AppUser;
   value: string;
   onChangeText: (text: string) => void;
   onSubmit: () => void;
 }
 
-export function ForumComposer({ team, value, onChangeText, onSubmit }: ForumComposerProps) {
+export function ForumComposer({ user, value, onChangeText, onSubmit }: ForumComposerProps) {
   const { t } = useTranslation();
-  const { colors, typography } = useTheme();
+  const { typography } = useTheme();
 
   const styles = useMemo(
     () =>
@@ -39,8 +38,8 @@ export function ForumComposer({ team, value, onChangeText, onSubmit }: ForumComp
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Avatar name={team.name} size={36} />
-        <Text style={styles.label}>{t('forum.shareCommunity')}</Text>
+        <Avatar name={user.displayName} size={36} />
+        <Text style={styles.label}>{t('forum.shareAs', { name: user.displayName })}</Text>
       </View>
       <Input
         value={value}
@@ -48,14 +47,9 @@ export function ForumComposer({ team, value, onChangeText, onSubmit }: ForumComp
         placeholder={t('forum.askPlaceholder')}
         multiline
         numberOfLines={3}
-        containerStyle={{ marginBottom: Spacing.sm }}
+        containerStyle={{ marginBottom: Spacing.md }}
       />
-      <Button
-        title={t('forum.post')}
-        onPress={onSubmit}
-        disabled={!value.trim()}
-        icon={<Ionicons name="send" size={16} color={colors.white} />}
-      />
+      <Button title={t('forum.postBtn')} onPress={onSubmit} fullWidth disabled={!value.trim()} />
     </Card>
   );
 }
