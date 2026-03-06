@@ -36,6 +36,7 @@ export function rowsToForumPost(post: ForumPostRow, replies: ForumReplyRow[]): F
     authorUid: post.author_uid,
     authorName: post.author_name,
     teamDiscriminator: post.team_discriminator,
+    teamName: post.team_name,
     content: post.content,
     timestamp: post.timestamp,
     replies: replies.map(rowToForumReply),
@@ -48,6 +49,7 @@ export function rowToForumReply(row: ForumReplyRow): ForumReply {
     authorUid: row.author_uid,
     authorName: row.author_name,
     teamDiscriminator: row.team_discriminator,
+    teamName: row.team_name,
     content: row.content,
     timestamp: row.timestamp,
   };

@@ -57,9 +57,17 @@ export default function AuthSetup() {
       Alert.alert(t('setup.missingFields'), t('setup.missingSignInMsg'));
       return;
     }
-    const success = await signIn(email.trim(), password);
-    if (!success) {
-      Alert.alert(t('setup.signInError'), t('setup.signInErrorMsg'));
+    try {
+      const success = await signIn(email.trim(), password);
+      if (!success) {
+        Alert.alert(t('setup.signInError'), t('setup.signInErrorMsg'));
+      }
+    } catch (err: any) {
+      if (String(err).includes('auth/invalid-credential')) {
+        Alert.alert(t('setup.signInError'), t('setup.signInErrorMsg'));
+      } else {
+        Alert.alert(t('setup.signInError'), String(err.message || err));
+      }
     }
   };
 
@@ -72,7 +80,19 @@ export default function AuthSetup() {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
       return;
     }
-    await register({ displayName: displayName.trim(), email: email.trim(), password });
+    if (password.length < 6) {
+      Alert.alert(t('setup.passwordTooShort'), t('setup.passwordLengthMsg'));
+      return;
+    }
+    try {
+      await register({ displayName: displayName.trim(), email: email.trim(), password });
+    } catch (err: any) {
+      if (String(err).includes('email-already-in-use')) {
+        Alert.alert(t('setup.registerError'), t('setup.emailInUseMsg'));
+      } else {
+        Alert.alert(t('setup.registerError'), String(err.message || err));
+      }
+    }
   };
 
   const handleCreateTeam = async () => {
@@ -82,6 +102,10 @@ export default function AuthSetup() {
     }
     if (hasProfanity(teamName) || hasProfanity(joinPassword)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
+    if (joinPassword.length < 6) {
+      Alert.alert(t('setup.passwordTooShort'), t('setup.passwordLengthMsg'));
       return;
     }
     await createTeamAction({ name: teamName.trim(), gradeLevel, joinPassword });

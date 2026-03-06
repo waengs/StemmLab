@@ -24,6 +24,8 @@ export default function Forum() {
   const posts = useForumStore((s) => s.posts);
   const addPost = useForumStore((s) => s.addPost);
   const updatePost = useForumStore((s) => s.updatePost);
+  const deletePost = useForumStore((s) => s.deletePost);
+  const deleteReply = useForumStore((s) => s.deleteReply);
   const [newPostContent, setNewPostContent] = useState('');
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
@@ -60,6 +62,7 @@ export default function Forum() {
       authorUid: user.uid,
       authorName: user.displayName,
       teamDiscriminator: team.discriminator,
+      teamName: team.name,
       content: newPostContent,
       timestamp: Date.now(),
       replies: [],
@@ -85,6 +88,7 @@ export default function Forum() {
       authorUid: user.uid,
       authorName: user.displayName,
       teamDiscriminator: team.discriminator,
+      teamName: team.name,
       content: replyContent[postId],
       timestamp: Date.now(),
     };
@@ -94,6 +98,52 @@ export default function Forum() {
 
     setReplyContent({ ...replyContent, [postId]: '' });
     setExpandedPosts({ ...expandedPosts, [postId]: true });
+  };
+
+  const handleDeletePost = (postId: string) => {
+    const runDelete = () => {
+      void deletePost(postId).catch((err) => {
+        Alert.alert('Error', err.message);
+      });
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this?' }))) {
+        runDelete();
+      }
+    } else {
+      Alert.alert(
+        t('common.delete', { defaultValue: 'Delete' }),
+        t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this?' }),
+        [
+          { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
+          { text: t('common.delete', { defaultValue: 'Delete' }), style: 'destructive', onPress: runDelete },
+        ]
+      );
+    }
+  };
+
+  const handleDeleteReply = (postId: string, replyId: string) => {
+    const runDelete = () => {
+      void deleteReply(postId, replyId).catch((err) => {
+        Alert.alert('Error', err.message);
+      });
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this?' }))) {
+        runDelete();
+      }
+    } else {
+      Alert.alert(
+        t('common.delete', { defaultValue: 'Delete' }),
+        t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this?' }),
+        [
+          { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
+          { text: t('common.delete', { defaultValue: 'Delete' }), style: 'destructive', onPress: runDelete },
+        ]
+      );
+    }
   };
 
   if (!user || !team) return null;
@@ -126,6 +176,7 @@ export default function Forum() {
               <ForumPostCard
                 key={post.id}
                 post={post}
+                currentUid={user.uid}
                 replyText={replyContent[post.id] || ''}
                 expanded={!!expandedPosts[post.id]}
                 onToggleReplies={() =>
@@ -133,6 +184,8 @@ export default function Forum() {
                 }
                 onReplyChange={(text) => setReplyContent({ ...replyContent, [post.id]: text })}
                 onReplySubmit={() => handleReply(post.id)}
+                onDelete={() => handleDeletePost(post.id)}
+                onDeleteReply={(replyId) => handleDeleteReply(post.id, replyId)}
               />
             ))
           )}

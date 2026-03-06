@@ -67,6 +67,10 @@ export default function Profile() {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
       return;
     }
+    if (newPassword && newPassword.length < 6) {
+      Alert.alert(t('setup.passwordTooShort'), t('setup.passwordLengthMsg'));
+      return;
+    }
     await updateUser({
       displayName: displayName.trim(),
       newPassword: newPassword || undefined,

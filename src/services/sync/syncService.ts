@@ -58,6 +58,7 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
         authorUid: (rd.authorUid as string) ?? 'legacy',
         authorName: (rd.authorName as string) ?? 'Student',
         teamDiscriminator: rd.teamDiscriminator as string,
+        teamName: (rd.teamName as string) ?? 'Legacy Team',
         content: rd.content as string,
         timestamp: rd.timestamp as number,
       };
@@ -67,6 +68,7 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
       authorUid: (data.authorUid as string) ?? 'legacy',
       authorName: (data.authorName as string) ?? 'Student',
       teamDiscriminator: data.teamDiscriminator as string,
+      teamName: (data.teamName as string) ?? 'Legacy Team',
       content: data.content as string,
       timestamp: data.timestamp as number,
       replies,
@@ -109,10 +111,17 @@ export async function pushSyncQueue(): Promise<void> {
           authorUid: post.authorUid,
           authorName: post.authorName,
           teamDiscriminator: post.teamDiscriminator,
+          teamName: post.teamName,
           content: post.content,
           timestamp: post.timestamp,
           updatedAt: Date.now(),
         });
+      } else if (item.entityType === 'forum_post' && item.operation === 'delete') {
+        // Delete all replies first so the document doesn't become an orphaned ghost
+        const repliesSnap = await getDocs(collection(db, FS.forumPosts, item.entityId, FS.forumReplies));
+        await Promise.all(repliesSnap.docs.map((d) => deleteDoc(d.ref)));
+        // Then delete the post itself
+        await deleteDoc(doc(db, FS.forumPosts, item.entityId));
       } else if (item.entityType === 'forum_reply' && item.operation === 'upsert') {
         const payload = item.payload as { postId: string; reply: ForumReply };
         await setDoc(
@@ -121,10 +130,16 @@ export async function pushSyncQueue(): Promise<void> {
             authorUid: payload.reply.authorUid,
             authorName: payload.reply.authorName,
             teamDiscriminator: payload.reply.teamDiscriminator,
+            teamName: payload.reply.teamName,
             content: payload.reply.content,
             timestamp: payload.reply.timestamp,
             updatedAt: Date.now(),
           }
+        );
+      } else if (item.entityType === 'forum_reply' && item.operation === 'delete') {
+        const payload = item.payload as { postId: string; replyId: string };
+        await deleteDoc(
+          doc(db, FS.forumPosts, payload.postId, FS.forumReplies, payload.replyId)
         );
       } else if (item.entityType === 'team' && item.operation === 'upsert') {
         const team = item.payload as Team;
@@ -142,8 +157,13 @@ export async function pushSyncQueue(): Promise<void> {
         );
       }
       await syncQueue.removeSyncItem(item.id);
-    } catch {
-      await syncQueue.incrementSyncRetry(item.id);
+    } catch (err: any) {
+      if (item.retryCount > 3 || String(err).includes('permission')) {
+        await syncQueue.removeSyncItem(item.id);
+      } else {
+        console.warn(`[sync] failed to push ${item.entityType} (${item.operation}):`, err);
+        await syncQueue.incrementSyncRetry(item.id);
+      }
     }
   }
 }
@@ -188,6 +208,14 @@ export async function queueForumPostSync(post: ForumPost): Promise<void> {
   await syncQueue.enqueueSync('forum_post', post.id, 'upsert', post);
 }
 
+export async function queueForumPostDelete(id: string): Promise<void> {
+  await syncQueue.enqueueSync('forum_post', id, 'delete', { id });
+}
+
 export async function queueForumReplySync(postId: string, reply: ForumReply): Promise<void> {
   await syncQueue.enqueueSync('forum_reply', reply.id, 'upsert', { postId, reply });
+}
+
+export async function queueForumReplyDelete(postId: string, replyId: string): Promise<void> {
+  await syncQueue.enqueueSync('forum_reply', replyId, 'delete', { postId, replyId });
 }

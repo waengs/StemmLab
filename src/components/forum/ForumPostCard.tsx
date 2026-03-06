@@ -11,20 +11,26 @@ import type { ForumPost } from '../../types';
 
 interface ForumPostCardProps {
   post: ForumPost;
+  currentUid?: string;
   replyText: string;
   expanded: boolean;
   onToggleReplies: () => void;
   onReplyChange: (text: string) => void;
   onReplySubmit: () => void;
+  onDelete?: () => void;
+  onDeleteReply?: (replyId: string) => void;
 }
 
 export function ForumPostCard({
   post,
+  currentUid,
   replyText,
   expanded,
   onToggleReplies,
   onReplyChange,
   onReplySubmit,
+  onDelete,
+  onDeleteReply,
 }: ForumPostCardProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
@@ -42,6 +48,7 @@ export function ForumPostCard({
         meta: { flex: 1 },
         team: { ...typography.label },
         date: { ...typography.caption },
+        deleteBtn: { padding: Spacing.xs },
         content: { ...typography.body, marginBottom: Spacing.md },
         repliesToggle: {
           flexDirection: 'row',
@@ -67,8 +74,10 @@ export function ForumPostCard({
           gap: Spacing.xs,
           marginBottom: Spacing.xs,
         },
+        replyMeta: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
         replyTeam: { ...typography.bodySmall, fontWeight: '600' },
         replyDate: { ...typography.caption },
+        replyDeleteBtn: { padding: Spacing.xs },
         replyContent: { ...typography.bodySmall, paddingLeft: 30 },
         replyRow: {
           flexDirection: 'row',
@@ -97,9 +106,21 @@ export function ForumPostCard({
       <View style={styles.header}>
         <Avatar name={post.authorName} size={36} />
         <View style={styles.meta}>
-          <Text style={styles.team}>{post.authorName}</Text>
+          <Text style={styles.team}>
+            {post.authorName} {post.teamName ? `• ${post.teamName}` : ''}
+          </Text>
           <Text style={styles.date}>{new Date(post.timestamp).toLocaleString()}</Text>
         </View>
+        {currentUid && post.authorUid === currentUid && onDelete && (
+          <Pressable
+            style={styles.deleteBtn}
+            onPress={onDelete}
+            hitSlop={8}
+            android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+          >
+            <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          </Pressable>
+        )}
       </View>
 
       <Text style={styles.content}>{post.content}</Text>
@@ -128,8 +149,22 @@ export function ForumPostCard({
             <View key={reply.id} style={styles.replyItem}>
               <View style={styles.replyHeader}>
                 <Avatar name={reply.authorName} size={22} backgroundColor={colors.primaryLight} />
-                <Text style={styles.replyTeam}>{reply.authorName}</Text>
-                <Text style={styles.replyDate}>• {new Date(reply.timestamp).toLocaleString()}</Text>
+                <View style={styles.replyMeta}>
+                  <Text style={styles.replyTeam}>
+                    {reply.authorName} {reply.teamName ? `• ${reply.teamName}` : ''}
+                  </Text>
+                  <Text style={styles.replyDate}>• {new Date(reply.timestamp).toLocaleString()}</Text>
+                </View>
+                {currentUid && reply.authorUid === currentUid && onDeleteReply && (
+                  <Pressable
+                    style={styles.replyDeleteBtn}
+                    onPress={() => onDeleteReply(reply.id)}
+                    hitSlop={8}
+                    android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  </Pressable>
+                )}
               </View>
               <Text style={styles.replyContent}>{reply.content}</Text>
             </View>

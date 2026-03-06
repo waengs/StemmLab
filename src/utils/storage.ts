@@ -25,7 +25,9 @@ import {
   queueActivityResultDelete,
   queueSensorLogSync,
   queueForumPostSync,
+  queueForumPostDelete,
   queueForumReplySync,
+  queueForumReplyDelete,
 } from '../services/sync/syncService';
 import type {
   AppUser,
@@ -160,6 +162,18 @@ export async function updateForumPost(post: ForumPost): Promise<void> {
 
 export async function getForumPosts(): Promise<ForumPost[]> {
   return forumRepo.getAllForumPosts();
+}
+
+export async function deleteForumPostRecord(id: string): Promise<void> {
+  await forumRepo.deleteForumPost(id);
+  await queueForumPostDelete(id);
+  await syncWhenOnline();
+}
+
+export async function deleteForumReplyRecord(postId: string, replyId: string): Promise<void> {
+  await forumRepo.deleteForumReply(replyId);
+  await queueForumReplyDelete(postId, replyId);
+  await syncWhenOnline();
 }
 
 export async function refreshSharedData(): Promise<void> {

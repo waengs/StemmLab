@@ -22,7 +22,7 @@ export async function upsertForumPost(post: ForumPost): Promise<void> {
     post.authorUid,
     post.authorName,
     post.teamDiscriminator,
-    post.authorName,
+    post.teamName,
     post.content,
     post.timestamp,
     now,
@@ -53,7 +53,7 @@ export async function upsertForumReply(postId: string, reply: ForumReply): Promi
     reply.authorUid,
     reply.authorName,
     reply.teamDiscriminator,
-    reply.authorName,
+    reply.teamName,
     reply.content,
     reply.timestamp,
     now,
@@ -75,4 +75,15 @@ export async function getAllForumPosts(): Promise<ForumPost[]> {
     result.push(rowsToForumPost(post, replies));
   }
   return result;
+}
+
+export async function deleteForumPost(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(`DELETE FROM forum_posts WHERE id = ?`, id);
+  await db.runAsync(`DELETE FROM forum_replies WHERE post_id = ?`, id);
+}
+
+export async function deleteForumReply(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(`DELETE FROM forum_replies WHERE id = ?`, id);
 }

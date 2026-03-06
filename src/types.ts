@@ -52,6 +52,7 @@ export interface ForumPost {
   authorUid: string;
   authorName: string;
   teamDiscriminator: string;
+  teamName: string;
   content: string;
   timestamp: number;
   replies: ForumReply[];
@@ -62,6 +63,7 @@ export interface ForumReply {
   authorUid: string;
   authorName: string;
   teamDiscriminator: string;
+  teamName: string;
   content: string;
   timestamp: number;
 }

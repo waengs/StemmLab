@@ -20,7 +20,7 @@ export function Avatar({
   const { colors } = useTheme();
   const bg = backgroundColor ?? colors.primary;
   const fg = textColor ?? colors.white;
-  const initial = name.charAt(0).toUpperCase();
+  const initial = typeof name === 'string' && name.length > 0 ? name.charAt(0).toUpperCase() : '?';
 
   return (
     <View

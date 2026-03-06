@@ -15,9 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Button, PageTitle, SegmentedControl } from '../../src/components';
 import { SettingsLinkRow } from '../../src/components/settings/SettingsLinkRow';
 import { TeamMembersList } from '../../src/components/team/TeamMembersList';
-import { useTheme, useAuthStore, type ThemeMode } from '../../src/stores';
+import { useTheme, useAuthStore, useForumStore, type ThemeMode } from '../../src/stores';
 import { useRequireAuth } from '../../src/stores';
 import { fetchTeamMembers } from '../../src/utils/storage';
+import { getDatabase } from '../../src/database/client';
+import { getFirestoreDb } from '../../src/config/firebase';
+import { collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { FS } from '../../src/firebase/collections';
 import { Spacing } from '../../src/theme';
 import type { TeamMemberSummary } from '../../src/types';
 
