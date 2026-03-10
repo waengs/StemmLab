@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { PageTitle, SearchBar, ForumComposer, ForumPostCard, EmptyState, Chip } from '../../src/components';
@@ -21,24 +22,53 @@ import { useRequireAuth } from '../../src/stores';
 import { BorderRadius, Shadows, Spacing } from '../../src/theme';
 import { ACTIVITIES, type ForumPost, type ForumReply } from '../../src/types';
 
+type SortOption = 'new' | 'top' | 'trending' | 'relevance';
+
+const SORT_OPTIONS: { id: SortOption; label: string; icon: string }[] = [
+  { id: 'new',       label: 'New',       icon: 'time-outline' },
+  { id: 'top',       label: 'Top',       icon: 'arrow-up-outline' },
+  { id: 'trending',  label: 'Trending',  icon: 'flame-outline' },
+  { id: 'relevance', label: 'Relevance', icon: 'search-outline' },
+];
+
+/** Simple "hotness" score: upvotes + 2× replies, decayed by age (hours). */
+function trendingScore(post: ForumPost): number {
+  const ageHours = (Date.now() - post.timestamp) / 3_600_000;
+  const votes = (post.upvotes ?? []).length;
+  const replies = post.replies.length;
+  return (votes + replies * 2) / Math.pow(ageHours + 2, 1.5);
+}
+
+/** Simple relevance score against a search string. */
+function relevanceScore(post: ForumPost, query: string): number {
+  if (!query.trim()) return 0;
+  const q = query.toLowerCase();
+  const title = post.topicTitle.toLowerCase();
+  const body = post.content.toLowerCase();
+  let score = 0;
+  if (title.includes(q)) score += 10;
+  if (body.includes(q)) score += 5;
+  score += (post.upvotes ?? []).length * 0.5;
+  score += post.replies.length * 0.3;
+  return score;
+}
+
 export default function Forum() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { colors } = useTheme();
   const { user, team } = useRequireAuth();
   const posts = useForumStore((s) => s.posts);
   const addPost = useForumStore((s) => s.addPost);
-  const updatePost = useForumStore((s) => s.updatePost);
   const deletePost = useForumStore((s) => s.deletePost);
-  const deleteReply = useForumStore((s) => s.deleteReply);
+  const upvotePost = useForumStore((s) => s.upvotePost);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  const [replyContent, setReplyContent] = useState<Record<string, string>>({});
-  const [replyTarget, setReplyTarget] = useState<Record<string, { replyId: string; authorName: string } | null>>({});
-  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [composerCategoryId, setComposerCategoryId] = useState<string>('general');
   const [composerOpen, setComposerOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('new');
 
   const categoryOptions = useMemo(() => {
     const activityOptions = Object.values(ACTIVITIES).map((activity) => ({
@@ -69,15 +99,35 @@ export default function Forum() {
     [categoryOptions, posts]
   );
 
-  const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
+  const filteredAndSortedPosts = useMemo(() => {
+    let result = posts.filter((post) => {
       const inCategory = activeCategoryId === 'all' || (post.categoryId ?? 'general') === activeCategoryId;
       if (!inCategory) return false;
       const replyText = post.replies.map((r) => `${r.authorName} ${r.content}`).join(' ');
       const haystack = `${post.topicTitle} ${post.authorName} ${post.content} ${post.categoryLabel ?? ''} ${replyText}`;
       return !searchQuery.trim() || matchesSearch(haystack, searchQuery);
     });
-  }, [posts, searchQuery, activeCategoryId]);
+
+    switch (sortBy) {
+      case 'new':
+        result = [...result].sort((a, b) => b.timestamp - a.timestamp);
+        break;
+      case 'top':
+        result = [...result].sort(
+          (a, b) => (b.upvotes ?? []).length - (a.upvotes ?? []).length
+        );
+        break;
+      case 'trending':
+        result = [...result].sort((a, b) => trendingScore(b) - trendingScore(a));
+        break;
+      case 'relevance':
+        result = [...result].sort(
+          (a, b) => relevanceScore(b, searchQuery) - relevanceScore(a, searchQuery)
+        );
+        break;
+    }
+    return result;
+  }, [posts, searchQuery, activeCategoryId, sortBy]);
 
   const styles = useMemo(
     () =>
@@ -91,7 +141,25 @@ export default function Forum() {
           marginBottom: Spacing.xs,
           paddingRight: Spacing.xl,
         },
-        // Floating action button
+        // Sort bar
+        sortRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.xs,
+        },
+        sortBtn: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: Spacing.sm,
+          paddingVertical: 6,
+          borderRadius: BorderRadius.full,
+          borderWidth: 1.5,
+        },
+        sortBtnText: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
         fab: {
           position: 'absolute',
           bottom: Spacing.xxl,
@@ -128,6 +196,7 @@ export default function Forum() {
       content: newPostContent,
       timestamp: Date.now(),
       replies: [],
+      upvotes: [],
     };
 
     await addPost(post);
@@ -136,69 +205,9 @@ export default function Forum() {
     setComposerOpen(false);
   };
 
-  const handleReply = async (postId: string) => {
-    if (!user || !team || !replyContent[postId]?.trim()) return;
-
-    if (hasProfanity(replyContent[postId])) {
-      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
-      return;
-    }
-
-    const post = posts.find((p) => p.id === postId);
-    if (!post) return;
-
-    const target = replyTarget[postId];
-    const body = replyContent[postId].trim();
-    const content =
-      target && !body.startsWith(`@${target.authorName}`)
-        ? `@${target.authorName} ${body}`
-        : body;
-
-    const reply: ForumReply = {
-      id: Date.now().toString(),
-      parentReplyId: target?.replyId,
-      authorUid: user.uid,
-      authorName: user.displayName,
-      teamDiscriminator: team.discriminator,
-      teamName: team.name,
-      content,
-      timestamp: Date.now(),
-    };
-
-    const updatedPost = { ...post, replies: [...post.replies, reply] };
-    await updatePost(updatedPost);
-
-    setReplyContent({ ...replyContent, [postId]: '' });
-    setReplyTarget({ ...replyTarget, [postId]: null });
-    setExpandedPosts({ ...expandedPosts, [postId]: true });
-  };
-
   const handleDeletePost = (postId: string) => {
     const runDelete = () => {
       void deletePost(postId).catch((err) => {
-        Alert.alert('Error', err.message);
-      });
-    };
-
-    if (Platform.OS === 'web') {
-      if (window.confirm(t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this?' }))) {
-        runDelete();
-      }
-    } else {
-      Alert.alert(
-        t('common.delete', { defaultValue: 'Delete' }),
-        t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this?' }),
-        [
-          { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
-          { text: t('common.delete', { defaultValue: 'Delete' }), style: 'destructive', onPress: runDelete },
-        ]
-      );
-    }
-  };
-
-  const handleDeleteReply = (postId: string, replyId: string) => {
-    const runDelete = () => {
-      void deleteReply(postId, replyId).catch((err) => {
         Alert.alert('Error', err.message);
       });
     };
@@ -232,6 +241,8 @@ export default function Forum() {
         >
           <PageTitle showSettings>{t('forum.pageTitle')}</PageTitle>
           <SearchBar value={searchQuery} onChangeText={setSearchQuery} placeholder={t('forum.searchPlaceholder')} />
+
+          {/* Category filter chips */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -248,31 +259,65 @@ export default function Forum() {
             ))}
           </ScrollView>
 
+          {/* Sort bar */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.sortRow, { paddingRight: Spacing.xl }]}
+            style={{ marginHorizontal: -Spacing.xl, paddingHorizontal: Spacing.xl }}
+          >
+            {SORT_OPTIONS.map((opt) => {
+              const active = sortBy === opt.id;
+              return (
+                <Pressable
+                  key={opt.id}
+                  style={[
+                    styles.sortBtn,
+                    {
+                      backgroundColor: active ? colors.primary : 'transparent',
+                      borderColor: active ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => setSortBy(opt.id)}
+                >
+                  <Ionicons
+                    name={opt.icon as any}
+                    size={13}
+                    color={active ? colors.white : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.sortBtnText,
+                      { color: active ? colors.white : colors.textSecondary },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Post list */}
           {posts.length === 0 ? (
             <EmptyState icon="chatbubbles-outline" title={t('forum.noPosts')} message={t('forum.noPostsDesc')} />
-          ) : filteredPosts.length === 0 ? (
+          ) : filteredAndSortedPosts.length === 0 ? (
             <EmptyState message={t('common.noSearchResults')} />
           ) : (
-            filteredPosts.map((post) => (
+            filteredAndSortedPosts.map((post) => (
               <ForumPostCard
                 key={post.id}
                 post={post}
                 currentUid={user.uid}
-                replyText={replyContent[post.id] || ''}
-                replyTargetName={replyTarget[post.id]?.authorName}
-                expanded={!!expandedPosts[post.id]}
-                onToggleReplies={() =>
-                  setExpandedPosts({ ...expandedPosts, [post.id]: !expandedPosts[post.id] })
-                }
-                onReplyChange={(text) => setReplyContent({ ...replyContent, [post.id]: text })}
-                onReplySubmit={() => handleReply(post.id)}
-                onReplyToReply={(replyId, authorName) => {
-                  setExpandedPosts({ ...expandedPosts, [post.id]: true });
-                  setReplyTarget({ ...replyTarget, [post.id]: { replyId, authorName } });
-                }}
-                onClearReplyTarget={() => setReplyTarget({ ...replyTarget, [post.id]: null })}
+                replyText=""
+                expanded={false}
+                onToggleReplies={() => {}}
+                onReplyChange={() => {}}
+                onReplySubmit={() => {}}
                 onDelete={() => handleDeletePost(post.id)}
-                onDeleteReply={(replyId) => handleDeleteReply(post.id, replyId)}
+                onUpvote={() => upvotePost(post.id, user.uid)}
+                isThreadView={false}
+                onPress={() => router.push(`/post/${post.id}`)}
               />
             ))
           )}
@@ -280,7 +325,10 @@ export default function Forum() {
 
         {/* Floating Action Button */}
         <Pressable
-          style={({ pressed }) => [styles.fab, { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] }]}
+          style={({ pressed }) => [
+            styles.fab,
+            { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] },
+          ]}
           onPress={() => setComposerOpen(true)}
           android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 28 }}
         >

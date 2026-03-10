@@ -11,6 +11,8 @@ interface ForumState {
   updatePost: (post: ForumPost) => Promise<void>;
   deletePost: (id: string) => Promise<void>;
   deleteReply: (postId: string, replyId: string) => Promise<void>;
+  upvotePost: (postId: string, uid: string) => Promise<void>;
+  upvoteReply: (postId: string, replyId: string, uid: string) => Promise<void>;
 }
 
 export const useForumStore = create<ForumState>((set) => ({
@@ -76,5 +78,39 @@ export const useForumStore = create<ForumState>((set) => ({
             })()
       ),
     }));
+  },
+
+  upvotePost: async (postId, uid) => {
+    set((state) => {
+      const updated = state.posts.map((p) => {
+        if (p.id !== postId) return p;
+        const upvotes = p.upvotes ?? [];
+        const hasVoted = upvotes.includes(uid);
+        const next = hasVoted ? upvotes.filter((u) => u !== uid) : [...upvotes, uid];
+        return { ...p, upvotes: next };
+      });
+      const post = updated.find((p) => p.id === postId);
+      if (post) void import('../utils/storage').then(({ updateForumPost }) => updateForumPost(post));
+      return { posts: updated };
+    });
+  },
+
+  upvoteReply: async (postId, replyId, uid) => {
+    set((state) => {
+      const updated = state.posts.map((p) => {
+        if (p.id !== postId) return p;
+        const replies = p.replies.map((r) => {
+          if (r.id !== replyId) return r;
+          const upvotes = r.upvotes ?? [];
+          const hasVoted = upvotes.includes(uid);
+          const next = hasVoted ? upvotes.filter((u) => u !== uid) : [...upvotes, uid];
+          return { ...r, upvotes: next };
+        });
+        return { ...p, replies };
+      });
+      const post = updated.find((p) => p.id === postId);
+      if (post) void import('../utils/storage').then(({ updateForumPost }) => updateForumPost(post));
+      return { posts: updated };
+    });
   },
 }));

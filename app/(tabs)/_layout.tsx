@@ -20,6 +20,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="forum" options={{ title: 'Forum' }} />
 
       <Tabs.Screen name="activities/[activityId]" options={{ href: null }} />
+      <Tabs.Screen name="post/[id]" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>

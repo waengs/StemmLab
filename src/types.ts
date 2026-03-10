@@ -60,6 +60,8 @@ export interface ForumPost {
   content: string;
   timestamp: number;
   replies: ForumReply[];
+  /** UIDs of users who have upvoted this post. */
+  upvotes: string[];
 }
 
 export interface ForumReply {
@@ -72,6 +74,8 @@ export interface ForumReply {
   teamName: string;
   content: string;
   timestamp: number;
+  /** UIDs of users who have upvoted this reply. */
+  upvotes?: string[];
 }
 
 export const ACTIVITIES = {

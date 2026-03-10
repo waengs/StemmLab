@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/Card';
@@ -23,6 +23,10 @@ interface ForumPostCardProps {
   onClearReplyTarget?: () => void;
   onDelete?: () => void;
   onDeleteReply?: (replyId: string) => void;
+  onUpvote?: () => void;
+  onUpvoteReply?: (replyId: string) => void;
+  isThreadView?: boolean;
+  onPress?: () => void;
 }
 
 export function ForumPostCard({
@@ -38,6 +42,10 @@ export function ForumPostCard({
   onClearReplyTarget,
   onDelete,
   onDeleteReply,
+  onUpvote,
+  onUpvoteReply,
+  isThreadView = false,
+  onPress,
 }: ForumPostCardProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
@@ -51,6 +59,20 @@ export function ForumPostCard({
       hour: '2-digit',
       minute: '2-digit',
     });
+
+  const hasUpvoted = !!(currentUid && (post.upvotes ?? []).includes(currentUid));
+  const upvoteCount = (post.upvotes ?? []).length;
+
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (hasUpvoted) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.2, duration: 100, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [hasUpvoted, scaleAnim]);
 
   const styles = useMemo(
     () =>
@@ -69,6 +91,26 @@ export function ForumPostCard({
         deleteBtn: { padding: Spacing.xs },
         content: { ...typography.body, marginBottom: Spacing.sm },
         categoryChip: { marginBottom: Spacing.md },
+        // Upvote row
+        actionsRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.md,
+          marginBottom: Spacing.sm,
+        },
+        upvoteBtn: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 5,
+          paddingHorizontal: Spacing.sm,
+          paddingVertical: 5,
+          borderRadius: 20,
+          borderWidth: 1.5,
+        },
+        upvoteCount: {
+          fontSize: 13,
+          fontWeight: '700',
+        },
         repliesToggle: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -113,6 +155,8 @@ export function ForumPostCard({
         replyDeleteBtn: { padding: Spacing.xs },
         replyActionBtn: { paddingHorizontal: Spacing.xs, paddingVertical: 2 },
         replyActionText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
+        replyUpvoteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing.xs, paddingVertical: 2 },
+        replyUpvoteText: { ...typography.caption, fontWeight: '600' },
         replyContent: { ...typography.bodySmall, paddingLeft: 26, marginTop: 2, marginBottom: Spacing.md },
         continueThreadBtn: {
           marginTop: Spacing.sm,
@@ -179,71 +223,94 @@ export function ForumPostCard({
     const replies = repliesByParent[key] ?? [];
     if (replies.length === 0) return null;
 
-    return replies.map((reply) => (
-      <View key={reply.id} style={[styles.replyItem, depth > 0 && styles.nestedReplyItem]}>
-        <View style={styles.replyHeader}>
-          <Avatar
-            name={reply.authorName}
-            size={depth > 0 ? 18 : 22}
-            backgroundColor={depth > 0 ? colors.primary : colors.primaryLight}
-          />
-          <View style={styles.replyMeta}>
-            <View style={styles.replyTopRow}>
-              <View style={styles.replyTopLeft}>
-                <Text style={styles.replyTeam} numberOfLines={1}>
-                  {reply.authorName}
-                  {reply.teamName ? ` • ${reply.teamName}` : ''}
-                </Text>
+    return replies.map((reply) => {
+      const replyHasUpvoted = !!(currentUid && (reply.upvotes ?? []).includes(currentUid));
+      const replyUpvoteCount = (reply.upvotes ?? []).length;
+
+      return (
+        <View key={reply.id} style={[styles.replyItem, depth > 0 && styles.nestedReplyItem]}>
+          <View style={styles.replyHeader}>
+            <Avatar
+              name={reply.authorName}
+              size={depth > 0 ? 18 : 22}
+              backgroundColor={depth > 0 ? colors.primary : colors.primaryLight}
+            />
+            <View style={styles.replyMeta}>
+              <View style={styles.replyTopRow}>
+                <View style={styles.replyTopLeft}>
+                  <Text style={styles.replyTeam} numberOfLines={1}>
+                    {reply.authorName}
+                    {reply.teamName ? ` • ${reply.teamName}` : ''}
+                  </Text>
+                </View>
+                <View style={styles.replyTopRight}>
+                  {onUpvoteReply ? (
+                    <Pressable
+                      style={styles.replyUpvoteBtn}
+                      onPress={() => onUpvoteReply(reply.id)}
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name={replyHasUpvoted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
+                        size={14}
+                        color={replyHasUpvoted ? colors.primary : colors.textSecondary}
+                      />
+                      {replyUpvoteCount > 0 && (
+                        <Text style={[styles.replyUpvoteText, { color: replyHasUpvoted ? colors.primary : colors.textSecondary }]}>
+                          {replyUpvoteCount}
+                        </Text>
+                      )}
+                    </Pressable>
+                  ) : null}
+                  {onReplyToReply ? (
+                    <Pressable
+                      style={styles.replyActionBtn}
+                      onPress={() => onReplyToReply(reply.id, reply.authorName)}
+                      hitSlop={8}
+                      android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+                    >
+                      <Text style={styles.replyActionText}>{t('forum.reply')}</Text>
+                    </Pressable>
+                  ) : null}
+                  {currentUid && reply.authorUid === currentUid && onDeleteReply ? (
+                    <Pressable
+                      style={styles.replyDeleteBtn}
+                      onPress={() => onDeleteReply(reply.id)}
+                      hitSlop={8}
+                      android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                    </Pressable>
+                  ) : null}
+                </View>
               </View>
-              <View style={styles.replyTopRight}>
-                {onReplyToReply ? (
-                  <Pressable
-                    style={styles.replyActionBtn}
-                    onPress={() => onReplyToReply(reply.id, reply.authorName)}
-                    hitSlop={8}
-                    android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
-                  >
-                    <Text style={styles.replyActionText}>{t('forum.reply')}</Text>
-                  </Pressable>
-                ) : null}
-                {currentUid && reply.authorUid === currentUid && onDeleteReply ? (
-                  <Pressable
-                    style={styles.replyDeleteBtn}
-                    onPress={() => onDeleteReply(reply.id)}
-                    hitSlop={8}
-                    android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                  </Pressable>
-                ) : null}
-              </View>
+              <Text style={styles.replyDate}>{formatDate(reply.timestamp)}</Text>
             </View>
-            <Text style={styles.replyDate}>{formatDate(reply.timestamp)}</Text>
           </View>
+          <Text style={styles.replyContent}>{reply.content}</Text>
+          {depth < MAX_VISIBLE_DEPTH || expandedBranches[reply.id] ? (
+            renderReplies(reply.id, depth + 1)
+          ) : (repliesByParent[reply.id] ?? []).length > 0 ? (
+            <Pressable
+              style={styles.continueThreadBtn}
+              onPress={() => setExpandedBranches((state) => ({ ...state, [reply.id]: true }))}
+              hitSlop={8}
+              android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+            >
+              <Text style={styles.continueThreadText}>
+                {t('forum.seeMoreReplies', {
+                  count: (repliesByParent[reply.id] ?? []).length,
+                })}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
-        <Text style={styles.replyContent}>{reply.content}</Text>
-        {depth < MAX_VISIBLE_DEPTH || expandedBranches[reply.id] ? (
-          renderReplies(reply.id, depth + 1)
-        ) : (repliesByParent[reply.id] ?? []).length > 0 ? (
-          <Pressable
-            style={styles.continueThreadBtn}
-            onPress={() => setExpandedBranches((state) => ({ ...state, [reply.id]: true }))}
-            hitSlop={8}
-            android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
-          >
-            <Text style={styles.continueThreadText}>
-              {t('forum.seeMoreReplies', {
-                count: (repliesByParent[reply.id] ?? []).length,
-              })}
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
-    ));
+      );
+    });
   };
 
-  return (
-    <Card style={styles.card}>
+  const cardContent = (
+    <>
       <View style={styles.header}>
         <Avatar name={post.authorName} size={36} />
         <View style={styles.meta}>
@@ -275,58 +342,115 @@ export function ForumPostCard({
         />
       ) : null}
 
+      {/* Upvote + reply count row */}
+      <View style={styles.actionsRow}>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.upvoteBtn,
+              {
+                backgroundColor: hasUpvoted ? colors.primary : 'transparent',
+                borderColor: hasUpvoted ? colors.primary : colors.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            onPress={onUpvote}
+            hitSlop={8}
+            android_ripple={Platform.OS === 'android' ? { color: 'rgba(0,0,0,0.1)' } : undefined}
+          >
+            <Ionicons
+              name={hasUpvoted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
+              size={16}
+              color={hasUpvoted ? colors.white : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.upvoteCount,
+                { color: hasUpvoted ? colors.white : colors.textSecondary },
+              ]}
+            >
+              {upvoteCount}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+
       {post.replies.length > 0 && (
         <Pressable
           style={styles.repliesToggle}
-          onPress={onToggleReplies}
+          onPress={isThreadView ? onToggleReplies : undefined}
           android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
         >
           <Text style={styles.repliesToggleText}>
             {post.replies.length}{' '}
             {post.replies.length === 1 ? t('forum.reply') : t('forum.reply_plural')}
           </Text>
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color={colors.primary}
-          />
+          {isThreadView && (
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={colors.primary}
+            />
+          )}
         </Pressable>
       )}
 
-      {expanded && post.replies.length > 0 && (
+      {isThreadView && expanded && post.replies.length > 0 && (
         <View style={styles.replies}>
           {renderReplies(null)}
         </View>
       )}
 
-      <View style={styles.replyRow}>
-        <View style={styles.replyInput}>
-          {replyTargetName ? (
-            <View style={styles.replyTargetRow}>
-              <Text style={styles.replyTargetText}>{t('forum.replyingTo', { name: replyTargetName })}</Text>
-              {onClearReplyTarget ? (
-                <Pressable onPress={onClearReplyTarget} hitSlop={8}>
-                  <Text style={styles.cancelReplyText}>{t('forum.cancelReply')}</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
-          <Input
-            value={replyText}
-            onChangeText={onReplyChange}
-            placeholder={t('forum.writeReply')}
-            containerStyle={{ marginBottom: 0, flex: 1 }}
-          />
+      {isThreadView && (
+        <View style={styles.replyRow}>
+          <View style={styles.replyInput}>
+            {replyTargetName ? (
+              <View style={styles.replyTargetRow}>
+                <Text style={styles.replyTargetText}>{t('forum.replyingTo', { name: replyTargetName })}</Text>
+                {onClearReplyTarget ? (
+                  <Pressable onPress={onClearReplyTarget} hitSlop={8}>
+                    <Text style={styles.cancelReplyText}>{t('forum.cancelReply')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+            <Input
+              value={replyText}
+              onChangeText={onReplyChange}
+              placeholder={t('forum.writeReply')}
+              containerStyle={{ marginBottom: 0, flex: 1 }}
+            />
+          </View>
+          <Pressable
+            style={[styles.sendBtn, !replyText.trim() && styles.sendBtnDisabled]}
+            onPress={onReplySubmit}
+            disabled={!replyText.trim()}
+            android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+          >
+            <Ionicons name="send" size={18} color={colors.white} />
+          </Pressable>
         </View>
+      )}
+    </>
+  );
+
+  if (onPress && !isThreadView) {
+    return (
+      <Card style={[styles.card, { padding: 0, overflow: 'hidden' }]}>
         <Pressable
-          style={[styles.sendBtn, !replyText.trim() && styles.sendBtnDisabled]}
-          onPress={onReplySubmit}
-          disabled={!replyText.trim()}
-          android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+          onPress={onPress}
+          android_ripple={Platform.OS === 'android' ? { color: 'rgba(0,0,0,0.05)' } : undefined}
+          style={{ padding: Spacing.lg }}
         >
-          <Ionicons name="send" size={18} color={colors.white} />
+          {cardContent}
         </Pressable>
-      </View>
+      </Card>
+    );
+  }
+
+  return (
+    <Card style={styles.card}>
+      {cardContent}
     </Card>
   );
 }
