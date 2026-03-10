@@ -55,6 +55,7 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
       const rd = r.data();
       return {
         id: r.id,
+        parentReplyId: (rd.parentReplyId as string) ?? undefined,
         authorUid: (rd.authorUid as string) ?? 'legacy',
         authorName: (rd.authorName as string) ?? 'Student',
         teamDiscriminator: rd.teamDiscriminator as string,
@@ -65,10 +66,13 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
     });
     await forumRepo.upsertForumPost({
       id: postDoc.id,
+      topicTitle: (data.topicTitle as string) ?? 'Untitled topic',
       authorUid: (data.authorUid as string) ?? 'legacy',
       authorName: (data.authorName as string) ?? 'Student',
       teamDiscriminator: data.teamDiscriminator as string,
       teamName: (data.teamName as string) ?? 'Legacy Team',
+      categoryId: (data.categoryId as string) ?? undefined,
+      categoryLabel: (data.categoryLabel as string) ?? undefined,
       content: data.content as string,
       timestamp: data.timestamp as number,
       replies,
@@ -108,10 +112,13 @@ export async function pushSyncQueue(): Promise<void> {
       } else if (item.entityType === 'forum_post' && item.operation === 'upsert') {
         const post = item.payload as ForumPost;
         await setDoc(doc(db, FS.forumPosts, post.id), {
+          topicTitle: post.topicTitle,
           authorUid: post.authorUid,
           authorName: post.authorName,
           teamDiscriminator: post.teamDiscriminator,
           teamName: post.teamName,
+          categoryId: post.categoryId ?? null,
+          categoryLabel: post.categoryLabel ?? null,
           content: post.content,
           timestamp: post.timestamp,
           updatedAt: Date.now(),
@@ -129,6 +136,7 @@ export async function pushSyncQueue(): Promise<void> {
           {
             authorUid: payload.reply.authorUid,
             authorName: payload.reply.authorName,
+            parentReplyId: payload.reply.parentReplyId ?? null,
             teamDiscriminator: payload.reply.teamDiscriminator,
             teamName: payload.reply.teamName,
             content: payload.reply.content,

@@ -33,10 +33,13 @@ export function rowToSensorLog(row: SensorLogRow): SensorLog {
 export function rowsToForumPost(post: ForumPostRow, replies: ForumReplyRow[]): ForumPost {
   return {
     id: post.id,
+    topicTitle: post.topic_title ?? 'Untitled topic',
     authorUid: post.author_uid,
     authorName: post.author_name,
     teamDiscriminator: post.team_discriminator,
     teamName: post.team_name,
+    categoryId: post.category_id ?? undefined,
+    categoryLabel: post.category_label ?? undefined,
     content: post.content,
     timestamp: post.timestamp,
     replies: replies.map(rowToForumReply),
@@ -46,6 +49,7 @@ export function rowsToForumPost(post: ForumPostRow, replies: ForumReplyRow[]): F
 export function rowToForumReply(row: ForumReplyRow): ForumReply {
   return {
     id: row.id,
+    parentReplyId: row.parent_reply_id ?? undefined,
     authorUid: row.author_uid,
     authorName: row.author_name,
     teamDiscriminator: row.team_discriminator,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, Pressable, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 
@@ -9,6 +9,7 @@ interface ChipProps {
   color?: string;
   size?: 'sm' | 'md';
   style?: ViewStyle;
+  onPress?: () => void;
 }
 
 export function Chip({
@@ -17,12 +18,13 @@ export function Chip({
   color,
   size = 'sm',
   style,
+  onPress,
 }: ChipProps) {
   const { colors } = useTheme();
   const chipColor = color ?? colors.primary;
   const isFilled = variant === 'filled';
 
-  return (
+  const content = (
     <View
       style={[
         styles.base,
@@ -45,6 +47,18 @@ export function Chip({
         {label}
       </Text>
     </View>
+  );
+
+  if (!onPress) return content;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+      hitSlop={6}
+    >
+      {content}
+    </Pressable>
   );
 }
 

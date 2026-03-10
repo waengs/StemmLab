@@ -52,9 +52,28 @@ export const useForumStore = create<ForumState>((set) => ({
     await deleteForumReplyRecord(postId, replyId);
     set((state) => ({
       posts: state.posts.map((p) =>
-        p.id === postId
-          ? { ...p, replies: p.replies.filter((r) => r.id !== replyId) }
-          : p
+        p.id !== postId
+          ? p
+          : (() => {
+              const childrenByParent = new Map<string, string[]>();
+              for (const reply of p.replies) {
+                const parent = reply.parentReplyId ?? '__root__';
+                const list = childrenByParent.get(parent) ?? [];
+                list.push(reply.id);
+                childrenByParent.set(parent, list);
+              }
+
+              const idsToDelete = new Set<string>();
+              const stack = [replyId];
+              while (stack.length > 0) {
+                const current = stack.pop()!;
+                idsToDelete.add(current);
+                const children = childrenByParent.get(current) ?? [];
+                for (const childId of children) stack.push(childId);
+              }
+
+              return { ...p, replies: p.replies.filter((r) => !idsToDelete.has(r.id)) };
+            })()
       ),
     }));
   },

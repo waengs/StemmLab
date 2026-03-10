@@ -122,6 +122,13 @@
   "forum": {
     "pageTitle": "Forum Kelas",
     "searchPlaceholder": "Cari postingan dan balasan...",
+    "categoriesTitle": "Kategori",
+    "allCategories": "Semua Topik",
+    "generalCategory": "Umum",
+    "topicTitlePlaceholder": "Judul (postingan ini tentang apa?)",
+    "categoryLabel": "Kategori postingan",
+    "categoryPlaceholder": "Pilih kategori",
+    "createPost": "Buat Postingan Baru",
     "shareAs": "Posting sebagai {{name}}",
     "shareCommunity": "Bagikan dengan komunitas",
     "askPlaceholder": "Ajukan pertanyaan atau bagikan ide...",
@@ -131,6 +138,10 @@
     "noPostsDesc": "Jadilah yang pertama memulai diskusi!",
     "reply": "Balasan",
     "reply_plural": "Balasan",
+    "continueThread": "Lanjutkan thread ({{count}} lagi)",
+    "seeMoreReplies": "Lihat lebih banyak ({{count}})",
+    "replyingTo": "Membalas {{name}}",
+    "cancelReply": "Batal",
     "writeReply": "Tulis balasan..."
   },
   "settings": {

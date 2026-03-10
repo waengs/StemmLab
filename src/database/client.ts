@@ -1,5 +1,14 @@
 import * as SQLite from 'expo-sqlite';
-import { DB_NAME, DB_VERSION, MIGRATIONS, MIGRATIONS_V2, MIGRATIONS_V3 } from './schema';
+import {
+  DB_NAME,
+  DB_VERSION,
+  MIGRATIONS,
+  MIGRATIONS_V2,
+  MIGRATIONS_V3,
+  MIGRATIONS_V4,
+  MIGRATIONS_V5,
+  MIGRATIONS_V6,
+} from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
 let initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -65,10 +74,49 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
     }
   }
 
-  if (currentVersion < DB_VERSION) {
+  if (currentVersion < 3) {
     await database.execAsync('BEGIN');
     try {
       await execStatements(database, MIGRATIONS_V3);
+      await setDbVersion(database, 3);
+      await database.execAsync('COMMIT');
+      currentVersion = 3;
+    } catch (error) {
+      await database.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  if (currentVersion < 4) {
+    await database.execAsync('BEGIN');
+    try {
+      await execStatements(database, MIGRATIONS_V4);
+      await setDbVersion(database, 4);
+      await database.execAsync('COMMIT');
+      currentVersion = 4;
+    } catch (error) {
+      await database.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  if (currentVersion < 5) {
+    await database.execAsync('BEGIN');
+    try {
+      await execStatements(database, MIGRATIONS_V5);
+      await setDbVersion(database, 5);
+      await database.execAsync('COMMIT');
+      currentVersion = 5;
+    } catch (error) {
+      await database.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  if (currentVersion < DB_VERSION) {
+    await database.execAsync('BEGIN');
+    try {
+      await execStatements(database, MIGRATIONS_V6);
       await setDbVersion(database, DB_VERSION);
       await database.execAsync('COMMIT');
     } catch (error) {

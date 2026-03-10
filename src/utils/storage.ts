@@ -171,8 +171,33 @@ export async function deleteForumPostRecord(id: string): Promise<void> {
 }
 
 export async function deleteForumReplyRecord(postId: string, replyId: string): Promise<void> {
-  await forumRepo.deleteForumReply(replyId);
-  await queueForumReplyDelete(postId, replyId);
+  const posts = await forumRepo.getAllForumPosts();
+  const post = posts.find((p) => p.id === postId);
+  if (!post) return;
+
+  const childrenByParent = new Map<string, string[]>();
+  for (const reply of post.replies) {
+    const parent = reply.parentReplyId ?? '__root__';
+    const list = childrenByParent.get(parent) ?? [];
+    list.push(reply.id);
+    childrenByParent.set(parent, list);
+  }
+
+  const idsToDelete: string[] = [];
+  const stack = [replyId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    idsToDelete.push(current);
+    const children = childrenByParent.get(current) ?? [];
+    for (const childId of children) {
+      stack.push(childId);
+    }
+  }
+
+  for (const id of idsToDelete) {
+    await forumRepo.deleteForumReply(id);
+    await queueForumReplyDelete(postId, id);
+  }
   await syncWhenOnline();
 }
 

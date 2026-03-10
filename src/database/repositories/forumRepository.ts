@@ -8,21 +8,27 @@ export async function upsertForumPost(post: ForumPost): Promise<void> {
   const now = Date.now();
   await db.runAsync(
     `INSERT INTO forum_posts (
-      id, author_uid, author_name, team_discriminator, team_name, content,
+      id, topic_title, author_uid, author_name, team_discriminator, team_name, category_id, category_label, content,
       timestamp, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+      topic_title = excluded.topic_title,
       author_uid = excluded.author_uid,
       author_name = excluded.author_name,
       team_discriminator = excluded.team_discriminator,
+      category_id = excluded.category_id,
+      category_label = excluded.category_label,
       content = excluded.content,
       timestamp = excluded.timestamp,
       updated_at = excluded.updated_at`,
     post.id,
+    post.topicTitle,
     post.authorUid,
     post.authorName,
     post.teamDiscriminator,
     post.teamName,
+    post.categoryId ?? null,
+    post.categoryLabel ?? null,
     post.content,
     post.timestamp,
     now,
@@ -39,10 +45,11 @@ export async function upsertForumReply(postId: string, reply: ForumReply): Promi
   const now = Date.now();
   await db.runAsync(
     `INSERT INTO forum_replies (
-      id, post_id, author_uid, author_name, team_discriminator, team_name,
+      id, post_id, parent_reply_id, author_uid, author_name, team_discriminator, team_name,
       content, timestamp, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+      parent_reply_id = excluded.parent_reply_id,
       author_uid = excluded.author_uid,
       author_name = excluded.author_name,
       content = excluded.content,
@@ -50,6 +57,7 @@ export async function upsertForumReply(postId: string, reply: ForumReply): Promi
       updated_at = excluded.updated_at`,
     reply.id,
     postId,
+    reply.parentReplyId ?? null,
     reply.authorUid,
     reply.authorName,
     reply.teamDiscriminator,

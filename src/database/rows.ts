@@ -27,10 +27,13 @@ export interface SensorLogRow {
 
 export interface ForumPostRow {
   id: string;
+  topic_title: string | null;
   author_uid: string;
   author_name: string;
   team_discriminator: string;
   team_name: string;
+  category_id: string | null;
+  category_label: string | null;
   content: string;
   timestamp: number;
   created_at: number;
@@ -41,6 +44,7 @@ export interface ForumPostRow {
 export interface ForumReplyRow {
   id: string;
   post_id: string;
+  parent_reply_id: string | null;
   author_uid: string;
   author_name: string;
   team_discriminator: string;

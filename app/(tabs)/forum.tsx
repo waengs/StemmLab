@@ -1,21 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  PageTitle,
-  SearchBar,
-  ForumComposer,
-  ForumPostCard,
-  EmptyState,
-} from '../../src/components';
+import { PageTitle, SearchBar, ForumComposer, ForumPostCard, EmptyState, Chip, Button } from '../../src/components';
 import { matchesSearch } from '../../src/utils/search';
 import { hasProfanity } from '../../src/utils/profanity';
 import { useTheme } from '../../src/stores/themeStore';
-import { useAuthStore, useForumStore } from '../../src/stores';
+import { useForumStore } from '../../src/stores';
 import { useRequireAuth } from '../../src/stores';
 import { Spacing } from '../../src/theme';
-import type { ForumPost, ForumReply } from '../../src/types';
+import { ACTIVITIES, type ForumPost, type ForumReply } from '../../src/types';
 
 export default function Forum() {
   const { t } = useTranslation();
@@ -26,31 +20,80 @@ export default function Forum() {
   const updatePost = useForumStore((s) => s.updatePost);
   const deletePost = useForumStore((s) => s.deletePost);
   const deleteReply = useForumStore((s) => s.deleteReply);
+  const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
+  const [replyTarget, setReplyTarget] = useState<Record<string, { replyId: string; authorName: string } | null>>({});
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
+  const [composerCategoryId, setComposerCategoryId] = useState<string>('general');
+  const [composerOpen, setComposerOpen] = useState(false);
+
+  const categoryOptions = useMemo(() => {
+    const activityOptions = Object.values(ACTIVITIES).map((activity) => ({
+      id: activity.id,
+      label: activity.name,
+    }));
+    return [{ id: 'general', label: t('forum.generalCategory') }, ...activityOptions];
+  }, [t]);
+
+  const composerCategoryLabel = useMemo(
+    () =>
+      categoryOptions.find((option) => option.id === composerCategoryId)?.label ??
+      t('forum.generalCategory'),
+    [categoryOptions, composerCategoryId, t]
+  );
+
+  const filterTabs = useMemo(
+    () => [{ id: 'all', label: t('forum.allCategories') }, ...categoryOptions],
+    [categoryOptions, t]
+  );
+
+  const categoryStats = useMemo(
+    () =>
+      categoryOptions.map((category) => ({
+        id: category.id,
+        count: posts.filter((post) => (post.categoryId ?? 'general') === category.id).length,
+      })),
+    [categoryOptions, posts]
+  );
 
   const filteredPosts = useMemo(() => {
-    if (!searchQuery.trim()) return posts;
     return posts.filter((post) => {
+      const inCategory = activeCategoryId === 'all' || (post.categoryId ?? 'general') === activeCategoryId;
+      if (!inCategory) return false;
       const replyText = post.replies.map((r) => `${r.authorName} ${r.content}`).join(' ');
-      return matchesSearch(`${post.authorName} ${post.content} ${replyText}`, searchQuery);
+      const haystack = `${post.topicTitle} ${post.authorName} ${post.content} ${post.categoryLabel ?? ''} ${replyText}`;
+      return !searchQuery.trim() || matchesSearch(haystack, searchQuery);
     });
-  }, [posts, searchQuery]);
+  }, [posts, searchQuery, activeCategoryId]);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         safe: { flex: 1, backgroundColor: colors.background },
         flex: { flex: 1 },
-        content: { padding: Spacing.xl, paddingBottom: Spacing.xxxl },
+        content: { padding: Spacing.xl, paddingBottom: Spacing.xxxl, gap: Spacing.md },
+        filtersRow: {
+          flexDirection: 'row',
+          gap: Spacing.sm,
+          marginBottom: Spacing.xs,
+          paddingRight: Spacing.xl,
+        },
+        composerOpenBtn: { marginTop: -Spacing.xs },
+        composerWrap: {
+          borderWidth: 1,
+          borderColor: colors.borderLight,
+          borderRadius: 14,
+          overflow: 'hidden',
+        },
       }),
     [colors]
   );
 
   const handleCreatePost = async () => {
-    if (!user || !team || !newPostContent.trim()) return;
+    if (!user || !team || !newPostTitle.trim() || !newPostContent.trim()) return;
 
     if (hasProfanity(newPostContent)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
@@ -59,17 +102,22 @@ export default function Forum() {
 
     const post: ForumPost = {
       id: Date.now().toString(),
+      topicTitle: newPostTitle.trim(),
       authorUid: user.uid,
       authorName: user.displayName,
       teamDiscriminator: team.discriminator,
       teamName: team.name,
+      categoryId: composerCategoryId,
+      categoryLabel: composerCategoryLabel,
       content: newPostContent,
       timestamp: Date.now(),
       replies: [],
     };
 
     await addPost(post);
+    setNewPostTitle('');
     setNewPostContent('');
+    setComposerOpen(false);
   };
 
   const handleReply = async (postId: string) => {
@@ -83,13 +131,21 @@ export default function Forum() {
     const post = posts.find((p) => p.id === postId);
     if (!post) return;
 
+    const target = replyTarget[postId];
+    const body = replyContent[postId].trim();
+    const content =
+      target && !body.startsWith(`@${target.authorName}`)
+        ? `@${target.authorName} ${body}`
+        : body;
+
     const reply: ForumReply = {
       id: Date.now().toString(),
+      parentReplyId: target?.replyId,
       authorUid: user.uid,
       authorName: user.displayName,
       teamDiscriminator: team.discriminator,
       teamName: team.name,
-      content: replyContent[postId],
+      content,
       timestamp: Date.now(),
     };
 
@@ -97,6 +153,7 @@ export default function Forum() {
     await updatePost(updatedPost);
 
     setReplyContent({ ...replyContent, [postId]: '' });
+    setReplyTarget({ ...replyTarget, [postId]: null });
     setExpandedPosts({ ...expandedPosts, [postId]: true });
   };
 
@@ -159,13 +216,52 @@ export default function Forum() {
         >
           <PageTitle showSettings>{t('forum.pageTitle')}</PageTitle>
           <SearchBar value={searchQuery} onChangeText={setSearchQuery} placeholder={t('forum.searchPlaceholder')} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtersRow}
+            style={{ marginHorizontal: -Spacing.xl, paddingHorizontal: Spacing.xl }}
+          >
+            {filterTabs.map((tab) => (
+              <Chip
+                key={tab.id}
+                label={`${tab.label}${tab.id !== 'all' ? ` (${categoryStats.find((s) => s.id === tab.id)?.count ?? 0})` : ''}`}
+                variant={activeCategoryId === tab.id ? 'filled' : 'outlined'}
+                onPress={() => setActiveCategoryId(tab.id)}
+              />
+            ))}
+          </ScrollView>
 
-          <ForumComposer
-            user={user}
-            value={newPostContent}
-            onChangeText={setNewPostContent}
-            onSubmit={handleCreatePost}
-          />
+          {!composerOpen ? (
+            <Button
+              title={t('forum.createPost')}
+              onPress={() => setComposerOpen(true)}
+              fullWidth
+              style={styles.composerOpenBtn}
+            />
+          ) : (
+            <View style={styles.composerWrap}>
+              <ForumComposer
+                user={user}
+                topicTitle={newPostTitle}
+                onTopicTitleChange={setNewPostTitle}
+                categoryLabel={composerCategoryLabel}
+                categoryOptions={categoryOptions.map((option) => option.label)}
+                onCategoryChange={(label) => {
+                  const match = categoryOptions.find((option) => option.label === label);
+                  if (match) setComposerCategoryId(match.id);
+                }}
+                value={newPostContent}
+                onChangeText={setNewPostContent}
+                onSubmit={handleCreatePost}
+                onCancel={() => {
+                  setComposerOpen(false);
+                  setNewPostTitle('');
+                  setNewPostContent('');
+                }}
+              />
+            </View>
+          )}
 
           {posts.length === 0 ? (
             <EmptyState icon="chatbubbles-outline" title={t('forum.noPosts')} message={t('forum.noPostsDesc')} />
@@ -178,12 +274,18 @@ export default function Forum() {
                 post={post}
                 currentUid={user.uid}
                 replyText={replyContent[post.id] || ''}
+                replyTargetName={replyTarget[post.id]?.authorName}
                 expanded={!!expandedPosts[post.id]}
                 onToggleReplies={() =>
                   setExpandedPosts({ ...expandedPosts, [post.id]: !expandedPosts[post.id] })
                 }
                 onReplyChange={(text) => setReplyContent({ ...replyContent, [post.id]: text })}
                 onReplySubmit={() => handleReply(post.id)}
+                onReplyToReply={(replyId, authorName) => {
+                  setExpandedPosts({ ...expandedPosts, [post.id]: true });
+                  setReplyTarget({ ...replyTarget, [post.id]: { replyId, authorName } });
+                }}
+                onClearReplyTarget={() => setReplyTarget({ ...replyTarget, [post.id]: null })}
                 onDelete={() => handleDeletePost(post.id)}
                 onDeleteReply={(replyId) => handleDeleteReply(post.id, replyId)}
               />

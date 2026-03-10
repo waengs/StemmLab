@@ -122,6 +122,13 @@
   "forum": {
     "pageTitle": "Class Forum",
     "searchPlaceholder": "Search posts and replies...",
+    "categoriesTitle": "Categories",
+    "allCategories": "All Topics",
+    "generalCategory": "General",
+    "topicTitlePlaceholder": "Title (what is this post about?)",
+    "categoryLabel": "Post category",
+    "categoryPlaceholder": "Choose category",
+    "createPost": "Create New Post",
     "shareAs": "Posting as {{name}}",
     "shareCommunity": "Share with the community",
     "askPlaceholder": "Ask a question or share an idea...",
@@ -131,6 +138,10 @@
     "noPostsDesc": "Be the first to start a discussion!",
     "reply": "Reply",
     "reply_plural": "Replies",
+    "continueThread": "Continue thread ({{count}} more)",
+    "seeMoreReplies": "See more ({{count}})",
+    "replyingTo": "Replying to {{name}}",
+    "cancelReply": "Cancel",
     "writeReply": "Write a reply..."
   },
   "settings": {

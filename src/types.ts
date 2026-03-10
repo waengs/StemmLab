@@ -49,10 +49,14 @@ export interface SensorLog {
 
 export interface ForumPost {
   id: string;
+  topicTitle: string;
   authorUid: string;
   authorName: string;
   teamDiscriminator: string;
   teamName: string;
+  /** Forum category key, usually an activity id. */
+  categoryId?: string;
+  categoryLabel?: string;
   content: string;
   timestamp: number;
   replies: ForumReply[];
@@ -60,6 +64,8 @@ export interface ForumPost {
 
 export interface ForumReply {
   id: string;
+  /** Reply nesting parent id (null/undefined = direct reply to post). */
+  parentReplyId?: string;
   authorUid: string;
   authorName: string;
   teamDiscriminator: string;

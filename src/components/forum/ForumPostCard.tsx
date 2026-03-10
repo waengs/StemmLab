@@ -1,22 +1,26 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Input } from '../ui/Input';
+import { Chip } from '../ui/Chip';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
-import type { ForumPost } from '../../types';
+import type { ForumPost, ForumReply } from '../../types';
 
 interface ForumPostCardProps {
   post: ForumPost;
   currentUid?: string;
   replyText: string;
+  replyTargetName?: string;
   expanded: boolean;
   onToggleReplies: () => void;
   onReplyChange: (text: string) => void;
   onReplySubmit: () => void;
+  onReplyToReply?: (replyId: string, authorName: string) => void;
+  onClearReplyTarget?: () => void;
   onDelete?: () => void;
   onDeleteReply?: (replyId: string) => void;
 }
@@ -25,31 +29,46 @@ export function ForumPostCard({
   post,
   currentUid,
   replyText,
+  replyTargetName,
   expanded,
   onToggleReplies,
   onReplyChange,
   onReplySubmit,
+  onReplyToReply,
+  onClearReplyTarget,
   onDelete,
   onDeleteReply,
 }: ForumPostCardProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
+  const MAX_VISIBLE_DEPTH = 2;
+  const [expandedBranches, setExpandedBranches] = useState<Record<string, boolean>>({});
+  const formatDate = (timestamp: number) =>
+    new Date(timestamp).toLocaleString([], {
+      year: '2-digit',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        card: { marginBottom: Spacing.lg },
+        card: { marginBottom: Spacing.md },
         header: {
           flexDirection: 'row',
           alignItems: 'center',
           gap: Spacing.md,
-          marginBottom: Spacing.md,
+          marginBottom: Spacing.sm,
         },
         meta: { flex: 1 },
         team: { ...typography.label },
         date: { ...typography.caption },
+        postTitle: { ...typography.h3, fontSize: 18, lineHeight: 24, marginBottom: Spacing.xs },
         deleteBtn: { padding: Spacing.xs },
-        content: { ...typography.body, marginBottom: Spacing.md },
+        content: { ...typography.body, marginBottom: Spacing.sm },
+        categoryChip: { marginBottom: Spacing.md },
         repliesToggle: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -64,28 +83,70 @@ export function ForumPostCard({
         replies: {
           borderLeftWidth: 2,
           borderLeftColor: colors.border,
-          paddingLeft: Spacing.lg,
-          marginBottom: Spacing.md,
+          paddingLeft: Spacing.sm,
+          marginBottom: Spacing.sm,
         },
-        replyItem: { marginBottom: Spacing.md },
+        replyItem: { marginBottom: Spacing.xl },
+        nestedReplyItem: {
+          marginLeft: Spacing.sm,
+          paddingLeft: Spacing.sm,
+          borderLeftWidth: 2,
+          borderLeftColor: colors.borderLight,
+        },
         replyHeader: {
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           gap: Spacing.xs,
           marginBottom: Spacing.xs,
         },
-        replyMeta: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-        replyTeam: { ...typography.bodySmall, fontWeight: '600' },
-        replyDate: { ...typography.caption },
-        replyDeleteBtn: { padding: Spacing.xs },
-        replyContent: { ...typography.bodySmall, paddingLeft: 30 },
-        replyRow: {
+        replyMeta: { flex: 1, minWidth: 0 },
+        replyTopRow: {
           flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: Spacing.xs,
+        },
+        replyTopLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
+        replyTopRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginLeft: Spacing.sm },
+        replyTeam: { ...typography.bodySmall, fontWeight: '600', flexShrink: 1 },
+        replyDate: { ...typography.caption, marginTop: 2, flexShrink: 1 },
+        replyDeleteBtn: { padding: Spacing.xs },
+        replyActionBtn: { paddingHorizontal: Spacing.xs, paddingVertical: 2 },
+        replyActionText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
+        replyContent: { ...typography.bodySmall, paddingLeft: 26, marginTop: 2, marginBottom: Spacing.md },
+        continueThreadBtn: {
+          marginTop: Spacing.sm,
+          marginLeft: 26,
+          marginBottom: Spacing.xs,
+          alignSelf: 'stretch',
+          minHeight: 34,
+          justifyContent: 'center',
+          paddingVertical: Spacing.xs,
+          paddingHorizontal: Spacing.sm,
+          borderRadius: 8,
+          backgroundColor: colors.surfaceElevated,
+        },
+        continueThreadText: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+        replyTargetRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: Spacing.sm,
+          borderWidth: 1,
+          borderColor: colors.borderLight,
+          borderRadius: 8,
+          paddingHorizontal: Spacing.sm,
+          paddingVertical: Spacing.xs,
+        },
+        replyTargetText: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
+        cancelReplyText: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+        replyRow: {
+          flexDirection: 'row',
+          alignItems: 'flex-end',
           gap: Spacing.sm,
           borderTopWidth: 1,
           borderTopColor: colors.borderLight,
-          paddingTop: Spacing.md,
+          paddingTop: Spacing.sm,
         },
         replyInput: { flex: 1 },
         sendBtn: {
@@ -101,6 +162,86 @@ export function ForumPostCard({
     [colors, typography]
   );
 
+  const repliesByParent = useMemo(() => {
+    const map: Record<string, ForumReply[]> = {};
+    const ids = new Set(post.replies.map((r) => r.id));
+    for (const reply of post.replies) {
+      const parent =
+        reply.parentReplyId && ids.has(reply.parentReplyId) ? reply.parentReplyId : '__root__';
+      if (!map[parent]) map[parent] = [];
+      map[parent].push(reply);
+    }
+    return map;
+  }, [post.replies]);
+
+  const renderReplies = (parentId: string | null, depth = 0): React.ReactNode => {
+    const key = parentId ?? '__root__';
+    const replies = repliesByParent[key] ?? [];
+    if (replies.length === 0) return null;
+
+    return replies.map((reply) => (
+      <View key={reply.id} style={[styles.replyItem, depth > 0 && styles.nestedReplyItem]}>
+        <View style={styles.replyHeader}>
+          <Avatar
+            name={reply.authorName}
+            size={depth > 0 ? 18 : 22}
+            backgroundColor={depth > 0 ? colors.primary : colors.primaryLight}
+          />
+          <View style={styles.replyMeta}>
+            <View style={styles.replyTopRow}>
+              <View style={styles.replyTopLeft}>
+                <Text style={styles.replyTeam} numberOfLines={1}>
+                  {reply.authorName}
+                  {reply.teamName ? ` • ${reply.teamName}` : ''}
+                </Text>
+              </View>
+              <View style={styles.replyTopRight}>
+                {onReplyToReply ? (
+                  <Pressable
+                    style={styles.replyActionBtn}
+                    onPress={() => onReplyToReply(reply.id, reply.authorName)}
+                    hitSlop={8}
+                    android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+                  >
+                    <Text style={styles.replyActionText}>{t('forum.reply')}</Text>
+                  </Pressable>
+                ) : null}
+                {currentUid && reply.authorUid === currentUid && onDeleteReply ? (
+                  <Pressable
+                    style={styles.replyDeleteBtn}
+                    onPress={() => onDeleteReply(reply.id)}
+                    hitSlop={8}
+                    android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+            <Text style={styles.replyDate}>{formatDate(reply.timestamp)}</Text>
+          </View>
+        </View>
+        <Text style={styles.replyContent}>{reply.content}</Text>
+        {depth < MAX_VISIBLE_DEPTH || expandedBranches[reply.id] ? (
+          renderReplies(reply.id, depth + 1)
+        ) : (repliesByParent[reply.id] ?? []).length > 0 ? (
+          <Pressable
+            style={styles.continueThreadBtn}
+            onPress={() => setExpandedBranches((state) => ({ ...state, [reply.id]: true }))}
+            hitSlop={8}
+            android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
+          >
+            <Text style={styles.continueThreadText}>
+              {t('forum.seeMoreReplies', {
+                count: (repliesByParent[reply.id] ?? []).length,
+              })}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+    ));
+  };
+
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
@@ -109,7 +250,7 @@ export function ForumPostCard({
           <Text style={styles.team}>
             {post.authorName} {post.teamName ? `• ${post.teamName}` : ''}
           </Text>
-          <Text style={styles.date}>{new Date(post.timestamp).toLocaleString()}</Text>
+          <Text style={styles.date}>{formatDate(post.timestamp)}</Text>
         </View>
         {currentUid && post.authorUid === currentUid && onDelete && (
           <Pressable
@@ -123,7 +264,16 @@ export function ForumPostCard({
         )}
       </View>
 
+      <Text style={styles.postTitle}>{post.topicTitle}</Text>
       <Text style={styles.content}>{post.content}</Text>
+      {post.categoryLabel ? (
+        <Chip
+          label={post.categoryLabel}
+          variant="outlined"
+          color={colors.primary}
+          style={styles.categoryChip}
+        />
+      ) : null}
 
       {post.replies.length > 0 && (
         <Pressable
@@ -145,35 +295,22 @@ export function ForumPostCard({
 
       {expanded && post.replies.length > 0 && (
         <View style={styles.replies}>
-          {post.replies.map((reply) => (
-            <View key={reply.id} style={styles.replyItem}>
-              <View style={styles.replyHeader}>
-                <Avatar name={reply.authorName} size={22} backgroundColor={colors.primaryLight} />
-                <View style={styles.replyMeta}>
-                  <Text style={styles.replyTeam}>
-                    {reply.authorName} {reply.teamName ? `• ${reply.teamName}` : ''}
-                  </Text>
-                  <Text style={styles.replyDate}>• {new Date(reply.timestamp).toLocaleString()}</Text>
-                </View>
-                {currentUid && reply.authorUid === currentUid && onDeleteReply && (
-                  <Pressable
-                    style={styles.replyDeleteBtn}
-                    onPress={() => onDeleteReply(reply.id)}
-                    hitSlop={8}
-                    android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                  </Pressable>
-                )}
-              </View>
-              <Text style={styles.replyContent}>{reply.content}</Text>
-            </View>
-          ))}
+          {renderReplies(null)}
         </View>
       )}
 
       <View style={styles.replyRow}>
         <View style={styles.replyInput}>
+          {replyTargetName ? (
+            <View style={styles.replyTargetRow}>
+              <Text style={styles.replyTargetText}>{t('forum.replyingTo', { name: replyTargetName })}</Text>
+              {onClearReplyTarget ? (
+                <Pressable onPress={onClearReplyTarget} hitSlop={8}>
+                  <Text style={styles.cancelReplyText}>{t('forum.cancelReply')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
           <Input
             value={replyText}
             onChangeText={onReplyChange}

@@ -1,5 +1,5 @@
 export const DB_NAME = 'stemmlab.db';
-export const DB_VERSION = 3;
+export const DB_VERSION = 6;
 
 /** Ordered migrations — only bump DB_VERSION when adding new statements. */
 export const MIGRATIONS: string[] = [
@@ -64,8 +64,11 @@ export const MIGRATIONS: string[] = [
 
   `CREATE TABLE IF NOT EXISTS forum_posts (
     id TEXT PRIMARY KEY NOT NULL,
+    topic_title TEXT,
     team_discriminator TEXT NOT NULL,
     team_name TEXT NOT NULL,
+    category_id TEXT,
+    category_label TEXT,
     content TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
     created_at INTEGER NOT NULL,
@@ -77,6 +80,7 @@ export const MIGRATIONS: string[] = [
   `CREATE TABLE IF NOT EXISTS forum_replies (
     id TEXT PRIMARY KEY NOT NULL,
     post_id TEXT NOT NULL,
+    parent_reply_id TEXT,
     team_discriminator TEXT NOT NULL,
     team_name TEXT NOT NULL,
     content TEXT NOT NULL,
@@ -117,7 +121,7 @@ export const MIGRATIONS_V2: string[] = [
     discriminator, auth_uid, name, name_lower, grade_level, members_json,
     created_at, updated_at, synced_at
   )
-  SELECT discriminator, auth_uid, name, name_lower, grade_level, members_json,
+  SELECT discriminator, '', name, name_lower, grade_level, members_json,
     created_at, updated_at, synced_at FROM teams;`,
   `DROP TABLE IF EXISTS teams;`,
   `ALTER TABLE teams_v2 RENAME TO teams;`,
@@ -162,7 +166,7 @@ export const MIGRATIONS_V3: string[] = [
     discriminator, name, name_lower, grade_level, join_password, created_by_uid,
     created_at, updated_at, synced_at
   )
-  SELECT discriminator, name, name_lower, grade_level, '', COALESCE(auth_uid, ''),
+  SELECT discriminator, name, name_lower, grade_level, '', '',
     created_at, updated_at, synced_at FROM teams;`,
   `DROP TABLE IF EXISTS teams;`,
   `ALTER TABLE teams_v3 RENAME TO teams;`,
@@ -175,4 +179,20 @@ export const MIGRATIONS_V3: string[] = [
   `ALTER TABLE forum_replies ADD COLUMN author_uid TEXT;`,
   `ALTER TABLE forum_replies ADD COLUMN author_name TEXT;`,
   `UPDATE forum_replies SET author_name = team_name, author_uid = 'legacy' WHERE author_name IS NULL;`,
+];
+
+/** Forum categories per activity (v4). */
+export const MIGRATIONS_V4: string[] = [
+  `ALTER TABLE forum_posts ADD COLUMN category_id TEXT;`,
+  `ALTER TABLE forum_posts ADD COLUMN category_label TEXT;`,
+];
+
+/** Nested forum replies (v5). */
+export const MIGRATIONS_V5: string[] = [
+  `ALTER TABLE forum_replies ADD COLUMN parent_reply_id TEXT;`,
+];
+
+/** Forum post topic titles (v6). */
+export const MIGRATIONS_V6: string[] = [
+  `ALTER TABLE forum_posts ADD COLUMN topic_title TEXT;`,
 ];
