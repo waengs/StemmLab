@@ -21,6 +21,10 @@ interface SelectProps {
   placeholder?: string;
   containerStyle?: ViewStyle;
   onLightSurface?: boolean;
+  /** Called when the picker modal opens */
+  onOpen?: () => void;
+  /** Called when the picker modal closes */
+  onClose?: () => void;
 }
 
 export function Select({
@@ -31,6 +35,8 @@ export function Select({
   placeholder = 'Select...',
   containerStyle,
   onLightSurface,
+  onOpen,
+  onClose,
 }: SelectProps) {
   const [visible, setVisible] = useState(false);
   const { colors, typography } = useTheme();
@@ -94,15 +100,15 @@ export function Select({
       {label && <Text style={styles.label}>{label}</Text>}
       <Pressable
         style={styles.trigger}
-        onPress={() => setVisible(true)}
+        onPress={() => { setVisible(true); onOpen?.(); }}
         android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
       >
         <Text style={[styles.triggerText, !value && styles.placeholder]}>{value || placeholder}</Text>
         <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
       </Pressable>
 
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
-        <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => { setVisible(false); onClose?.(); }}>
+        <Pressable style={styles.overlay} onPress={() => { setVisible(false); onClose?.(); }}>
           <View style={styles.dropdown}>
             <Text style={styles.dropdownTitle}>{label || 'Select'}</Text>
             <FlatList
@@ -114,6 +120,7 @@ export function Select({
                   onPress={() => {
                     onValueChange(item);
                     setVisible(false);
+                    onClose?.();
                   }}
                 >
                   <Text style={[styles.optionText, item === value && styles.optionTextSelected]}>{item}</Text>

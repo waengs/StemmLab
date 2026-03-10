@@ -1,14 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PageTitle, SearchBar, ForumComposer, ForumPostCard, EmptyState, Chip, Button } from '../../src/components';
+import { Ionicons } from '@expo/vector-icons';
+import { PageTitle, SearchBar, ForumComposer, ForumPostCard, EmptyState, Chip } from '../../src/components';
 import { matchesSearch } from '../../src/utils/search';
 import { hasProfanity } from '../../src/utils/profanity';
 import { useTheme } from '../../src/stores/themeStore';
 import { useForumStore } from '../../src/stores';
 import { useRequireAuth } from '../../src/stores';
-import { Spacing } from '../../src/theme';
+import { BorderRadius, Shadows, Spacing } from '../../src/theme';
 import { ACTIVITIES, type ForumPost, type ForumReply } from '../../src/types';
 
 export default function Forum() {
@@ -74,19 +84,25 @@ export default function Forum() {
       StyleSheet.create({
         safe: { flex: 1, backgroundColor: colors.background },
         flex: { flex: 1 },
-        content: { padding: Spacing.xl, paddingBottom: Spacing.xxxl, gap: Spacing.md },
+        content: { padding: Spacing.xl, paddingBottom: 100, gap: Spacing.md },
         filtersRow: {
           flexDirection: 'row',
           gap: Spacing.sm,
           marginBottom: Spacing.xs,
           paddingRight: Spacing.xl,
         },
-        composerOpenBtn: { marginTop: -Spacing.xs },
-        composerWrap: {
-          borderWidth: 1,
-          borderColor: colors.borderLight,
-          borderRadius: 14,
-          overflow: 'hidden',
+        // Floating action button
+        fab: {
+          position: 'absolute',
+          bottom: Spacing.xxl,
+          right: Spacing.xl,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: colors.primary,
+          alignItems: 'center',
+          justifyContent: 'center',
+          ...Shadows.lg,
         },
       }),
     [colors]
@@ -232,37 +248,6 @@ export default function Forum() {
             ))}
           </ScrollView>
 
-          {!composerOpen ? (
-            <Button
-              title={t('forum.createPost')}
-              onPress={() => setComposerOpen(true)}
-              fullWidth
-              style={styles.composerOpenBtn}
-            />
-          ) : (
-            <View style={styles.composerWrap}>
-              <ForumComposer
-                user={user}
-                topicTitle={newPostTitle}
-                onTopicTitleChange={setNewPostTitle}
-                categoryLabel={composerCategoryLabel}
-                categoryOptions={categoryOptions.map((option) => option.label)}
-                onCategoryChange={(label) => {
-                  const match = categoryOptions.find((option) => option.label === label);
-                  if (match) setComposerCategoryId(match.id);
-                }}
-                value={newPostContent}
-                onChangeText={setNewPostContent}
-                onSubmit={handleCreatePost}
-                onCancel={() => {
-                  setComposerOpen(false);
-                  setNewPostTitle('');
-                  setNewPostContent('');
-                }}
-              />
-            </View>
-          )}
-
           {posts.length === 0 ? (
             <EmptyState icon="chatbubbles-outline" title={t('forum.noPosts')} message={t('forum.noPostsDesc')} />
           ) : filteredPosts.length === 0 ? (
@@ -292,7 +277,38 @@ export default function Forum() {
             ))
           )}
         </ScrollView>
+
+        {/* Floating Action Button */}
+        <Pressable
+          style={({ pressed }) => [styles.fab, { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] }]}
+          onPress={() => setComposerOpen(true)}
+          android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: true, radius: 28 }}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </Pressable>
       </KeyboardAvoidingView>
+
+      {/* New-post modal composer */}
+      <ForumComposer
+        visible={composerOpen}
+        user={user}
+        topicTitle={newPostTitle}
+        onTopicTitleChange={setNewPostTitle}
+        categoryLabel={composerCategoryLabel}
+        categoryOptions={categoryOptions.map((option) => option.label)}
+        onCategoryChange={(label) => {
+          const match = categoryOptions.find((option) => option.label === label);
+          if (match) setComposerCategoryId(match.id);
+        }}
+        value={newPostContent}
+        onChangeText={setNewPostContent}
+        onSubmit={handleCreatePost}
+        onCancel={() => {
+          setComposerOpen(false);
+          setNewPostTitle('');
+          setNewPostContent('');
+        }}
+      />
     </SafeAreaView>
   );
 }
