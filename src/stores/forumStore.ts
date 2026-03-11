@@ -5,6 +5,10 @@ import type { ForumPost } from '../types';
 interface ForumState {
   posts: ForumPost[];
   isHydrated: boolean;
+  draftTitle: string;
+  draftContent: string;
+  draftCategoryId: string;
+  fetchPosts: () => Promise<void>;
   hydrate: () => Promise<void>;
   reset: () => void;
   addPost: (post: ForumPost) => Promise<void>;
@@ -13,21 +17,45 @@ interface ForumState {
   deleteReply: (postId: string, replyId: string) => Promise<void>;
   upvotePost: (postId: string, uid: string) => Promise<void>;
   upvoteReply: (postId: string, replyId: string, uid: string) => Promise<void>;
+  saveDraft: (title: string, content: string, categoryId: string) => Promise<void>;
+  loadDraft: () => Promise<void>;
+  clearDraft: () => Promise<void>;
 }
 
 export const useForumStore = create<ForumState>((set) => ({
   posts: [],
   isHydrated: false,
+  draftTitle: '',
+  draftContent: '',
+  draftCategoryId: 'general',
 
-  hydrate: async () => {
+  fetchPosts: async () => {
+    const { getForumPosts, getForumDraft } = await import('../utils/storage');
     const posts = await getForumPosts();
-    set({
+    const draft = await getForumDraft('main_draft');
+    set({ 
       posts: posts.sort((a, b) => b.timestamp - a.timestamp),
       isHydrated: true,
+      draftTitle: draft?.topic_title ?? '',
+      draftContent: draft?.content ?? '',
+      draftCategoryId: draft?.category_id ?? 'general',
     });
   },
 
-  reset: () => set({ posts: [], isHydrated: false }),
+  hydrate: async () => {
+    const { getForumPosts, getForumDraft } = await import('../utils/storage');
+    const posts = await getForumPosts();
+    const draft = await getForumDraft('main_draft');
+    set({
+      posts: posts.sort((a, b) => b.timestamp - a.timestamp),
+      isHydrated: true,
+      draftTitle: draft?.topic_title ?? '',
+      draftContent: draft?.content ?? '',
+      draftCategoryId: draft?.category_id ?? 'general',
+    });
+  },
+
+  reset: () => set({ posts: [], isHydrated: false, draftTitle: '', draftContent: '', draftCategoryId: 'general' }),
 
   addPost: async (post) => {
     await saveForumPost(post);
@@ -112,5 +140,29 @@ export const useForumStore = create<ForumState>((set) => ({
       if (post) void import('../utils/storage').then(({ updateForumPost }) => updateForumPost(post));
       return { posts: updated };
     });
+  },
+
+  saveDraft: async (title: string, content: string, categoryId: string) => {
+    set({ draftTitle: title, draftContent: content, draftCategoryId: categoryId });
+    const { saveForumDraft } = await import('../utils/storage');
+    await saveForumDraft('main_draft', title, categoryId, content);
+  },
+
+  loadDraft: async () => {
+    const { getForumDraft } = await import('../utils/storage');
+    const draft = await getForumDraft('main_draft');
+    if (draft) {
+      set({
+        draftTitle: draft.topic_title,
+        draftContent: draft.content,
+        draftCategoryId: draft.category_id,
+      });
+    }
+  },
+
+  clearDraft: async () => {
+    set({ draftTitle: '', draftContent: '', draftCategoryId: 'general' });
+    const { deleteForumDraft } = await import('../utils/storage');
+    await deleteForumDraft('main_draft');
   },
 }));

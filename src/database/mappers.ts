@@ -42,6 +42,7 @@ export function rowsToForumPost(post: ForumPostRow, replies: ForumReplyRow[]): F
     categoryLabel: post.category_label ?? undefined,
     content: post.content,
     timestamp: post.timestamp,
+    upvotes: JSON.parse(post.upvotes_json || '[]'),
     replies: replies.map(rowToForumReply),
   };
 }
@@ -56,6 +57,7 @@ export function rowToForumReply(row: ForumReplyRow): ForumReply {
     teamName: row.team_name,
     content: row.content,
     timestamp: row.timestamp,
+    upvotes: JSON.parse(row.upvotes_json || '[]'),
   };
 }
 

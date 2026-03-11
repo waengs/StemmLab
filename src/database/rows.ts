@@ -36,6 +36,7 @@ export interface ForumPostRow {
   category_label: string | null;
   content: string;
   timestamp: number;
+  upvotes_json: string;
   created_at: number;
   updated_at: number;
   synced_at: number | null;
@@ -51,7 +52,16 @@ export interface ForumReplyRow {
   team_name: string;
   content: string;
   timestamp: number;
+  upvotes_json: string;
   created_at: number;
   updated_at: number;
   synced_at: number | null;
+}
+
+export interface ForumDraftRow {
+  id: string;
+  topic_title: string;
+  category_id: string;
+  content: string;
+  updated_at: number;
 }

@@ -4,6 +4,7 @@ import { migrateLegacyContentIfNeeded } from '../database/migrateLegacyContent';
 import * as activityRepo from '../database/repositories/activityResultRepository';
 import * as sensorRepo from '../database/repositories/sensorLogRepository';
 import * as forumRepo from '../database/repositories/forumRepository';
+import * as draftRepo from '../database/repositories/draftRepository';
 import {
   registerAccount,
   signInWithEmail,
@@ -203,4 +204,16 @@ export async function deleteForumReplyRecord(postId: string, replyId: string): P
 
 export async function refreshSharedData(): Promise<void> {
   await syncWhenOnline();
+}
+
+export async function saveForumDraft(id: string, title: string, categoryId: string, content: string): Promise<void> {
+  return draftRepo.saveForumDraft(id, title, categoryId, content);
+}
+
+export async function getForumDraft(id: string) {
+  return draftRepo.getForumDraft(id);
+}
+
+export async function deleteForumDraft(id: string): Promise<void> {
+  return draftRepo.deleteForumDraft(id);
 }

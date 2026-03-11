@@ -1,5 +1,5 @@
 export const DB_NAME = 'stemmlab.db';
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 
 /** Ordered migrations — only bump DB_VERSION when adding new statements. */
 export const MIGRATIONS: string[] = [
@@ -195,4 +195,17 @@ export const MIGRATIONS_V5: string[] = [
 /** Forum post topic titles (v6). */
 export const MIGRATIONS_V6: string[] = [
   `ALTER TABLE forum_posts ADD COLUMN topic_title TEXT;`,
+];
+
+/** Upvotes JSON and Draft Posts (v7). */
+export const MIGRATIONS_V7: string[] = [
+  `ALTER TABLE forum_posts ADD COLUMN upvotes_json TEXT DEFAULT '[]';`,
+  `ALTER TABLE forum_replies ADD COLUMN upvotes_json TEXT DEFAULT '[]';`,
+  `CREATE TABLE IF NOT EXISTS forum_drafts (
+    id TEXT PRIMARY KEY NOT NULL,
+    topic_title TEXT NOT NULL,
+    category_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );`,
 ];

@@ -62,11 +62,13 @@ export default function Forum() {
   const addPost = useForumStore((s) => s.addPost);
   const deletePost = useForumStore((s) => s.deletePost);
   const upvotePost = useForumStore((s) => s.upvotePost);
-  const [newPostTitle, setNewPostTitle] = useState('');
-  const [newPostContent, setNewPostContent] = useState('');
+  const draftTitle = useForumStore((s) => s.draftTitle);
+  const draftContent = useForumStore((s) => s.draftContent);
+  const draftCategoryId = useForumStore((s) => s.draftCategoryId);
+  const saveDraft = useForumStore((s) => s.saveDraft);
+  const clearDraft = useForumStore((s) => s.clearDraft);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
-  const [composerCategoryId, setComposerCategoryId] = useState<string>('general');
   const [composerOpen, setComposerOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('new');
 
@@ -80,9 +82,9 @@ export default function Forum() {
 
   const composerCategoryLabel = useMemo(
     () =>
-      categoryOptions.find((option) => option.id === composerCategoryId)?.label ??
+      categoryOptions.find((option) => option.id === draftCategoryId)?.label ??
       t('forum.generalCategory'),
-    [categoryOptions, composerCategoryId, t]
+    [categoryOptions, draftCategoryId, t]
   );
 
   const filterTabs = useMemo(
@@ -162,7 +164,7 @@ export default function Forum() {
         },
         fab: {
           position: 'absolute',
-          bottom: Spacing.xxl,
+          bottom: 45, // Shifted upwards to avoid tab bar
           right: Spacing.xl,
           width: 56,
           height: 56,
@@ -177,31 +179,30 @@ export default function Forum() {
   );
 
   const handleCreatePost = async () => {
-    if (!user || !team || !newPostTitle.trim() || !newPostContent.trim()) return;
+    if (!user || !team || !draftTitle.trim() || !draftContent.trim()) return;
 
-    if (hasProfanity(newPostContent)) {
+    if (hasProfanity(draftContent)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
       return;
     }
 
     const post: ForumPost = {
       id: Date.now().toString(),
-      topicTitle: newPostTitle.trim(),
+      topicTitle: draftTitle.trim(),
       authorUid: user.uid,
       authorName: user.displayName,
       teamDiscriminator: team.discriminator,
       teamName: team.name,
-      categoryId: composerCategoryId,
+      categoryId: draftCategoryId,
       categoryLabel: composerCategoryLabel,
-      content: newPostContent,
+      content: draftContent,
       timestamp: Date.now(),
       replies: [],
       upvotes: [],
     };
 
     await addPost(post);
-    setNewPostTitle('');
-    setNewPostContent('');
+    await clearDraft();
     setComposerOpen(false);
   };
 
@@ -340,21 +341,19 @@ export default function Forum() {
       <ForumComposer
         visible={composerOpen}
         user={user}
-        topicTitle={newPostTitle}
-        onTopicTitleChange={setNewPostTitle}
+        topicTitle={draftTitle}
+        onTopicTitleChange={(title) => saveDraft(title, draftContent, draftCategoryId)}
         categoryLabel={composerCategoryLabel}
         categoryOptions={categoryOptions.map((option) => option.label)}
         onCategoryChange={(label) => {
           const match = categoryOptions.find((option) => option.label === label);
-          if (match) setComposerCategoryId(match.id);
+          if (match) saveDraft(draftTitle, draftContent, match.id);
         }}
-        value={newPostContent}
-        onChangeText={setNewPostContent}
+        value={draftContent}
+        onChangeText={(text) => saveDraft(draftTitle, text, draftCategoryId)}
         onSubmit={handleCreatePost}
         onCancel={() => {
           setComposerOpen(false);
-          setNewPostTitle('');
-          setNewPostContent('');
         }}
       />
     </SafeAreaView>
