@@ -62,6 +62,7 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
         teamName: (rd.teamName as string) ?? 'Legacy Team',
         content: rd.content as string,
         timestamp: rd.timestamp as number,
+        upvotes: (rd.upvotes as string[]) ?? [],
       };
     });
     await forumRepo.upsertForumPost({
@@ -75,6 +76,7 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
       categoryLabel: (data.categoryLabel as string) ?? undefined,
       content: data.content as string,
       timestamp: data.timestamp as number,
+      upvotes: (data.upvotes as string[]) ?? [],
       replies,
     });
   }
@@ -121,6 +123,7 @@ export async function pushSyncQueue(): Promise<void> {
           categoryLabel: post.categoryLabel ?? null,
           content: post.content,
           timestamp: post.timestamp,
+          upvotes: post.upvotes ?? [],
           updatedAt: Date.now(),
         });
       } else if (item.entityType === 'forum_post' && item.operation === 'delete') {
@@ -141,6 +144,7 @@ export async function pushSyncQueue(): Promise<void> {
             teamName: payload.reply.teamName,
             content: payload.reply.content,
             timestamp: payload.reply.timestamp,
+            upvotes: payload.reply.upvotes ?? [],
             updatedAt: Date.now(),
           }
         );
