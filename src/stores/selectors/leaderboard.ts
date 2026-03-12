@@ -1,10 +1,31 @@
 import type { ActivityResult } from '../../types';
 import type { LeaderboardEntry } from '../../components/leaderboard/LeaderboardEntryCard';
 
-function calculateScore(result: ActivityResult): number {
+export function calculateScore(result: ActivityResult): number {
   switch (result.activityId) {
-    case 'parachute-drop':
-      return Math.max(0, 100 - (parseFloat(result.data.gForce) || 0) * 10);
+    case 'parachute-drop': {
+      let score = 100;
+      if (result.data.usedInstantCalc) {
+        score -= 20; // Penalty
+      }
+      if (result.data.trials && Array.isArray(result.data.trials)) {
+        let totalDiff = 0;
+        let validTrials = 0;
+        result.data.trials.forEach((t: any) => {
+          const pred = parseFloat(t.predictedTime);
+          const act = parseFloat(t.actualTime);
+          if (!isNaN(pred) && !isNaN(act)) {
+            totalDiff += Math.abs(pred - act);
+            validTrials++;
+          }
+        });
+        if (validTrials > 0) {
+          const avgDiff = totalDiff / validTrials;
+          score -= (avgDiff * 20); // Deduct points based on inaccuracy
+        }
+      }
+      return Math.max(0, Math.round(score));
+    }
     case 'sound-pollution':
       return parseFloat(result.data.maxDecibels) || 0;
     case 'hand-fan':

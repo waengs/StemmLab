@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Chip, Input, Button, Select } from '../../../src/components';
+import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
 import { useRequireAuth } from '../../../src/stores';
 import { useActivityResultsStore, useResultsForActivity } from '../../../src/stores';
+import { calculateScore } from '../../../src/stores';
 import type { ActivityResult } from '../../../src/types';
 
 interface FormField {
@@ -37,6 +38,20 @@ export default function ActivityDetail() {
   const pastResults = useResultsForActivity(team?.discriminator, activityId);
   const addResult = useActivityResultsStore((s) => s.addResult);
   const removeResult = useActivityResultsStore((s) => s.removeResult);
+  
+  // Custom State for Parachute Drop Menu Flow
+  const [parachuteViewState, setParachuteViewState] = useState<'form' | 'menu' | 'quiz' | 'past-result'>('form');
+
+  useEffect(() => {
+    // If they open the activity and already have results, default to the menu
+    if (activityId === 'parachute-drop' && pastResults.length > 0 && parachuteViewState === 'form') {
+      // Only default to menu if we haven't explicitly set it to something else
+      const justLoaded = Object.keys(formData).length === 0;
+      if (justLoaded) {
+        setParachuteViewState('menu');
+      }
+    }
+  }, [activityId, pastResults.length]);
 
   const activity = activityId ? ACTIVITIES[activityId as keyof typeof ACTIVITIES] : null;
 
@@ -64,6 +79,10 @@ export default function ActivityDetail() {
     await addResult(result);
     setFormData({});
     Alert.alert(t('activities.savedTitle'), t('activities.savedMsg'));
+    
+    if (activity.id === 'parachute-drop') {
+      setParachuteViewState('quiz');
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -74,6 +93,9 @@ export default function ActivityDetail() {
         style: 'destructive',
         onPress: async () => {
           await removeResult(id);
+          if (activity.id === 'parachute-drop' && pastResults.length <= 1) {
+             setParachuteViewState('form');
+          }
         },
       },
     ]);
@@ -81,12 +103,6 @@ export default function ActivityDetail() {
 
   const getFormFields = (): FormField[] => {
     switch (activity.id) {
-      case 'parachute-drop':
-        return [
-          { name: 'gForce', label: t('data.activities.parachute-drop.fields.gForce'), type: 'number' },
-          { name: 'dropHeight', label: t('data.activities.parachute-drop.fields.dropHeight'), type: 'number' },
-          { name: 'parachuteSize', label: t('data.activities.parachute-drop.fields.parachuteSize'), type: 'number' },
-        ];
       case 'sound-pollution':
         return [
           { name: 'maxDecibels', label: t('data.activities.sound-pollution.fields.maxDecibels'), type: 'number' },
@@ -126,6 +142,7 @@ export default function ActivityDetail() {
   };
 
   const fields = getFormFields();
+  const latestResult = pastResults[0];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -137,7 +154,13 @@ export default function ActivityDetail() {
           {/* Back button */}
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (activity.id === 'parachute-drop' && parachuteViewState !== 'menu' && pastResults.length > 0) {
+                 setParachuteViewState('menu');
+              } else {
+                 router.back();
+              }
+            }}
           >
             <Ionicons name="arrow-back" size={20} color={Colors.primary} />
             <Text style={styles.backText}>{t('common.back')}</Text>
@@ -159,75 +182,152 @@ export default function ActivityDetail() {
             <View style={styles.alert}>
               <Ionicons name="information-circle" size={18} color={Colors.primary} />
               <Text style={styles.alertText}>
-                {t('activities.infoAlert')}
+                {activity.id === 'parachute-drop' ? t('data.activities.parachute-drop.overview') : t('activities.infoAlert')}
               </Text>
             </View>
 
             {/* Form */}
-            {fields.map((field) =>
-              field.type === 'select' ? (
-                <Select
-                  key={field.name}
-                  label={field.label}
-                  value={formData[field.name] || ''}
-                  options={field.options || []}
-                  onValueChange={(v) => setFormData({ ...formData, [field.name]: v })}
-                />
-              ) : (
+            {activity.id === 'parachute-drop' ? (
+              <>
+                {parachuteViewState === 'form' && (
+                  <ParachuteDropForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {parachuteViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button 
+                      title="View Past Result" 
+                      onPress={() => setParachuteViewState('past-result')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="View Quiz & Discussions" 
+                      onPress={() => setParachuteViewState('quiz')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Do Another Experiment" 
+                      onPress={() => {
+                        setFormData({});
+                        setParachuteViewState('form');
+                      }} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
+                      variant="outlined" 
+                    />
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                {fields.map((field) =>
+                  field.type === 'select' ? (
+                    <Select
+                      key={field.name}
+                      label={field.label}
+                      value={formData[field.name] || ''}
+                      options={field.options || []}
+                      onValueChange={(v) => setFormData({ ...formData, [field.name]: v })}
+                    />
+                  ) : (
+                    <Input
+                      key={field.name}
+                      label={field.label}
+                      value={formData[field.name] || ''}
+                      onChangeText={(v) => setFormData({ ...formData, [field.name]: v })}
+                      keyboardType={field.type === 'number' ? 'numeric' : 'default'}
+                      placeholder={t('activities.enterValue', { label: field.label.toLowerCase() })}
+                    />
+                  )
+                )}
+
                 <Input
-                  key={field.name}
-                  label={field.label}
-                  value={formData[field.name] || ''}
-                  onChangeText={(v) => setFormData({ ...formData, [field.name]: v })}
-                  keyboardType={field.type === 'number' ? 'numeric' : 'default'}
-                  placeholder={t('activities.enterValue', { label: field.label.toLowerCase() })}
+                  label={t('common.notes')}
+                  value={formData.notes || ''}
+                  onChangeText={(v) => setFormData({ ...formData, notes: v })}
+                  multiline
+                  numberOfLines={3}
+                  placeholder={t('sensors.notesPlaceholder')}
                 />
-              )
+              </>
             )}
 
-            <Input
-              label={t('common.notes')}
-              value={formData.notes || ''}
-              onChangeText={(v) => setFormData({ ...formData, notes: v })}
-              multiline
-              numberOfLines={3}
-              placeholder={t('sensors.notesPlaceholder')}
-            />
-
-            <Button
-              title={t('common.save')}
-              onPress={handleSubmit}
-              size="lg"
-              fullWidth
-              icon={<Ionicons name="save" size={18} color={Colors.white} />}
-            />
+            {activity.id !== 'parachute-drop' && (
+              <Button
+                title={t('common.save')}
+                onPress={handleSubmit}
+                size="lg"
+                fullWidth
+                icon={<Ionicons name="save" size={18} color={Colors.white} />}
+              />
+            )}
           </Card>
 
-          {/* Past results */}
-          {pastResults.length > 0 && (
-            <View style={styles.resultsSection}>
-              <Text style={styles.resultsTitle}>
-                {t('activities.pastResults', { count: pastResults.length })}
-              </Text>
-              {pastResults.map((result) => (
-                <Card key={result.id} style={styles.resultCard}>
-                  <View style={styles.resultHeader}>
-                    <Text style={styles.resultDate}>
-                      {new Date(result.timestamp).toLocaleString()}
-                    </Text>
-                    <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                      <Ionicons name="trash-outline" size={18} color={Colors.danger} />
-                    </TouchableOpacity>
-                  </View>
-                  {Object.entries(result.data).map(([key, value]) => (
-                    <Text key={key} style={styles.resultField}>
-                      <Text style={styles.resultFieldName}>{key}: </Text>
-                      {value}
-                    </Text>
+          {/* Past results & Quiz Views */}
+          {activity.id === 'parachute-drop' ? (
+            <View>
+              {parachuteViewState === 'quiz' && latestResult && (
+                 <ParachuteDropPostActivity data={latestResult.data} />
+              )}
+              {parachuteViewState === 'past-result' && pastResults.length > 0 && (
+                <View style={styles.resultsSection}>
+                  <Text style={styles.resultsTitle}>
+                    {t('activities.pastResults', { count: pastResults.length })}
+                  </Text>
+                  {pastResults.map((result) => (
+                    <Card key={result.id} style={styles.resultCard}>
+                      <View style={styles.resultHeader}>
+                        <Text style={styles.resultDate}>
+                          {new Date(result.timestamp).toLocaleString()}
+                        </Text>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
+                        <Text style={{fontWeight: '700', color: Colors.primary}}>
+                          Score: {calculateScore(result)}
+                        </Text>
+                        <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                          <Ionicons name="trash-outline" size={18} color={Colors.danger} />
+                        </TouchableOpacity>
+                      </View>
+                      </View>
+                      <ParachuteDropResults data={result.data} />
+                    </Card>
                   ))}
-                </Card>
-              ))}
+                </View>
+              )}
             </View>
+          ) : (
+            pastResults.length > 0 && (
+              <View style={styles.resultsSection}>
+                <Text style={styles.resultsTitle}>
+                  {t('activities.pastResults', { count: pastResults.length })}
+                </Text>
+                {pastResults.map((result) => (
+                  <Card key={result.id} style={styles.resultCard}>
+                    <View style={styles.resultHeader}>
+                      <Text style={styles.resultDate}>
+                        {new Date(result.timestamp).toLocaleString()}
+                      </Text>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
+                        <Text style={{fontWeight: '700', color: Colors.primary}}>
+                          Score: {calculateScore(result)}
+                        </Text>
+                        <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                          <Ionicons name="trash-outline" size={18} color={Colors.danger} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    {Object.entries(result.data).map(([key, value]) => (
+                      <Text key={key} style={styles.resultField}>
+                        <Text style={styles.resultFieldName}>{key}: </Text>
+                        {value as string}
+                      </Text>
+                    ))}
+                  </Card>
+                ))}
+              </View>
+            )
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -289,6 +389,22 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: Colors.primary,
     flex: 1,
+  },
+  menuContainer: {
+    padding: Spacing.md,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  menuTitle: {
+    ...Typography.h3,
+    marginBottom: Spacing.lg,
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  menuBtn: {
+    marginBottom: Spacing.md,
   },
   resultsSection: {
     marginTop: Spacing.sm,

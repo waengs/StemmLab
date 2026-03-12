@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import {
   Screen,
@@ -23,14 +24,34 @@ export default function Sensors() {
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sensorValue, setSensorValue] = useState('');
+  const [notes, setNotes] = useState('');
 
   const handleSensorClick = (sensorId: string) => {
     setSelectedSensor(sensorId);
     setIsRecording(false);
     setSensorValue('');
+    setNotes('');
   };
 
-  const simulateSensorData = () => {
+  const simulateSensorData = async () => {
+    if (selectedSensor === 'slow-mo') {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert(t('common.cameraPermissionMsg', { defaultValue: 'Camera permission is required' }));
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: true,
+        quality: 1,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setIsRecording(true);
+        setSensorValue(result.assets[0].uri);
+      }
+      return;
+    }
+
     setIsRecording(true);
     let value = '';
 
@@ -50,9 +71,6 @@ export default function Sensors() {
       case 'location':
         value = `${(Math.random() * 90).toFixed(4)}°N, ${(Math.random() * 180).toFixed(4)}°E`;
         break;
-      case 'slow-mo':
-        value = 'Video recording started at 240 fps';
-        break;
     }
 
     setSensorValue(value);
@@ -66,11 +84,15 @@ export default function Sensors() {
       return;
     }
 
+    const logData = selectedSensor === 'slow-mo'
+      ? (notes ? `${sensorValue}\nNotes: ${notes}` : sensorValue)
+      : sensorValue;
+
     const log: SensorLog = {
       id: Date.now().toString(),
       sensorType: selectedSensor,
       timestamp: Date.now(),
-      data: sensorValue,
+      data: logData,
       teamDiscriminator: team.discriminator,
       recordedByUid: user.uid,
     };
@@ -83,6 +105,7 @@ export default function Sensors() {
     setSelectedSensor(null);
     setIsRecording(false);
     setSensorValue('');
+    setNotes('');
   };
 
   return (
@@ -101,6 +124,8 @@ export default function Sensors() {
         onClose={handleClose}
         onStartMeasurement={simulateSensorData}
         onValueChange={setSensorValue}
+        notes={notes}
+        onNotesChange={setNotes}
         onSave={handleSave}
       />
     </>
