@@ -302,6 +302,29 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
 
   return (
     <View style={styles.container}>
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+          {['setup', 'predictions', 'experiment', ...(isHighSchool ? ['calculations'] : [])].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
+              onPress={() => {
+                if (!isTimerRunning) {
+                  Alert.alert("Timer Required", "Please start the timer to navigate to other sections.");
+                  return;
+                }
+                setActiveTab(tab as any);
+              }}
+              disabled={!isTimerRunning && activeTab !== tab}
+            >
+              <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                {t(`activities.tabs.${tab}`, { defaultValue: tab.charAt(0).toUpperCase() + tab.slice(1) })}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
       {/* Universal Timer & Warning */}
       <View style={{ marginBottom: Spacing.lg }}>
         <View style={styles.stickyTimer}>
@@ -312,7 +335,20 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
           <View style={styles.timerButtons}>
             <Button 
               title={isTimerRunning ? t('data.activities.parachute-drop.timerPause') : t('data.activities.parachute-drop.timerStart')} 
-              onPress={() => setIsTimerRunning(!isTimerRunning)} 
+              onPress={() => {
+                if (isTimerRunning) {
+                  Alert.alert(
+                    t('data.activities.parachute-drop.timerPauseTitle', { defaultValue: 'Pause Timer' }),
+                    t('data.activities.parachute-drop.timerPauseWarning', { defaultValue: "Don't pause the timer unless you need to. Value integrity!" }),
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Pause", onPress: () => setIsTimerRunning(false) }
+                    ]
+                  );
+                } else {
+                  setIsTimerRunning(true);
+                }
+              }} 
               variant={isTimerRunning ? "outlined" : "primary"}
               size="sm"
               disabled={isLocked && timeLeft === 0}
@@ -330,58 +366,47 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
             />
           </View>
         </View>
-        
-        <View style={styles.integrityBox}>
-          <Ionicons name="warning" size={20} color={Colors.accent} />
-          <Text style={styles.integrityText}>{t('data.activities.parachute-drop.integrityInstruction')}</Text>
-        </View>
       </View>
 
       {/* PAGE 1: SETUP */}
       {activeTab === 'setup' && (
         <View>
           <Card style={styles.pageCard}>
-            <View style={styles.instructionsHeader}>
-              <Ionicons name="information-circle" size={24} color={Colors.primary} />
-              <Text style={styles.instructionsTitle}>{t('data.activities.parachute-drop.instructionsTitle')}</Text>
-            </View>
-            
-            <Text style={styles.instructionListTitle}>{t('data.activities.parachute-drop.equipmentTitle')}</Text>
-            <View style={styles.checklistContainer}>
-              {equipmentList.map(item => (
-                <TouchableOpacity 
-                  key={item} 
-                  style={styles.checklistItem}
-                  onPress={() => toggleEquipment(item)}
-                >
-                  <Ionicons 
-                    name={checkedEquipment[item] ? "checkbox" : "square-outline"} 
-                    size={24} 
-                    color={checkedEquipment[item] ? Colors.primary : Colors.textMuted} 
-                  />
-                  <Text style={[styles.checklistText, checkedEquipment[item] && styles.checklistTextChecked]}>
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-            <View style={{ marginTop: Spacing.xl }} />
-            
-            <Text style={styles.instructionListTitle}>{t('data.activities.parachute-drop.instructionsTitle')}</Text>
-            <Image 
-              source={require('../../../assets/images/activity1illustration.jpeg')} 
-              style={styles.illustration} 
-              resizeMode="contain" 
-            />
+            <Text style={styles.sectionTitle}>{t('data.activities.parachute-drop.equipmentTitle', { defaultValue: 'Equipment Checklist' })}</Text>
+            {equipmentList.map(item => (
+              <TouchableOpacity 
+                key={item} 
+                style={styles.checklistItem}
+                onPress={() => toggleEquipment(item)}
+              >
+                <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
+                  {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                </View>
+                <Text style={styles.checklistText}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Card>
+
+          <Card style={styles.pageCard}>
+            <Text style={styles.sectionTitle}>{t('data.activities.parachute-drop.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
             <Text style={styles.instructionText}>1. {t('data.activities.parachute-drop.instruction1')}</Text>
             <Text style={styles.instructionText}>2. {t('data.activities.parachute-drop.instruction2')}</Text>
             <Text style={styles.instructionText}>3. {t('data.activities.parachute-drop.instruction3')}</Text>
             <Text style={styles.instructionText}>4. {t('data.activities.parachute-drop.instruction4')}</Text>
             <Text style={styles.instructionText}>5. {t('data.activities.parachute-drop.instruction5')}</Text>
             <Text style={styles.instructionText}>6. {t('data.activities.parachute-drop.instruction6')}</Text>
+            
+            <Image 
+              source={require('../../../assets/images/activity1illustration.jpeg')} 
+              style={styles.illustration} 
+              resizeMode="contain" 
+            />
+          </Card>
 
-            <Text style={styles.sectionTitle}>{t('data.activities.parachute-drop.setupSection')}</Text>
+          <Card style={styles.pageCard}>
+            <Text style={styles.sectionTitle}>{t('data.activities.parachute-drop.setupSection', { defaultValue: 'Activity Setup' })}</Text>
             <Input
               label={t('data.activities.parachute-drop.dropHeight')}
               value={data.dropHeight}
@@ -403,7 +428,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
               title="Next" 
               onPress={() => setActiveTab('predictions')} 
               disabled={!allEquipmentChecked || !data.dropHeight || !data.toyMass}
-              icon={<Ionicons name="arrow-forward" size={16} color={Colors.white} />}
+              iconRight={<Ionicons name="arrow-forward" size={16} color={Colors.white} />}
             />
           </View>
         </View>
@@ -457,10 +482,12 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
               title="Previous" 
               variant="outlined"
               onPress={() => setActiveTab('setup')} 
+              icon={<Ionicons name="arrow-back" size={16} color={Colors.primary} />}
             />
             <Button 
               title="Next" 
               onPress={() => setActiveTab('experiment')} 
+              iconRight={<Ionicons name="arrow-forward" size={16} color={Colors.white} />}
             />
           </View>
         </View>
@@ -478,10 +505,17 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
               <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDifference')}</Text>
             </View>
             
-            {data.trials.map((trial: TrialData) => {
+            {data.trials.map((trial: TrialData, index: number) => {
               const diff = (parseFloat(trial.predictedTime) || 0) - (parseFloat(trial.actualTime) || 0);
               return (
                 <View key={`act-${trial.id}`} style={styles.trialRowBlock}>
+                  {index > 0 && (
+                    <View style={styles.tableRowHeader}>
+                      <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
+                      <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerActualTime')}</Text>
+                      <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDifference')}</Text>
+                    </View>
+                  )}
                   <View style={styles.tableRow}>
                     <Text style={[styles.tableCell, styles.flex2, { fontWeight: '600' }]}>{trial.label}</Text>
                     <View style={styles.flex2}>
@@ -589,10 +623,12 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
               title="Previous" 
               variant="outlined"
               onPress={() => setActiveTab('predictions')} 
+              icon={<Ionicons name="arrow-back" size={16} color={Colors.primary} />}
             />
             <Button 
               title="Next" 
               onPress={() => setActiveTab('calculations')} 
+              iconRight={<Ionicons name="arrow-forward" size={16} color={Colors.white} />}
             />
           </View>
         </View>
@@ -604,7 +640,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
           <Card style={[styles.pageCard, { marginBottom: Spacing.lg }]}>
             <View style={styles.instructionsHeader}>
               <Ionicons name="calculator" size={24} color={Colors.primary} />
-              <Text style={styles.instructionsTitle}>{t('data.activities.parachute-drop.formulasTitle', { defaultValue: 'Formulas to Use' })}</Text>
+              <Text style={styles.instructionsTitle}>{t('data.activities.parachute-drop.formulasTitle', { defaultValue: 'Helpful Formulas' })}</Text>
             </View>
             {!isHighSchool ? (
               <View style={styles.formulaBox}>
@@ -743,6 +779,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
               title="Previous" 
               variant="outlined"
               onPress={() => setActiveTab('experiment')} 
+              icon={<Ionicons name="arrow-back" size={16} color={Colors.primary} />}
             />
             <Button 
               title="Save Results" 
@@ -786,14 +823,44 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.xl,
   },
+  tabContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+    marginBottom: Spacing.md,
+  },
+  tabScroll: {
+    paddingHorizontal: Spacing.md,
+  },
+  tab: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: Colors.primary,
+  },
+  tabText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
   wizardNavRight: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
   wizardNavBoth: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
   stickyTimer: {
     flexDirection: 'row',
@@ -826,7 +893,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   pageCard: {
-    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    padding: Spacing.xl,
   },
   integrityBox: {
     flexDirection: 'row',
@@ -852,16 +920,23 @@ const styles = StyleSheet.create({
   },
   checklistText: {
     ...Typography.body,
-    color: Colors.textSecondary,
-  },
-  checklistTextChecked: {
-    color: Colors.text,
-    textDecorationLine: 'line-through',
+    flex: 1,
   },
   sectionTitle: {
-    ...Typography.h3,
+    ...Typography.h2,
     marginBottom: Spacing.md,
-    marginTop: Spacing.lg,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
   },
   instructionsHeader: {
     flexDirection: 'row',
@@ -880,16 +955,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   instructionText: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-    paddingLeft: Spacing.sm,
+    ...Typography.body,
+    marginBottom: Spacing.sm,
   },
   illustration: {
     width: '100%',
-    height: 300,
-    marginBottom: Spacing.md,
-    borderRadius: BorderRadius.sm,
+    height: 200,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
   tableTitle: {
     ...Typography.h3,
@@ -911,6 +984,7 @@ const styles = StyleSheet.create({
   tableCell: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
+    paddingRight: Spacing.sm,
   },
   flex1: { flex: 1 },
   flex2: { flex: 2 },
@@ -948,17 +1022,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   formulaBox: {
-    backgroundColor: Colors.primaryLight + '10',
+    backgroundColor: Colors.primary + '10',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    marginTop: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.primaryLight + '40',
+    marginTop: Spacing.sm,
   },
   formulaText: {
     ...Typography.bodySmall,
-    color: Colors.text,
-    marginBottom: 4,
+    color: Colors.primary,
+    marginBottom: Spacing.xs,
   },
   videoContainer: {
     width: '100%',

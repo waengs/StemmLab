@@ -28,8 +28,44 @@ export function calculateScore(result: ActivityResult): number {
     }
     case 'sound-pollution':
       return parseFloat(result.data.maxDecibels) || 0;
-    case 'hand-fan':
-      return parseFloat(result.data.windSpeed) || 0;
+    case 'hand-fan': {
+      let score = 100;
+      if (result.data.usedInstantCalc) {
+        score -= 20;
+      }
+      
+      if (result.data.trials && Array.isArray(result.data.trials) && result.data.trials.length > 0) {
+        let maxBend = -1;
+        let bestMaterial = '';
+        let bestDesign = '';
+        let bestDistance = '';
+        
+        result.data.trials.forEach((t: any) => {
+          const bend = parseFloat(t.maxBendAngle) || 0;
+          if (bend > maxBend) {
+            maxBend = bend;
+            bestMaterial = t.targetMaterial; // or fanMaterial? prompt: "which material produces more bend", usually target material
+            bestDesign = t.design;
+            bestDistance = t.distance;
+          }
+        });
+
+        if (bestMaterial && result.data.predictedMaterial && result.data.predictedMaterial !== bestMaterial) {
+          score -= 10;
+        }
+        
+        if (bestDesign && result.data.predictedDesign && 
+            !bestDesign.toLowerCase().includes(result.data.predictedDesign.toLowerCase()) && 
+            !result.data.predictedDesign.toLowerCase().includes(bestDesign.toLowerCase())) {
+          score -= 10;
+        }
+
+        if (bestDistance && result.data.predictedDistance && result.data.predictedDistance !== bestDistance) {
+          score -= 10;
+        }
+      }
+      return Math.max(0, score);
+    }
     case 'earthquake':
       return result.data.survived === 'Yes' ? 100 : 0;
     case 'human-performance':

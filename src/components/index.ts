@@ -37,7 +37,10 @@ export { TrialVideoPlayer } from './sensors/TrialVideoPlayer';
 export { ActivityCategorySection } from './activities/ActivityCategorySection';
 export { ParachuteDropForm } from './activities/ParachuteDropForm';
 export { ParachuteDropResults } from './activities/ParachuteDropResults';
-export { ParachuteDropPostActivity } from './activities/ParachuteDropPostActivity';
+export { ParachuteDropPostActivity, ParachuteDropDiscussion } from './activities/ParachuteDropPostActivity';
+export { HandFanForm } from './activities/HandFanForm';
+export { HandFanResults } from './activities/HandFanResults';
+export { HandFanPostActivity, HandFanDiscussion } from './activities/HandFanPostActivity';
 
 // Leaderboard
 export { LeaderboardTabs } from './leaderboard/LeaderboardTabs';

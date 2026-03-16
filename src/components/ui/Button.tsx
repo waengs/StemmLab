@@ -12,6 +12,7 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
+  iconRight?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 }
@@ -25,6 +26,7 @@ export function Button({
   disabled = false,
   loading = false,
   icon,
+  iconRight,
   style,
   textStyle,
 }: ButtonProps) {
@@ -86,6 +88,7 @@ export function Button({
         <>
           {icon}
           <Text style={[styles.text, textVariantStyle, textSizeStyle, textStyle]}>{title}</Text>
+          {iconRight}
         </>
       )}
     </Pressable>

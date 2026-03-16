@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults } from '../../../src/components';
+import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
@@ -40,15 +40,22 @@ export default function ActivityDetail() {
   const removeResult = useActivityResultsStore((s) => s.removeResult);
   
   // Custom State for Parachute Drop Menu Flow
-  const [parachuteViewState, setParachuteViewState] = useState<'form' | 'menu' | 'quiz' | 'past-result'>('form');
+  const [parachuteViewState, setParachuteViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
+  // Custom State for Hand Fan Menu Flow
+  const [handFanViewState, setHandFanViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
 
   useEffect(() => {
     // If they open the activity and already have results, default to the menu
     if (activityId === 'parachute-drop' && pastResults.length > 0 && parachuteViewState === 'form') {
-      // Only default to menu if we haven't explicitly set it to something else
       const justLoaded = Object.keys(formData).length === 0;
       if (justLoaded) {
         setParachuteViewState('menu');
+      }
+    }
+    if (activityId === 'hand-fan' && pastResults.length > 0 && handFanViewState === 'form') {
+      const justLoaded = Object.keys(formData).length === 0;
+      if (justLoaded) {
+        setHandFanViewState('menu');
       }
     }
   }, [activityId, pastResults.length]);
@@ -82,6 +89,8 @@ export default function ActivityDetail() {
     
     if (activity.id === 'parachute-drop') {
       setParachuteViewState('quiz');
+    } else if (activity.id === 'hand-fan') {
+      setHandFanViewState('quiz');
     }
   };
 
@@ -95,6 +104,8 @@ export default function ActivityDetail() {
           await removeResult(id);
           if (activity.id === 'parachute-drop' && pastResults.length <= 1) {
              setParachuteViewState('form');
+          } else if (activity.id === 'hand-fan' && pastResults.length <= 1) {
+             setHandFanViewState('form');
           }
         },
       },
@@ -157,6 +168,8 @@ export default function ActivityDetail() {
             onPress={() => {
               if (activity.id === 'parachute-drop' && parachuteViewState !== 'menu' && pastResults.length > 0) {
                  setParachuteViewState('menu');
+              } else if (activity.id === 'hand-fan' && handFanViewState !== 'menu' && pastResults.length > 0) {
+                 setHandFanViewState('menu');
               } else {
                  router.back();
               }
@@ -202,16 +215,61 @@ export default function ActivityDetail() {
                       icon={<Ionicons name="time" size={18} color={Colors.white} />} 
                     />
                     <Button 
-                      title="View Quiz & Discussions" 
+                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
                       onPress={() => setParachuteViewState('quiz')} 
                       style={styles.menuBtn} 
                       icon={<Ionicons name="school" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Discussions" 
+                      onPress={() => setParachuteViewState('forum')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
                     />
                     <Button 
                       title="Do Another Experiment" 
                       onPress={() => {
                         setFormData({});
                         setParachuteViewState('form');
+                      }} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
+                      variant="outlined" 
+                    />
+                  </View>
+                )}
+              </>
+            ) : activity.id === 'hand-fan' ? (
+              <>
+                {handFanViewState === 'form' && (
+                  <HandFanForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {handFanViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button 
+                      title="View Past Results" 
+                      onPress={() => setHandFanViewState('past-result')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
+                      onPress={() => setHandFanViewState('quiz')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Discussions" 
+                      onPress={() => setHandFanViewState('forum')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Do Another Experiment" 
+                      onPress={() => {
+                        setFormData({});
+                        setHandFanViewState('form');
                       }} 
                       style={styles.menuBtn} 
                       icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
@@ -254,7 +312,7 @@ export default function ActivityDetail() {
               </>
             )}
 
-            {activity.id !== 'parachute-drop' && (
+            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && (
               <Button
                 title={t('common.save')}
                 onPress={handleSubmit}
@@ -269,7 +327,10 @@ export default function ActivityDetail() {
           {activity.id === 'parachute-drop' ? (
             <View>
               {parachuteViewState === 'quiz' && latestResult && (
-                 <ParachuteDropPostActivity data={latestResult.data} />
+                 <ParachuteDropPostActivity result={latestResult} onComplete={() => setParachuteViewState('menu')} />
+              )}
+              {parachuteViewState === 'forum' && (
+                 <ParachuteDropDiscussion />
               )}
               {parachuteViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>
@@ -279,19 +340,49 @@ export default function ActivityDetail() {
                   {pastResults.map((result) => (
                     <Card key={result.id} style={styles.resultCard}>
                       <View style={styles.resultHeader}>
-                        <Text style={styles.resultDate}>
-                          {new Date(result.timestamp).toLocaleString()}
-                        </Text>
-                      <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
-                        <Text style={{fontWeight: '700', color: Colors.primary}}>
-                          Score: {calculateScore(result)}
-                        </Text>
-                        <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                          <Ionicons name="trash-outline" size={18} color={Colors.danger} />
-                        </TouchableOpacity>
-                      </View>
+                        <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
+                          <Text style={{fontWeight: '700', color: Colors.primary}}>
+                            Score: {calculateScore(result)}
+                          </Text>
+                          <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                       <ParachuteDropResults data={result.data} />
+                    </Card>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : activity.id === 'hand-fan' ? (
+            <View>
+              {handFanViewState === 'quiz' && latestResult && (
+                 <HandFanPostActivity result={latestResult} onComplete={() => setHandFanViewState('menu')} />
+              )}
+              {handFanViewState === 'forum' && (
+                 <HandFanDiscussion />
+              )}
+              {handFanViewState === 'past-result' && pastResults.length > 0 && (
+                <View style={styles.resultsSection}>
+                  <Text style={styles.resultsTitle}>
+                    {t('activities.pastResults', { count: pastResults.length })}
+                  </Text>
+                  {pastResults.map((result) => (
+                    <Card key={result.id} style={styles.resultCard}>
+                      <View style={styles.resultHeader}>
+                        <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
+                          <Text style={{fontWeight: '700', color: Colors.primary}}>
+                            Score: {calculateScore(result)}
+                          </Text>
+                          <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <HandFanResults results={[result]} />
                     </Card>
                   ))}
                 </View>

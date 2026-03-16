@@ -21,6 +21,7 @@ interface SelectProps {
   placeholder?: string;
   containerStyle?: ViewStyle;
   onLightSurface?: boolean;
+  disabled?: boolean;
 }
 
 export function Select({
@@ -31,6 +32,7 @@ export function Select({
   placeholder = 'Select...',
   containerStyle,
   onLightSurface,
+  disabled,
 }: SelectProps) {
   const [visible, setVisible] = useState(false);
   const { colors, typography } = useTheme();

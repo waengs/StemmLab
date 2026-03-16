@@ -125,7 +125,7 @@ export default function Forum() {
 
   const handleDeleteReply = (postId: string, replyId: string) => {
     const runDelete = () => {
-      void deleteReply(postId, replyId).catch((err) => {
+      void deleteReply(postId, replyId).catch((err: any) => {
         Alert.alert('Error', err.message);
       });
     };
@@ -172,7 +172,7 @@ export default function Forum() {
           ) : filteredPosts.length === 0 ? (
             <EmptyState message={t('common.noSearchResults')} />
           ) : (
-            filteredPosts.map((post) => (
+            filteredPosts.map((post: ForumPost) => (
               <ForumPostCard
                 key={post.id}
                 post={post}
@@ -182,10 +182,10 @@ export default function Forum() {
                 onToggleReplies={() =>
                   setExpandedPosts({ ...expandedPosts, [post.id]: !expandedPosts[post.id] })
                 }
-                onReplyChange={(text) => setReplyContent({ ...replyContent, [post.id]: text })}
+                onReplyChange={(text: string) => setReplyContent({ ...replyContent, [post.id]: text })}
                 onReplySubmit={() => handleReply(post.id)}
                 onDelete={() => handleDeletePost(post.id)}
-                onDeleteReply={(replyId) => handleDeleteReply(post.id, replyId)}
+                onDeleteReply={(replyId: string) => handleDeleteReply(post.id, replyId)}
               />
             ))
           )}
