@@ -25,6 +25,7 @@ import {
   queueActivityResultSync,
   queueActivityResultDelete,
   queueSensorLogSync,
+  queueSensorLogDelete,
   queueForumPostSync,
   queueForumPostDelete,
   queueForumReplySync,
@@ -145,6 +146,12 @@ export async function saveSensorLog(log: SensorLog): Promise<void> {
 
 export async function getSensorLogs(): Promise<SensorLog[]> {
   return sensorRepo.getAllSensorLogs();
+}
+
+export async function deleteSensorLogRecord(id: string): Promise<void> {
+  await sensorRepo.deleteSensorLog(id);
+  await queueSensorLogDelete(id);
+  await syncWhenOnline();
 }
 
 export async function saveForumPost(post: ForumPost): Promise<void> {

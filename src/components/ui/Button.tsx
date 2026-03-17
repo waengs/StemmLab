@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, Text, StyleSheet, ViewStyle, ActivityIndicator, Platform } from 'react-native';
+import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, StyleProp, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 
@@ -12,7 +12,9 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
-  style?: ViewStyle;
+  iconRight?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 export function Button({
@@ -24,7 +26,9 @@ export function Button({
   disabled = false,
   loading = false,
   icon,
+  iconRight,
   style,
+  textStyle,
 }: ButtonProps) {
   const { colors, typography } = useTheme();
 
@@ -83,7 +87,8 @@ export function Button({
       ) : (
         <>
           {icon}
-          <Text style={[styles.text, textVariantStyle, textSizeStyle]}>{title}</Text>
+          <Text style={[styles.text, textVariantStyle, textSizeStyle, textStyle]}>{title}</Text>
+          {iconRight}
         </>
       )}
     </Pressable>

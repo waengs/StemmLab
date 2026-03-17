@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { TrialVideoPlayer } from './TrialVideoPlayer';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 import { SENSORS } from '../../types';
@@ -24,6 +25,8 @@ interface SensorModalProps {
   onClose: () => void;
   onStartMeasurement: () => void;
   onValueChange: (value: string) => void;
+  notes: string;
+  onNotesChange: (notes: string) => void;
   onSave: () => void;
 }
 
@@ -34,6 +37,8 @@ export function SensorModal({
   onClose,
   onStartMeasurement,
   onValueChange,
+  notes,
+  onNotesChange,
   onSave,
 }: SensorModalProps) {
   const { t } = useTranslation();
@@ -113,13 +118,19 @@ export function SensorModal({
                 />
               ) : (
                 <View>
-                  <View style={styles.measurement}>
-                    <Text style={styles.measurementValue}>{sensorValue}</Text>
-                  </View>
+                  {sensor.id === 'slow-mo' ? (
+                    <View style={{ marginBottom: Spacing.lg }}>
+                      <TrialVideoPlayer videoUri={sensorValue} />
+                    </View>
+                  ) : (
+                    <View style={styles.measurement}>
+                      <Text style={styles.measurementValue}>{sensorValue}</Text>
+                    </View>
+                  )}
                   <Input
                     label={t('common.notes')}
-                    value={sensorValue}
-                    onChangeText={onValueChange}
+                    value={sensor.id === 'slow-mo' ? notes : sensorValue}
+                    onChangeText={sensor.id === 'slow-mo' ? onNotesChange : onValueChange}
                     multiline
                     numberOfLines={2}
                     placeholder={t('sensors.notesPlaceholder')}

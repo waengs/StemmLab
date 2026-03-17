@@ -13,6 +13,7 @@ interface ActivityResultsState {
   hydrate: () => Promise<void>;
   reset: () => void;
   addResult: (result: ActivityResult) => Promise<void>;
+  updateResult: (id: string, updates: Partial<ActivityResult>) => Promise<void>;
   removeResult: (id: string) => Promise<void>;
 }
 
@@ -30,6 +31,20 @@ export const useActivityResultsStore = create<ActivityResultsState>((set) => ({
   addResult: async (result) => {
     await saveActivityResult(result);
     set((state) => ({ results: [...state.results, result] }));
+  },
+
+  updateResult: async (id, updates) => {
+    set((state) => {
+      const results = state.results.map((r) =>
+        r.id === id ? { ...r, ...updates } : r
+      );
+      // Ideally, we'd also save this to persistent storage:
+      const updatedResult = results.find((r) => r.id === id);
+      if (updatedResult) {
+        saveActivityResult(updatedResult);
+      }
+      return { results };
+    });
   },
 
   removeResult: async (id) => {

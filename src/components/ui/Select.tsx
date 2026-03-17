@@ -21,6 +21,7 @@ interface SelectProps {
   placeholder?: string;
   containerStyle?: ViewStyle;
   onLightSurface?: boolean;
+  disabled?: boolean;
   /** Called when the picker modal opens */
   onOpen?: () => void;
   /** Called when the picker modal closes */
@@ -35,6 +36,7 @@ export function Select({
   placeholder = 'Select...',
   containerStyle,
   onLightSurface,
+  disabled,
   onOpen,
   onClose,
 }: SelectProps) {

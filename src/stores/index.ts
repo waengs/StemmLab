@@ -9,4 +9,4 @@ export { useForumStore } from './forumStore';
 export { useSensorStore, useTeamSensorLogs } from './sensorStore';
 export { hydrateStores } from './hydrateStores';
 export { rehydrateAppData } from './rehydrateAppData';
-export { buildLeaderboards } from './selectors/leaderboard';
+export { buildLeaderboards, calculateScore } from './selectors/leaderboard';
