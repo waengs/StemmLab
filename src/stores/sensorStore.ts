@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-import { getSensorLogs, saveSensorLog } from '../utils/storage';
+import { getSensorLogs, saveSensorLog, deleteSensorLogRecord } from '../utils/storage';
 import type { SensorLog } from '../types';
 
 const TEAM_LOG_LIMIT = 10;
@@ -11,6 +11,8 @@ interface SensorState {
   hydrate: () => Promise<void>;
   reset: () => void;
   addLog: (log: SensorLog) => Promise<void>;
+  updateLog: (log: SensorLog) => Promise<void>;
+  deleteLog: (id: string) => Promise<void>;
 }
 
 export const useSensorStore = create<SensorState>((set) => ({
@@ -27,6 +29,20 @@ export const useSensorStore = create<SensorState>((set) => ({
   addLog: async (log) => {
     await saveSensorLog(log);
     set((state) => ({ logs: [log, ...state.logs] }));
+  },
+
+  updateLog: async (log) => {
+    await saveSensorLog(log);
+    set((state) => ({
+      logs: state.logs.map((l) => (l.id === log.id ? log : l)),
+    }));
+  },
+
+  deleteLog: async (id) => {
+    await deleteSensorLogRecord(id);
+    set((state) => ({
+      logs: state.logs.filter((l) => l.id !== id),
+    }));
   },
 }));
 

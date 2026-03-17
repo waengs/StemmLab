@@ -79,26 +79,41 @@ export default function Sensors() {
   const handleSave = async () => {
     if (!user || !team || !selectedSensor) return;
 
-    if (hasProfanity(sensorValue)) {
+    if (hasProfanity(sensorValue) || hasProfanity(notes)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
       return;
     }
 
-    const logData = selectedSensor === 'slow-mo'
-      ? (notes ? `${sensorValue}\nNotes: ${notes}` : sensorValue)
-      : sensorValue;
+    const saveLog = async (dataToSave: string) => {
+      const log: SensorLog = {
+        id: Date.now().toString(),
+        sensorType: selectedSensor,
+        timestamp: Date.now(),
+        data: dataToSave,
+        teamDiscriminator: team.discriminator,
+        recordedByUid: user.uid,
+      };
 
-    const log: SensorLog = {
-      id: Date.now().toString(),
-      sensorType: selectedSensor,
-      timestamp: Date.now(),
-      data: logData,
-      teamDiscriminator: team.discriminator,
-      recordedByUid: user.uid,
+      await addLog(log);
+      handleClose();
     };
 
-    await addLog(log);
-    handleClose();
+    if (selectedSensor === 'slow-mo') {
+      Alert.alert(
+        "Cannot save video",
+        "The video cannot be saved currently, but your notes will be saved. Proceed?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Proceed", 
+            onPress: () => saveLog(notes ? `Notes: ${notes}` : "No notes recorded.") 
+          }
+        ]
+      );
+      return;
+    }
+
+    await saveLog(sensorValue);
   };
 
   const handleClose = () => {

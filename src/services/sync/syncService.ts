@@ -105,6 +105,8 @@ export async function pushSyncQueue(): Promise<void> {
           data: log.data,
           updatedAt: Date.now(),
         });
+      } else if (item.entityType === 'sensor_log' && item.operation === 'delete') {
+        await deleteDoc(doc(db, FS.sensorLogs, item.entityId));
       } else if (item.entityType === 'forum_post' && item.operation === 'upsert') {
         const post = item.payload as ForumPost;
         await setDoc(doc(db, FS.forumPosts, post.id), {
@@ -202,6 +204,10 @@ export async function queueActivityResultDelete(id: string): Promise<void> {
 
 export async function queueSensorLogSync(log: SensorLog): Promise<void> {
   await syncQueue.enqueueSync('sensor_log', log.id, 'upsert', log);
+}
+
+export async function queueSensorLogDelete(id: string): Promise<void> {
+  await syncQueue.enqueueSync('sensor_log', id, 'delete', { id });
 }
 
 export async function queueForumPostSync(post: ForumPost): Promise<void> {

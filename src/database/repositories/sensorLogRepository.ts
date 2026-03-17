@@ -33,3 +33,8 @@ export async function getAllSensorLogs(): Promise<SensorLog[]> {
   );
   return rows.map(rowToSensorLog);
 }
+
+export async function deleteSensorLog(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(`DELETE FROM sensor_logs WHERE id = ?`, id);
+}
