@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion } from '../../../src/components';
+import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
@@ -43,6 +43,8 @@ export default function ActivityDetail() {
   const [parachuteViewState, setParachuteViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
   // Custom State for Hand Fan Menu Flow
   const [handFanViewState, setHandFanViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
+  // Custom State for Sound Pollution Menu Flow
+  const [soundPollutionViewState, setSoundPollutionViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
 
   useEffect(() => {
     // If they open the activity and already have results, default to the menu
@@ -56,6 +58,12 @@ export default function ActivityDetail() {
       const justLoaded = Object.keys(formData).length === 0;
       if (justLoaded) {
         setHandFanViewState('menu');
+      }
+    }
+    if (activityId === 'sound-pollution' && pastResults.length > 0 && soundPollutionViewState === 'form') {
+      const justLoaded = Object.keys(formData).length === 0;
+      if (justLoaded) {
+        setSoundPollutionViewState('menu');
       }
     }
   }, [activityId, pastResults.length]);
@@ -91,6 +99,8 @@ export default function ActivityDetail() {
       setParachuteViewState('quiz');
     } else if (activity.id === 'hand-fan') {
       setHandFanViewState('quiz');
+    } else if (activity.id === 'sound-pollution') {
+      setSoundPollutionViewState('quiz');
     }
   };
 
@@ -106,6 +116,8 @@ export default function ActivityDetail() {
              setParachuteViewState('form');
           } else if (activity.id === 'hand-fan' && pastResults.length <= 1) {
              setHandFanViewState('form');
+          } else if (activity.id === 'sound-pollution' && pastResults.length <= 1) {
+             setSoundPollutionViewState('form');
           }
         },
       },
@@ -114,12 +126,6 @@ export default function ActivityDetail() {
 
   const getFormFields = (): FormField[] => {
     switch (activity.id) {
-      case 'sound-pollution':
-        return [
-          { name: 'maxDecibels', label: t('data.activities.sound-pollution.fields.maxDecibels'), type: 'number' },
-          { name: 'avgDecibels', label: t('data.activities.sound-pollution.fields.avgDecibels'), type: 'number' },
-          { name: 'location', label: t('data.activities.sound-pollution.fields.location'), type: 'text' },
-        ];
       case 'hand-fan':
         return [
           { name: 'windSpeed', label: t('data.activities.hand-fan.fields.windSpeed'), type: 'number' },
@@ -170,6 +176,8 @@ export default function ActivityDetail() {
                  setParachuteViewState('menu');
               } else if (activity.id === 'hand-fan' && handFanViewState !== 'menu' && pastResults.length > 0) {
                  setHandFanViewState('menu');
+              } else if (activity.id === 'sound-pollution' && soundPollutionViewState !== 'menu' && pastResults.length > 0) {
+                 setSoundPollutionViewState('menu');
               } else {
                  router.back();
               }
@@ -278,6 +286,45 @@ export default function ActivityDetail() {
                   </View>
                 )}
               </>
+            ) : activity.id === 'sound-pollution' ? (
+              <>
+                {soundPollutionViewState === 'form' && (
+                  <SoundPollutionForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {soundPollutionViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button 
+                      title="View Past Results" 
+                      onPress={() => setSoundPollutionViewState('past-result')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
+                      onPress={() => setSoundPollutionViewState('quiz')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Discussions" 
+                      onPress={() => setSoundPollutionViewState('forum')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Do Another Experiment" 
+                      onPress={() => {
+                        setFormData({});
+                        setSoundPollutionViewState('form');
+                      }} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
+                      variant="outlined" 
+                    />
+                  </View>
+                )}
+              </>
             ) : (
               <>
                 {fields.map((field) =>
@@ -312,7 +359,7 @@ export default function ActivityDetail() {
               </>
             )}
 
-            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && (
+            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && activity.id !== 'sound-pollution' && (
               <Button
                 title={t('common.save')}
                 onPress={handleSubmit}
@@ -383,6 +430,38 @@ export default function ActivityDetail() {
                         </View>
                       </View>
                       <HandFanResults results={[result]} />
+                    </Card>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : activity.id === 'sound-pollution' ? (
+            <View>
+              {soundPollutionViewState === 'quiz' && latestResult && (
+                 <SoundPollutionPostActivity result={latestResult} onComplete={() => setSoundPollutionViewState('menu')} />
+              )}
+              {soundPollutionViewState === 'forum' && (
+                 <SoundPollutionDiscussion />
+              )}
+              {soundPollutionViewState === 'past-result' && pastResults.length > 0 && (
+                <View style={styles.resultsSection}>
+                  <Text style={styles.resultsTitle}>
+                    {t('activities.pastResults', { count: pastResults.length })}
+                  </Text>
+                  {pastResults.map((result) => (
+                    <Card key={result.id} style={styles.resultCard}>
+                      <View style={styles.resultHeader}>
+                        <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
+                          <Text style={{fontWeight: '700', color: Colors.primary}}>
+                            Score: {calculateScore(result)}
+                          </Text>
+                          <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <SoundPollutionResults results={[result]} />
                     </Card>
                   ))}
                 </View>

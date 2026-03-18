@@ -41,6 +41,9 @@ export { ParachuteDropPostActivity, ParachuteDropDiscussion } from './activities
 export { HandFanForm } from './activities/HandFanForm';
 export { HandFanResults } from './activities/HandFanResults';
 export { HandFanPostActivity, HandFanDiscussion } from './activities/HandFanPostActivity';
+export { SoundPollutionForm } from './activities/SoundPollutionForm';
+export { SoundPollutionResults } from './activities/SoundPollutionResults';
+export { SoundPollutionPostActivity, SoundPollutionDiscussion } from './activities/SoundPollutionPostActivity';
 
 // Leaderboard
 export { LeaderboardTabs } from './leaderboard/LeaderboardTabs';
