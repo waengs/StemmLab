@@ -64,11 +64,8 @@ export const MIGRATIONS: string[] = [
 
   `CREATE TABLE IF NOT EXISTS forum_posts (
     id TEXT PRIMARY KEY NOT NULL,
-    topic_title TEXT,
     team_discriminator TEXT NOT NULL,
     team_name TEXT NOT NULL,
-    category_id TEXT,
-    category_label TEXT,
     content TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
     created_at INTEGER NOT NULL,
@@ -80,7 +77,6 @@ export const MIGRATIONS: string[] = [
   `CREATE TABLE IF NOT EXISTS forum_replies (
     id TEXT PRIMARY KEY NOT NULL,
     post_id TEXT NOT NULL,
-    parent_reply_id TEXT,
     team_discriminator TEXT NOT NULL,
     team_name TEXT NOT NULL,
     content TEXT NOT NULL,

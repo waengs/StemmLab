@@ -42,7 +42,15 @@ async function setDbVersion(database: SQLite.SQLiteDatabase, version: number): P
 
 async function execStatements(database: SQLite.SQLiteDatabase, statements: string[]): Promise<void> {
   for (const sql of statements) {
-    await database.execAsync(sql);
+    try {
+      await database.execAsync(sql);
+    } catch (err: any) {
+      if (String(err).includes('duplicate column name') || String(err).includes('duplicate column')) {
+        console.warn(`[db] Ignoring duplicate column error:`, String(err));
+      } else {
+        throw err;
+      }
+    }
   }
 }
 
