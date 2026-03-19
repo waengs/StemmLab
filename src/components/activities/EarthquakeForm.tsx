@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Vibration, Image } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
@@ -7,23 +8,18 @@ import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
-import { useRequireAuth } from '../../stores';
 
-export interface SoundPollutionTrial {
+export interface EarthquakeTrial {
   id: string;
-  action: string;
-  predictionComparison: string;
-  predictionTarget: string;
-  outcomeDb: string;
+  design: string;
+  outcomeMovement: string;
   wereYouRight: string;
-  location: string;
 }
 
-export interface SoundPollutionData {
-  predictedLoudestAction: string;
-  trials: SoundPollutionTrial[];
+export interface EarthquakeData {
+  predictedBestDesign: string;
+  trials: EarthquakeTrial[];
   surprises: string;
-  needEarMuffs: string;
 }
 
 interface Props {
@@ -34,17 +30,38 @@ interface Props {
 
 const DEFAULT_TIME = 3600;
 
-export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
+const getVibrationPattern = (intensity: string) => {
+  // Pattern: [pause, vibrate, pause, vibrate, ...] in milliseconds
+  switch (intensity) {
+    case 'Low':
+      return [0, 200, 200]; // Short pulses
+    case 'Medium':
+      return [0, 500, 200]; // Medium pulses
+    case 'High':
+      return [0, 2000, 100]; // Long pulses
+    case 'Extreme':
+      return [0, 5000, 50]; // Almost continuous
+    default:
+      return [0, 500, 200];
+  }
+};
+
+export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
   const { t } = useTranslation();
-  const { team } = useRequireAuth();
   
   const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment'>('setup');
   const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isVibrating, setIsVibrating] = useState(false);
+  const [vibrationIntensity, setVibrationIntensity] = useState('Medium');
+  const intensities = ['Low', 'Medium', 'High', 'Extreme'];
   
-  const equipmentList = ['Mobile phone with STEMM Lab app (or external sound meter)'];
+  const equipmentList = [
+    'Cardboard, paper, scissors, sticky tape, plastic/paper cups',
+    'Mobile phone with STEMM Lab app (vibration simulation)'
+  ];
   const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
   const allEquipmentChecked = equipmentList.every(item => checkedEquipment[item]);
 
@@ -66,43 +83,49 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft]);
 
+  useEffect(() => {
+    // Ensure vibration stops if component unmounts
+    return () => {
+      Vibration.cancel();
+    };
+  }, []);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const getInitialData = (): SoundPollutionData => ({
-    predictedLoudestAction: '',
+  const getInitialData = (): EarthquakeData => ({
+    predictedBestDesign: '',
     surprises: '',
-    needEarMuffs: '',
     trials: [
-      { id: '1', action: 'Dropping a book on the table', predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' },
-      { id: '2', action: 'Normal talking', predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' },
-      { id: '3', action: 'Stamping feet', predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' }
+      { id: '1', design: '4 folds + 4 pillars', outcomeMovement: '', wereYouRight: '' },
+      { id: '2', design: '10 folds + 4 pillars', outcomeMovement: '', wereYouRight: '' },
+      { id: '3', design: '3 folds and 6 pillars', outcomeMovement: '', wereYouRight: '' }
     ]
   });
 
   const defaultData = getInitialData();
-  const data: SoundPollutionData = {
+  const data: EarthquakeData = {
     ...defaultData,
     ...(value || {}),
     trials: value?.trials?.length ? value.trials : defaultData.trials,
   };
 
-  const updateData = (updates: Partial<SoundPollutionData>) => onChange({ ...data, ...updates });
+  const updateData = (updates: Partial<EarthquakeData>) => onChange({ ...data, ...updates });
 
-  const updateTrial = (id: string, updates: Partial<SoundPollutionTrial>) => {
+  const updateTrial = (id: string, updates: Partial<EarthquakeTrial>) => {
     const newTrials = data.trials.map(t => t.id === id ? { ...t, ...updates } : t);
     updateData({ trials: newTrials });
   };
 
   const isFormValid = () => {
-    if (!data.predictedLoudestAction) return false;
+    if (!data.predictedBestDesign) return false;
     for (const t of data.trials) {
-      if (!t.action || !t.predictionComparison || !t.outcomeDb || !t.wereYouRight) return false;
+      if (!t.design || !t.outcomeMovement || !t.wereYouRight) return false;
     }
-    if (!data.surprises || !data.needEarMuffs) return false;
+    if (!data.surprises) return false;
     return true;
   };
 
@@ -128,6 +151,24 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
     onChange(getInitialData());
     setActiveTab('setup');
   };
+
+  const toggleVibration = () => {
+    if (isVibrating) {
+      Vibration.cancel();
+      setIsVibrating(false);
+    } else {
+      Vibration.vibrate(getVibrationPattern(vibrationIntensity), true); // loop
+      setIsVibrating(true);
+    }
+  };
+
+  // Restart vibration with new pattern if intensity changes while vibrating
+  useEffect(() => {
+    if (isVibrating) {
+      Vibration.cancel();
+      Vibration.vibrate(getVibrationPattern(vibrationIntensity), true);
+    }
+  }, [vibrationIntensity]);
 
   return (
     <View style={styles.container}>
@@ -237,11 +278,68 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
 
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-              <Text style={styles.instructionText}>1. Measure noise from different actions (e.g., dropping objects, talking, walking, stamping feet).</Text>
-              <Text style={styles.instructionText}>2. Record sound levels (in decibels) and locations for each action.</Text>
-              <Text style={styles.instructionText}>3. Map out the loud and quiet zones in your area.</Text>
               
-              <Image source={require('../../../assets/images/activity2illustration.jpeg')} style={styles.illustration} resizeMode="contain" />
+              <Text style={styles.instructionText}>1. Build an anti-vibration layer by folding paper/cardboard.</Text>
+              <Text style={styles.instructionText}>2. Place a flat cardboard platform on top.</Text>
+              <Text style={styles.instructionText}>3. Place the phone in the centre and use the Earthquake Simulator below to activate the phone's vibration motor.</Text>
+              <Text style={styles.instructionText}>4. Modify the structure to reduce phone movement (e.g. more pillars, more folds).</Text>
+
+              <Image source={require('../../../assets/images/activity4illustration.jpeg')} style={styles.illustration} resizeMode="contain" />
+            </Card>
+
+            <Card style={styles.pageCard}>
+              <View style={styles.vibrationControl}>
+                <View style={styles.vibrationControlHeader}>
+                  <Ionicons name="pulse" size={24} color={isVibrating ? Colors.danger : Colors.primary} />
+                  <Text style={styles.vibrationControlTitle}>Earthquake Simulator</Text>
+                </View>
+                <Text style={styles.vibrationControlDesc}>Use this to vibrate the phone during your experiment.</Text>
+                
+                <View style={{ marginBottom: Spacing.md }}>
+                  <Text style={{...Typography.bodySmall, fontWeight: '700', marginBottom: Spacing.xs, color: Colors.text}}>Intensity Level: {vibrationIntensity}</Text>
+                  
+                  <View style={{ position: 'relative', marginVertical: Spacing.sm }}>
+                    <Slider
+                      style={{width: '100%', height: 40, zIndex: 1}}
+                      minimumValue={0}
+                      maximumValue={3}
+                      step={1}
+                      value={intensities.indexOf(vibrationIntensity)}
+                      onValueChange={(val) => setVibrationIntensity(intensities[val])}
+                      minimumTrackTintColor={Colors.primaryDark}
+                      maximumTrackTintColor={Colors.textSecondary}
+                      thumbTintColor={Colors.primaryDark}
+                    />
+                    
+                    {/* Tick Marks (Dots) placed on top of slider track */}
+                    <View style={{ position: 'absolute', width: '100%', height: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, zIndex: 2 }} pointerEvents="none">
+                      {[0, 1, 2, 3].map(i => (
+                        <View 
+                          key={i} 
+                          style={{ 
+                            width: 8, 
+                            height: 8, 
+                            borderRadius: 4, 
+                            backgroundColor: i <= intensities.indexOf(vibrationIntensity) ? Colors.primaryDark : Colors.textSecondary 
+                          }} 
+                        />
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.xs}}>
+                    <Text style={{...Typography.caption, color: Colors.textSecondary, width: 60, textAlign: 'left'}}>Low</Text>
+                    <Text style={{...Typography.caption, color: Colors.textSecondary, width: 60, textAlign: 'right'}}>Extreme</Text>
+                  </View>
+                </View>
+
+                <Button 
+                  title={isVibrating ? "Stop Earthquake" : "Start Earthquake"} 
+                  onPress={toggleVibration} 
+                  variant={isVibrating ? "danger" : "primary"}
+                  fullWidth
+                />
+              </View>
             </Card>
 
             <Button 
@@ -258,10 +356,10 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>Make Your Predictions</Text>
               <Input
-                label="Predict which action will create the loudest sound:"
-                value={data.predictedLoudestAction}
-                onChangeText={(v) => updateData({ predictedLoudestAction: v })}
-                placeholder="e.g. Dropping a book"
+                label="Predict which fold design makes the phone move the least:"
+                value={data.predictedBestDesign}
+                onChangeText={(v) => updateData({ predictedBestDesign: v })}
+                placeholder="e.g. 10 folds with 4 pillars"
                 editable={!isLocked}
                 onLightSurface
               />
@@ -278,58 +376,33 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
         {activeTab === 'experiment' && (
           <View>
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>Record Trials</Text>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md}}>
+                <Text style={styles.sectionTitle}>Record Trials</Text>
+                <TouchableOpacity onPress={toggleVibration} style={[styles.miniVibrateBtn, isVibrating && styles.miniVibrateBtnActive]}>
+                  <Ionicons name="pulse" size={20} color={isVibrating ? Colors.white : Colors.primary} />
+                </TouchableOpacity>
+              </View>
               
               {data.trials.map((trial, index) => (
                 <View key={trial.id} style={styles.trialBlock}>
-                  <Text style={styles.trialTitle}>Action {index + 1}</Text>
+                  <Text style={styles.trialTitle}>Design {index + 1}</Text>
                   
                   <Input
-                    label="Action Description"
-                    value={trial.action}
-                    onChangeText={(v) => updateTrial(trial.id, { action: v })}
+                    label="Design Description"
+                    value={trial.design}
+                    onChangeText={(v) => updateTrial(trial.id, { design: v })}
+                    placeholder="e.g. 4 folds + 4 pillars"
                     editable={!isLocked}
                     onLightSurface
                   />
 
-                  <Input
-                    label="Location"
-                    value={trial.location}
-                    onChangeText={(v) => updateTrial(trial.id, { location: v })}
-                    placeholder="e.g. Near the window"
-                    editable={!isLocked}
-                    onLightSurface
-                  />
-                  
-                  <View style={{flexDirection: 'row', gap: Spacing.sm}}>
-                    <View style={{flex: 1}}>
-                      <Select
-                        label="Prediction"
-                        value={trial.predictionComparison}
-                        options={['Louder than', 'Softer than', 'Similar to']}
-                        onValueChange={(v) => updateTrial(trial.id, { predictionComparison: v })}
-                        disabled={isLocked}
-                      />
-                    </View>
-                    <View style={{flex: 1}}>
-                      <Input
-                        label="Target Action"
-                        value={trial.predictionTarget}
-                        onChangeText={(v) => updateTrial(trial.id, { predictionTarget: v })}
-                        placeholder="e.g. Action 1"
-                        editable={!isLocked}
-                        onLightSurface
-                      />
-                    </View>
-                  </View>
-
                   <View style={{flexDirection: 'row', gap: Spacing.sm}}>
                     <View style={{flex: 1}}>
                       <Input
-                        label="Outcome (dB)"
-                        value={trial.outcomeDb}
-                        onChangeText={(v) => updateTrial(trial.id, { outcomeDb: v })}
-                        keyboardType="numeric"
+                        label="Outcome (Movement)"
+                        value={trial.outcomeMovement}
+                        onChangeText={(v) => updateTrial(trial.id, { outcomeMovement: v })}
+                        placeholder="e.g. +/- 1cm or 4cm"
                         editable={!isLocked}
                         onLightSurface
                       />
@@ -349,11 +422,11 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
               
               {!isLocked && (
                 <Button 
-                  title="Add Action" 
+                  title="Add Design" 
                   variant="ghost" 
                   onPress={() => {
                     const newId = (data.trials.length + 1).toString();
-                    updateData({ trials: [...data.trials, { id: newId, action: `Action ${newId}`, predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' }] });
+                    updateData({ trials: [...data.trials, { id: newId, design: `Design ${newId}`, outcomeMovement: '', wereYouRight: '' }] });
                   }} 
                   icon={<Ionicons name="add" size={16} color={Colors.primary} />}
                 />
@@ -370,13 +443,6 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                 numberOfLines={3}
                 editable={!isLocked}
                 onLightSurface
-              />
-              <Select
-                label="Should we wear ear muffs in your classroom?"
-                value={data.needEarMuffs}
-                options={['Yes, definitely', 'Maybe sometimes', 'No, it is safe']}
-                onValueChange={(v) => updateData({ needEarMuffs: v })}
-                disabled={isLocked}
               />
             </Card>
 
@@ -406,12 +472,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.h2,
     marginBottom: Spacing.md,
-  },
-  illustration: {
-    width: '100%',
-    height: 200,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
   },
   tabContainer: {
     borderBottomWidth: 1,
@@ -509,6 +569,44 @@ const styles = StyleSheet.create({
   trialTitle: {
     ...Typography.h3,
     marginBottom: Spacing.sm,
+  },
+  illustration: {
+    width: '100%',
+    height: 200,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  vibrationControl: {
+    backgroundColor: Colors.primaryLight + '20',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.lg,
+  },
+  vibrationControlHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  vibrationControlTitle: {
+    ...Typography.body,
+    fontWeight: '700',
+    marginLeft: Spacing.sm,
+  },
+  vibrationControlDesc: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+  },
+  miniVibrateBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryLight + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniVibrateBtnActive: {
+    backgroundColor: Colors.danger,
   },
   modalOverlay: {
     flex: 1,

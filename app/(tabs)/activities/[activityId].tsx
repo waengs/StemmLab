@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion } from '../../../src/components';
+import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion, EarthquakeForm, EarthquakeResults, EarthquakePostActivity, EarthquakeDiscussion } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
@@ -45,6 +45,8 @@ export default function ActivityDetail() {
   const [handFanViewState, setHandFanViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
   // Custom State for Sound Pollution Menu Flow
   const [soundPollutionViewState, setSoundPollutionViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
+  // Custom State for Earthquake Menu Flow
+  const [earthquakeViewState, setEarthquakeViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
 
   useEffect(() => {
     // If they open the activity and already have results, default to the menu
@@ -64,6 +66,12 @@ export default function ActivityDetail() {
       const justLoaded = Object.keys(formData).length === 0;
       if (justLoaded) {
         setSoundPollutionViewState('menu');
+      }
+    }
+    if (activityId === 'earthquake' && pastResults.length > 0 && earthquakeViewState === 'form') {
+      const justLoaded = Object.keys(formData).length === 0;
+      if (justLoaded) {
+        setEarthquakeViewState('menu');
       }
     }
   }, [activityId, pastResults.length]);
@@ -101,6 +109,8 @@ export default function ActivityDetail() {
       setHandFanViewState('quiz');
     } else if (activity.id === 'sound-pollution') {
       setSoundPollutionViewState('quiz');
+    } else if (activity.id === 'earthquake') {
+      setEarthquakeViewState('quiz');
     }
   };
 
@@ -118,6 +128,8 @@ export default function ActivityDetail() {
              setHandFanViewState('form');
           } else if (activity.id === 'sound-pollution' && pastResults.length <= 1) {
              setSoundPollutionViewState('form');
+          } else if (activity.id === 'earthquake' && pastResults.length <= 1) {
+             setEarthquakeViewState('form');
           }
         },
       },
@@ -178,6 +190,8 @@ export default function ActivityDetail() {
                  setHandFanViewState('menu');
               } else if (activity.id === 'sound-pollution' && soundPollutionViewState !== 'menu' && pastResults.length > 0) {
                  setSoundPollutionViewState('menu');
+              } else if (activity.id === 'earthquake' && earthquakeViewState !== 'menu' && pastResults.length > 0) {
+                 setEarthquakeViewState('menu');
               } else {
                  router.back();
               }
@@ -325,6 +339,45 @@ export default function ActivityDetail() {
                   </View>
                 )}
               </>
+            ) : activity.id === 'earthquake' ? (
+              <>
+                {earthquakeViewState === 'form' && (
+                  <EarthquakeForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {earthquakeViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button 
+                      title="View Past Results" 
+                      onPress={() => setEarthquakeViewState('past-result')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
+                      onPress={() => setEarthquakeViewState('quiz')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Discussions" 
+                      onPress={() => setEarthquakeViewState('forum')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Do Another Experiment" 
+                      onPress={() => {
+                        setFormData({});
+                        setEarthquakeViewState('form');
+                      }} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
+                      variant="outlined" 
+                    />
+                  </View>
+                )}
+              </>
             ) : (
               <>
                 {fields.map((field) =>
@@ -359,7 +412,7 @@ export default function ActivityDetail() {
               </>
             )}
 
-            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && activity.id !== 'sound-pollution' && (
+            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && activity.id !== 'sound-pollution' && activity.id !== 'earthquake' && (
               <Button
                 title={t('common.save')}
                 onPress={handleSubmit}
@@ -462,6 +515,38 @@ export default function ActivityDetail() {
                         </View>
                       </View>
                       <SoundPollutionResults results={[result]} />
+                    </Card>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : activity.id === 'earthquake' ? (
+            <View>
+              {earthquakeViewState === 'quiz' && latestResult && (
+                 <EarthquakePostActivity result={latestResult} onComplete={() => setEarthquakeViewState('menu')} />
+              )}
+              {earthquakeViewState === 'forum' && (
+                 <EarthquakeDiscussion />
+              )}
+              {earthquakeViewState === 'past-result' && pastResults.length > 0 && (
+                <View style={styles.resultsSection}>
+                  <Text style={styles.resultsTitle}>
+                    {t('activities.pastResults', { count: pastResults.length })}
+                  </Text>
+                  {pastResults.map((result) => (
+                    <Card key={result.id} style={styles.resultCard}>
+                      <View style={styles.resultHeader}>
+                        <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
+                          <Text style={{fontWeight: '700', color: Colors.primary}}>
+                            Score: {calculateScore(result)}
+                          </Text>
+                          <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <EarthquakeResults results={[result]} />
                     </Card>
                   ))}
                 </View>
