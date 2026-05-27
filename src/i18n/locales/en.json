@@ -108,7 +108,16 @@
     "recentLogs": "Recent Logs",
     "startMeasurement": "Start Measurement",
     "saveLog": "Save to Log",
-    "notesPlaceholder": "Add any notes..."
+    "notesPlaceholder": "Add any notes...",
+    "uploadingVideo": "Uploading video...",
+    "noVideoTitle": "No video",
+    "noVideoMsg": "Record a video before saving.",
+    "cloudinaryNotConfiguredTitle": "Cloudinary not configured",
+    "cloudinaryNotConfiguredMsg": "Add EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME and EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET to .env, then restart Expo.",
+    "uploadFailedTitle": "Upload failed",
+    "uploadFailedMsg": "Could not upload the video. Try again.",
+    "savedLocallyHint": "Videos save on this device. Cloud upload will work once Cloudinary is configured.",
+    "noVideoInLog": "No video saved with this log."
   },
   "leaderboard": {
     "pageTitle": "Leaderboard",
@@ -321,7 +330,7 @@
       },
       "vibration": {
         "name": "Vibration Sensor",
-        "desc": "Detect and measure vibrations"
+        "desc": "Record 10s of real accelerometer data with optional live feedback"
       },
       "movement-detector": {
         "name": "Movement Detector",

@@ -11,6 +11,12 @@ export const firebaseEnv = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '',
 };
 
+export const cloudinaryEnv = {
+  cloudName: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ?? '',
+  uploadPreset: process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? '',
+  folder: process.env.EXPO_PUBLIC_CLOUDINARY_FOLDER ?? 'stemmlab/slow-mo',
+};
+
 export function isFirebaseConfigured(): boolean {
   return Boolean(
     firebaseEnv.apiKey &&

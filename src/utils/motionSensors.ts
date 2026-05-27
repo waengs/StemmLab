@@ -92,7 +92,8 @@ export async function recordMotion(
     resolveComplete = resolve;
   });
 
-  const subscription = Accelerometer.addListener(({ x, y, z }) => {    if (finished) return;
+  const subscription = Accelerometer.addListener(({ x, y, z }) => {
+    if (finished) return;
     const deviation = deviationFromRest(x, y, z);
     samples.push({ timestamp: Date.now(), deviation });
     const vibrationCm = deviation * VIBRATION_CM_SCALE;

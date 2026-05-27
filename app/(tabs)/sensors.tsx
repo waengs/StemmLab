@@ -11,6 +11,9 @@ import {
   SensorModal,
 } from '../../src/components';
 import { hasProfanity } from '../../src/utils/profanity';
+import { formatSlowMoLogData } from '../../src/utils/slowMoLog';
+import { isCloudinaryConfigured, uploadVideoToCloudinary } from '../../src/services/cloudinary';
+import { cloudinaryEnv } from '../../src/config/env';
 import { useAuthStore, useSensorStore, useTeamSensorLogs } from '../../src/stores';
 import { useRequireAuth } from '../../src/stores';
 import type { SensorLog } from '../../src/types';
@@ -25,12 +28,18 @@ export default function Sensors() {
   const [isRecording, setIsRecording] = useState(false);
   const [sensorValue, setSensorValue] = useState('');
   const [notes, setNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSensorClick = (sensorId: string) => {
     setSelectedSensor(sensorId);
     setIsRecording(false);
     setSensorValue('');
     setNotes('');
+  };
+
+  const handleResultReady = (value: string) => {
+    setSensorValue(value);
+    setIsRecording(!!value);
   };
 
   const simulateSensorData = async () => {
@@ -61,9 +70,6 @@ export default function Sensors() {
         break;
       case 'sound-meter':
         value = (Math.random() * 40 + 40).toFixed(1) + ' dB';
-        break;
-      case 'vibration':
-        value = (Math.random() * 100 + 20).toFixed(1) + ' Hz';
         break;
       case 'movement-detector':
         value = (Math.random() * 10 + 1).toFixed(2) + ' m/s';
@@ -99,17 +105,45 @@ export default function Sensors() {
     };
 
     if (selectedSensor === 'slow-mo') {
-      Alert.alert(
-        "Cannot save video",
-        "The video cannot be saved currently, but your notes will be saved. Proceed?",
-        [
-          { text: "Cancel", style: "cancel" },
-          { 
-            text: "Proceed", 
-            onPress: () => saveLog(notes ? `Notes: ${notes}` : "No notes recorded.") 
-          }
-        ]
-      );
+      if (!sensorValue) {
+        Alert.alert(
+          t('sensors.noVideoTitle', { defaultValue: 'No video' }),
+          t('sensors.noVideoMsg', { defaultValue: 'Record a video before saving.' })
+        );
+        return;
+      }
+
+      if (isCloudinaryConfigured()) {
+        setIsSaving(true);
+        try {
+          const videoUrl = await uploadVideoToCloudinary(sensorValue, {
+            folder: cloudinaryEnv.folder,
+            publicId: `${team.discriminator}-${Date.now()}`,
+          });
+          await saveLog(formatSlowMoLogData(videoUrl, notes));
+        } catch (error) {
+          Alert.alert(
+            t('sensors.uploadFailedTitle', { defaultValue: 'Upload failed' }),
+            error instanceof Error
+              ? error.message
+              : t('sensors.uploadFailedMsg', { defaultValue: 'Could not upload the video. Try again.' })
+          );
+        } finally {
+          setIsSaving(false);
+        }
+        return;
+      }
+
+      await saveLog(formatSlowMoLogData(sensorValue, notes));
+      return;
+    }
+
+    if (selectedSensor === 'vibration') {
+      if (!sensorValue) {
+        Alert.alert('No recording', 'Complete a vibration recording before saving.');
+        return;
+      }
+      await saveLog(notes.trim() ? `${sensorValue}\nNotes: ${notes}` : sensorValue);
       return;
     }
 
@@ -121,6 +155,7 @@ export default function Sensors() {
     setIsRecording(false);
     setSensorValue('');
     setNotes('');
+    setIsSaving(false);
   };
 
   return (
@@ -139,9 +174,11 @@ export default function Sensors() {
         onClose={handleClose}
         onStartMeasurement={simulateSensorData}
         onValueChange={setSensorValue}
+        onResultReady={handleResultReady}
         notes={notes}
         onNotesChange={setNotes}
         onSave={handleSave}
+        isSaving={isSaving}
       />
     </>
   );

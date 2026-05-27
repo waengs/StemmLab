@@ -5,16 +5,17 @@ import {
   Pressable,
   Modal,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { TrialVideoPlayer } from './TrialVideoPlayer';
+import { VibrationSensorPanel } from './VibrationSensorPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 import { SENSORS } from '../../types';
+import { isCloudinaryConfigured } from '../../services/cloudinary';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -25,9 +26,11 @@ interface SensorModalProps {
   onClose: () => void;
   onStartMeasurement: () => void;
   onValueChange: (value: string) => void;
+  onResultReady: (value: string) => void;
   notes: string;
   onNotesChange: (notes: string) => void;
   onSave: () => void;
+  isSaving?: boolean;
 }
 
 export function SensorModal({
@@ -37,9 +40,11 @@ export function SensorModal({
   onClose,
   onStartMeasurement,
   onValueChange,
+  onResultReady,
   notes,
   onNotesChange,
   onSave,
+  isSaving = false,
 }: SensorModalProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
@@ -82,12 +87,18 @@ export function SensorModal({
           marginBottom: Spacing.lg,
         },
         measurementValue: { fontSize: 28, fontWeight: '700', color: colors.white },
+        localHint: {
+          ...typography.caption,
+          color: colors.textMuted,
+          marginTop: -Spacing.md,
+          marginBottom: Spacing.lg,
+        },
       }),
     [colors, typography]
   );
 
   return (
-    <Modal visible={!!sensorId} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={!!sensorId} transparent animationType="slide" onRequestClose={isSaving ? undefined : onClose}>
       <View style={styles.overlay}>
         <View style={styles.content}>
           {sensor && (
@@ -99,7 +110,7 @@ export function SensorModal({
                     {t(`data.sensors.${sensor.id}.name`, { defaultValue: sensor.name })}
                   </Text>
                 </View>
-                <Pressable onPress={onClose} hitSlop={12} android_ripple={{ color: 'transparent' }}>
+                <Pressable onPress={onClose} hitSlop={12} android_ripple={{ color: 'transparent' }} disabled={isSaving}>
                   <Ionicons name="close" size={24} color={colors.textMuted} />
                 </Pressable>
               </View>
@@ -108,7 +119,22 @@ export function SensorModal({
                 {t(`data.sensors.${sensor.id}.desc`, { defaultValue: sensor.description })}
               </Text>
 
-              {!isRecording ? (
+              {sensor.id === 'slow-mo' && !isCloudinaryConfigured() && (
+                <Text style={styles.localHint}>
+                  {t('sensors.savedLocallyHint', {
+                    defaultValue: 'Videos save on this device. Cloud upload will work once Cloudinary is configured.',
+                  })}
+                </Text>
+              )}
+
+              {sensor.id === 'vibration' ? (
+                <VibrationSensorPanel
+                  notes={notes}
+                  onNotesChange={onNotesChange}
+                  onResultReady={onResultReady}
+                  onSave={onSave}
+                />
+              ) : !isRecording ? (
                 <Button
                   title={t('sensors.startMeasurement')}
                   onPress={onStartMeasurement}
@@ -140,6 +166,8 @@ export function SensorModal({
                     onPress={onSave}
                     size="lg"
                     fullWidth
+                    loading={isSaving}
+                    disabled={isSaving}
                     icon={<Ionicons name="save" size={18} color={colors.white} />}
                   />
                 </View>
