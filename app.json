@@ -10,10 +10,10 @@
       "supportsTablet": true
     },
     "android": {
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.waengs.StemmLab"
     },
-    "web": {
-    },
+    "web": {},
     "plugins": [
       "expo-router",
       "expo-font",

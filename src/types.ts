@@ -112,7 +112,7 @@ export const ACTIVITIES = {
     name: 'Human Performance Lab',
     category: 'Health/Medical',
     description: 'Test stretch speed and gracefulness',
-    sensors: ['slow-mo', 'movement-detector'],
+    sensors: ['vibration', 'movement-detector'],
   },
   'reaction-board': {
     id: 'reaction-board',

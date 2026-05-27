@@ -262,7 +262,23 @@
       },
       "human-performance": {
         "name": "Human Performance Lab",
-        "desc": "Test stretch speed and gracefulness",
+        "desc": "Stretch Speed & Gracefulness — test movement control with vibration sensors",
+        "overview": "Record your movement trials using the vibration sensor below. Follow all instructions carefully and reflect on your results as a group.",
+        "timerTitle": "Activity Timer (30 min)",
+        "timeUpTitle": "Time is up!",
+        "timeUpText": "Your 30 minutes are up. The form is now locked, but you can still review your data.",
+        "predictionsTitle": "Questions Before the Experiment",
+        "predictHardest": "Predict what movement is the hardest to keep the vibration low",
+        "predictVibration": "Predict Phone Vibration Sensor result (cm)",
+        "sensorTitle": "Vibration + Speed Sensor",
+        "resultsTitle": "Results",
+        "tabs": {
+          "setup": "Setup",
+          "predictions": "Predictions",
+          "experiment": "Experiment",
+          "results": "Results",
+          "calculations": "Calculations"
+        },
         "fields": {
           "bendAngle": "Max Bend Angle (degrees)",
           "speed": "Movement Speed (1-10)",

@@ -215,7 +215,23 @@
       },
       "human-performance": {
         "name": "Laboratorium Kinerja Manusia",
-        "desc": "Uji kecepatan peregangan dan keanggunan",
+        "desc": "Kecepatan Peregangan & Keanggunan — uji kontrol gerak dengan sensor getaran",
+        "overview": "Catat percobaan gerak Anda menggunakan sensor getaran di bawah. Ikuti semua instruksi dengan cermat dan refleksikan hasil sebagai kelompok.",
+        "timerTitle": "Timer Aktivitas (30 menit)",
+        "timeUpTitle": "Waktu habis!",
+        "timeUpText": "30 menit Anda telah habis. Formulir terkunci, tetapi Anda masih dapat meninjau data.",
+        "predictionsTitle": "Pertanyaan Sebelum Eksperimen",
+        "predictHardest": "Prediksi gerakan mana yang paling sulit untuk menjaga getaran tetap rendah",
+        "predictVibration": "Prediksi hasil Sensor Getaran Ponsel (cm)",
+        "sensorTitle": "Sensor Getaran + Kecepatan",
+        "resultsTitle": "Hasil",
+        "tabs": {
+          "setup": "Persiapan",
+          "predictions": "Prediksi",
+          "experiment": "Eksperimen",
+          "results": "Hasil",
+          "calculations": "Perhitungan"
+        },
         "fields": {
           "bendAngle": "Sudut Tekuk Maksimal (derajat)",
           "speed": "Kecepatan Gerak (1-10)",
