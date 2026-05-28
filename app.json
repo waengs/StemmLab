@@ -20,7 +20,13 @@
       "expo-splash-screen",
       "expo-localization",
       "expo-sqlite",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow STEMM Lab to use your location to map sound pollution data."
+        }
+      ]
     ]
   }
 }

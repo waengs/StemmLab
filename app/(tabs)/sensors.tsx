@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import {
   Screen,
@@ -28,13 +29,14 @@ export default function Sensors() {
 
   const handleSensorClick = (sensorId: string) => {
     setSelectedSensor(sensorId);
-    setIsRecording(false);
-    setSensorValue('');
     setNotes('');
+    simulateSensorData(sensorId);
   };
 
-  const simulateSensorData = async () => {
-    if (selectedSensor === 'slow-mo') {
+  const simulateSensorData = async (sensorToRun: string | null = selectedSensor) => {
+    if (!sensorToRun) return;
+
+    if (sensorToRun === 'slow-mo') {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (permissionResult.granted === false) {
         Alert.alert(t('common.cameraPermissionMsg', { defaultValue: 'Camera permission is required' }));
@@ -48,14 +50,18 @@ export default function Sensors() {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setIsRecording(true);
         setSensorValue(result.assets[0].uri);
+      } else {
+        // If they cancelled the camera, close the modal
+        handleClose();
       }
       return;
     }
 
     setIsRecording(true);
+    setSensorValue('LOADING...'); // Show buffer state
     let value = '';
 
-    switch (selectedSensor) {
+    switch (sensorToRun) {
       case 'g-force':
         value = (Math.random() * 5 + 1).toFixed(2) + ' g';
         break;
@@ -69,7 +75,12 @@ export default function Sensors() {
         value = (Math.random() * 10 + 1).toFixed(2) + ' m/s';
         break;
       case 'location':
-        value = `${(Math.random() * 90).toFixed(4)}°N, ${(Math.random() * 180).toFixed(4)}°E`;
+        try {
+          const loc = await Location.getCurrentPositionAsync({});
+          value = `${loc.coords.latitude},${loc.coords.longitude}`;
+        } catch (e) {
+          value = 'Location Error';
+        }
         break;
     }
 

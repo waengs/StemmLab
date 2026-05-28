@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { WebView } from 'react-native-webview';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
@@ -11,12 +13,12 @@ import { useRequireAuth } from '../../stores';
 
 export interface SoundPollutionTrial {
   id: string;
+  locationLabel?: string;
   action: string;
-  predictionComparison: string;
-  predictionTarget: string;
+  prediction: string;
   outcomeDb: string;
   wereYouRight: string;
-  location: string;
+  coordinates?: { latitude: number, longitude: number };
 }
 
 export interface SoundPollutionData {
@@ -34,6 +36,83 @@ interface Props {
 
 const DEFAULT_TIME = 3600;
 
+const generateLeafletMap = (lat: number, lng: number, markers: any[]) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden; }
+    #map { height: 100vh; width: 100vw; background-color: #eee; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map').setView([${lat}, ${lng}], 18);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '© CARTO'
+    }).addTo(map);
+
+    // Current location marker (blue)
+    L.circleMarker([${lat}, ${lng}], {
+      color: '#3388ff', fillColor: '#3388ff', fillOpacity: 0.5, radius: 8
+    }).addTo(map).bindPopup("You are here");
+
+    // Existing markers
+    const trials = ${JSON.stringify(markers)};
+    const grouped = {};
+    trials.forEach(t => {
+      if (!t.coordinates) return;
+      const key = t.coordinates.latitude + ',' + t.coordinates.longitude;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(t);
+    });
+
+    Object.keys(grouped).forEach(key => {
+      const group = grouped[key];
+      const coords = group[0].coordinates;
+      const label = group[0].locationLabel || 'Unknown Location';
+      
+      const maxDb = Math.max(...group.map(t => parseFloat(t.outcomeDb || '0')));
+      const color = maxDb > 70 ? 'red' : (maxDb < 50 ? 'green' : 'orange');
+
+      let popupHtml = "<b>" + label + "</b><br/><ul style='margin: 5px 0; padding-left: 20px; font-size: 12px;'>";
+      group.forEach(t => {
+         popupHtml += "<li>" + t.action + " - <b>" + t.outcomeDb + " dB</b></li>";
+      });
+      popupHtml += "</ul><div style='text-align: center; color: #666; font-size: 10px; margin-top: 5px;'>Tap pin to add another action</div>";
+
+      L.circleMarker([coords.latitude, coords.longitude], {
+        color: color, fillColor: color, fillOpacity: 0.8, radius: 12
+      }).addTo(map)
+      .bindPopup(popupHtml)
+      .on('click', function() {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'mapClickExisting',
+          lat: coords.latitude,
+          lng: coords.longitude,
+          label: label
+        }));
+      });
+    });
+
+    // Handle map clicks for NEW locations
+    map.on('click', function(e) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'mapClick',
+        lat: e.latlng.lat,
+        lng: e.latlng.lng
+      }));
+    });
+  </script>
+</body>
+</html>
+`;
+
 export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
   const { t } = useTranslation();
   const { team } = useRequireAuth();
@@ -44,9 +123,48 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   
+  const [mapRegion, setMapRegion] = useState({
+    latitude: -33.8688,
+    longitude: 151.2093,
+    latitudeDelta: 0.0005,
+    longitudeDelta: 0.0005,
+  });
+  const [locationPermission, setLocationPermission] = useState(false);
+  const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number, longitude: number } | null>(null);
+  const [showMarkerModal, setShowMarkerModal] = useState(false);
+  
+  // Multi-action modal state
+  const [modalLocationLabel, setModalLocationLabel] = useState('');
+  const [modalActions, setModalActions] = useState<any[]>([]);
+
+  const [locationLoaded, setLocationLoaded] = useState(false);
+  
   const equipmentList = ['Mobile phone with STEMM Lab app (or external sound meter)'];
   const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
   const allEquipmentChecked = equipmentList.every(item => checkedEquipment[item]);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        setLocationPermission(true);
+        try {
+          let loc = await Location.getCurrentPositionAsync({});
+          setMapRegion({
+            ...mapRegion,
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+        } catch (e) {
+          console.log("Could not get current location", e);
+        } finally {
+          setLocationLoaded(true);
+        }
+      } else {
+        setLocationLoaded(true); // render map anyway if denied
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -76,11 +194,7 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
     predictedLoudestAction: '',
     surprises: '',
     needEarMuffs: '',
-    trials: [
-      { id: '1', action: 'Dropping a book on the table', predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' },
-      { id: '2', action: 'Normal talking', predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' },
-      { id: '3', action: 'Stamping feet', predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' }
-    ]
+    trials: []
   });
 
   const defaultData = getInitialData();
@@ -92,15 +206,11 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
 
   const updateData = (updates: Partial<SoundPollutionData>) => onChange({ ...data, ...updates });
 
-  const updateTrial = (id: string, updates: Partial<SoundPollutionTrial>) => {
-    const newTrials = data.trials.map(t => t.id === id ? { ...t, ...updates } : t);
-    updateData({ trials: newTrials });
-  };
-
   const isFormValid = () => {
     if (!data.predictedLoudestAction) return false;
+    if (data.trials.length === 0) return false;
     for (const t of data.trials) {
-      if (!t.action || !t.predictionComparison || !t.outcomeDb || !t.wereYouRight) return false;
+      if (!t.action || !t.prediction || !t.outcomeDb || !t.wereYouRight) return false;
     }
     if (!data.surprises || !data.needEarMuffs) return false;
     return true;
@@ -110,7 +220,7 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
     if (!isFormValid()) {
       Alert.alert(
         t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }), 
-        t('activities.incompleteMsg', { defaultValue: 'Please fill out all fields before submitting.' })
+        t('activities.incompleteMsg', { defaultValue: 'Please fill out all fields and record at least 1 trial on the map.' })
       );
       return;
     }
@@ -129,6 +239,39 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
     setActiveTab('setup');
   };
 
+  const saveLocationSession = () => {
+    if (modalActions.length === 0) {
+      Alert.alert("Empty", "Please add at least one action.");
+      return;
+    }
+    if (modalActions.some(a => !a.action || !a.outcomeDb)) {
+      Alert.alert("Missing Info", "All actions must have a description and dB outcome.");
+      return;
+    }
+
+    // Remove all old trials at this exact coordinate
+    const otherTrials = data.trials.filter(t => 
+      !(t.coordinates && 
+        selectedCoordinate &&
+        t.coordinates.latitude === selectedCoordinate.latitude && 
+        t.coordinates.longitude === selectedCoordinate.longitude)
+    );
+
+    // Create new trials from the modal session
+    const newTrials: SoundPollutionTrial[] = modalActions.map(a => ({
+      id: a.id.startsWith('temp_') ? Date.now().toString() + Math.random() : a.id,
+      locationLabel: modalLocationLabel || 'Unknown Location',
+      action: a.action || '',
+      prediction: a.prediction || '',
+      outcomeDb: a.outcomeDb || '',
+      wereYouRight: a.wereYouRight || '',
+      coordinates: selectedCoordinate!,
+    }));
+
+    updateData({ trials: [...otherTrials, ...newTrials] });
+    setShowMarkerModal(false);
+  };
+
   return (
     <View style={styles.container}>
       {/* Timeout Modal */}
@@ -139,6 +282,107 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
             <Text style={styles.modalText}>{t('activities.timeoutMsg', { defaultValue: 'Your 60 minutes are up. You can only review your data now.' })}</Text>
             <Button title={t('common.ok', { defaultValue: 'OK' })} onPress={() => setShowTimeoutModal(false)} />
           </View>
+        </View>
+      </RNModal>
+
+      {/* Marker Modal */}
+      <RNModal visible={showMarkerModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+          <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
+            <Text style={styles.modalTitle}>Record Location Data</Text>
+            
+            <Input
+              label="Location Label"
+              value={modalLocationLabel}
+              onChangeText={setModalLocationLabel}
+              placeholder="e.g. Library, Cafeteria"
+            />
+
+            <Text style={[styles.sectionTitle, { marginTop: Spacing.md, marginBottom: Spacing.sm }]}>Actions at this Location</Text>
+            
+            {modalActions.map((actionDraft, index) => (
+              <View key={actionDraft.id} style={{ backgroundColor: Colors.background, padding: Spacing.md, borderRadius: 8, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.borderLight }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
+                  <Text style={{ fontWeight: '700', color: Colors.text }}>Action {index + 1}</Text>
+                  <Button 
+                    title="Remove (-)" 
+                    variant="danger" 
+                    size="sm" 
+                    onPress={() => setModalActions(modalActions.filter(a => a.id !== actionDraft.id))}
+                  />
+                </View>
+
+                <Input
+                  label="Action Description"
+                  value={actionDraft.action}
+                  onChangeText={(v) => {
+                    const newActions = [...modalActions];
+                    newActions[index].action = v;
+                    setModalActions(newActions);
+                  }}
+                  placeholder="e.g. Dropping a book"
+                />
+
+                <Input
+                  label="Prediction (louder or softer than...)"
+                  value={actionDraft.prediction}
+                  onChangeText={(v) => {
+                    const newActions = [...modalActions];
+                    newActions[index].prediction = v;
+                    setModalActions(newActions);
+                  }}
+                  placeholder="e.g. Softer than a vacuum"
+                />
+
+                <View style={{flexDirection: 'row', gap: Spacing.md}}>
+                  <View style={{flex: 1}}>
+                    <Input
+                      label="Actual (dB)"
+                      value={actionDraft.outcomeDb}
+                      onChangeText={(v) => {
+                        const newActions = [...modalActions];
+                        newActions[index].outcomeDb = v;
+                        setModalActions(newActions);
+                      }}
+                      keyboardType="numeric"
+                      placeholder="e.g. 50"
+                    />
+                  </View>
+                  <View style={{flex: 1}}>
+                    <Select
+                      label="Were you right?"
+                      value={actionDraft.wereYouRight}
+                      options={[
+                        { label: 'Yes', value: 'Yes' },
+                        { label: 'No', value: 'No' }
+                      ]}
+                      onSelect={(v) => {
+                        const newActions = [...modalActions];
+                        newActions[index].wereYouRight = v;
+                        setModalActions(newActions);
+                      }}
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
+
+            <Button 
+              title="+ Add Another Action Here" 
+              variant="outlined" 
+              onPress={() => {
+                setModalActions([...modalActions, { id: 'temp_' + Date.now(), action: '', prediction: '', outcomeDb: '', wereYouRight: '' }]);
+              }}
+              style={{ marginBottom: Spacing.lg }}
+            />
+            
+            <View style={{flexDirection: 'column', gap: Spacing.md, marginTop: Spacing.md}}>
+              <Button title="Save All to Location" onPress={saveLocationSession} />
+              <Button title="Cancel" variant="ghost" onPress={() => setShowMarkerModal(false)} />
+            </View>
+          </ScrollView>
+        </View>
         </View>
       </RNModal>
 
@@ -277,86 +521,116 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
         {/* EXPERIMENT TAB */}
         {activeTab === 'experiment' && (
           <View>
-            <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>Record Trials</Text>
-              
-              {data.trials.map((trial, index) => (
-                <View key={trial.id} style={styles.trialBlock}>
-                  <Text style={styles.trialTitle}>Action {index + 1}</Text>
-                  
-                  <Input
-                    label="Action Description"
-                    value={trial.action}
-                    onChangeText={(v) => updateTrial(trial.id, { action: v })}
-                    editable={!isLocked}
-                    onLightSurface
+            <Card style={[styles.pageCard, { padding: 0, overflow: 'hidden' }]}>
+              <View style={{ padding: Spacing.md }}>
+                <Text style={styles.sectionTitle}>Record Trials on Map</Text>
+                <Text style={styles.instructionText}>Tap anywhere on the map to log a sound reading.</Text>
+              </View>
+              <View style={{ width: '100%', height: 350, backgroundColor: Colors.borderLight }}>
+                {locationLoaded ? (
+                  <WebView
+                    source={{ 
+                      html: generateLeafletMap(mapRegion.latitude, mapRegion.longitude, data.trials),
+                      baseUrl: 'https://openstreetmap.org'
+                    }}
+                    style={{ flex: 1, backgroundColor: 'transparent' }}
+                    userAgent="StemmLabApp/1.0"
+                    scrollEnabled={false}
+                    originWhitelist={['*']}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    onMessage={(event) => {
+                      try {
+                        const msg = JSON.parse(event.nativeEvent.data);
+                        if (msg.type === 'mapClick' && !isLocked) {
+                          setSelectedCoordinate({ latitude: msg.lat, longitude: msg.lng });
+                          setModalLocationLabel('');
+                          setModalActions([{ id: 'temp_' + Date.now(), action: '', prediction: '', outcomeDb: '', wereYouRight: '' }]);
+                          setShowMarkerModal(true);
+                        } else if (msg.type === 'mapClickExisting' && !isLocked) {
+                          // Allow editing/adding actions to an existing grouped pin
+                          setSelectedCoordinate({ latitude: msg.lat, longitude: msg.lng });
+                          setModalLocationLabel(msg.label);
+                          const existingTrials = data.trials.filter(t => t.coordinates && t.coordinates.latitude === msg.lat && t.coordinates.longitude === msg.lng);
+                          setModalActions(existingTrials.map(t => ({...t})));
+                          setShowMarkerModal(true);
+                        }
+                      } catch (e) {}
+                    }}
                   />
-
-                  <Input
-                    label="Location"
-                    value={trial.location}
-                    onChangeText={(v) => updateTrial(trial.id, { location: v })}
-                    placeholder="e.g. Near the window"
-                    editable={!isLocked}
-                    onLightSurface
-                  />
-                  
-                  <View style={{flexDirection: 'row', gap: Spacing.sm}}>
-                    <View style={{flex: 1}}>
-                      <Select
-                        label="Prediction"
-                        value={trial.predictionComparison}
-                        options={['Louder than', 'Softer than', 'Similar to']}
-                        onValueChange={(v) => updateTrial(trial.id, { predictionComparison: v })}
-                        disabled={isLocked}
-                      />
-                    </View>
-                    <View style={{flex: 1}}>
-                      <Input
-                        label="Target Action"
-                        value={trial.predictionTarget}
-                        onChangeText={(v) => updateTrial(trial.id, { predictionTarget: v })}
-                        placeholder="e.g. Action 1"
-                        editable={!isLocked}
-                        onLightSurface
-                      />
-                    </View>
-                  </View>
-
-                  <View style={{flexDirection: 'row', gap: Spacing.sm}}>
-                    <View style={{flex: 1}}>
-                      <Input
-                        label="Outcome (dB)"
-                        value={trial.outcomeDb}
-                        onChangeText={(v) => updateTrial(trial.id, { outcomeDb: v })}
-                        keyboardType="numeric"
-                        editable={!isLocked}
-                        onLightSurface
-                      />
-                    </View>
-                    <View style={{flex: 1}}>
-                      <Select
-                        label="Were you right?"
-                        value={trial.wereYouRight}
-                        options={['Yes', 'No']}
-                        onValueChange={(v) => updateTrial(trial.id, { wereYouRight: v })}
-                        disabled={isLocked}
-                      />
-                    </View>
-                  </View>
-                </View>
-              ))}
-              
-              {!isLocked && (
+                ) : (
+                  <Text style={{color: Colors.textSecondary}}>Loading Map...</Text>
+                )}
+              </View>
+              <View style={{ padding: Spacing.lg, backgroundColor: Colors.surface }}>
                 <Button 
-                  title="Add Action" 
-                  variant="ghost" 
-                  onPress={() => {
-                    const newId = (data.trials.length + 1).toString();
-                    updateData({ trials: [...data.trials, { id: newId, action: `Action ${newId}`, predictionComparison: '', predictionTarget: '', outcomeDb: '', wereYouRight: '', location: '' }] });
-                  }} 
-                  icon={<Ionicons name="add" size={16} color={Colors.primary} />}
+                  title="Record at Current Location"
+                  icon={<Ionicons name="location" size={20} color={Colors.white} />}
+                  onPress={async () => {
+                    if (isLocked) return;
+                    try {
+                      let loc = await Location.getCurrentPositionAsync({});
+                      setSelectedCoordinate({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+                      setModalLocationLabel('');
+                      setModalActions([{ id: 'temp_' + Date.now(), action: '', prediction: '', outcomeDb: '', wereYouRight: '' }]);
+                      setShowMarkerModal(true);
+                    } catch (e) {
+                      Alert.alert("Location Error", "Could not fetch your exact location. Make sure GPS is enabled.");
+                    }
+                  }}
                 />
+              </View>
+
+              {/* Recorded Locations List */}
+              {data.trials.length > 0 && (
+                <View style={{ padding: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.borderLight }}>
+                  <Text style={[styles.sectionTitle, { fontSize: 18, marginBottom: Spacing.sm }]}>Recorded Locations</Text>
+                  {Object.values(data.trials.reduce((acc, trial) => {
+                    if (!trial.coordinates) return acc;
+                    const key = `${trial.coordinates.latitude},${trial.coordinates.longitude}`;
+                    if (!acc[key]) acc[key] = { label: trial.locationLabel || 'Unknown', coords: trial.coordinates, actions: [] };
+                    acc[key].actions.push(trial);
+                    return acc;
+                  }, {} as Record<string, {label: string, coords: any, actions: SoundPollutionTrial[]}>)).map((group, idx) => (
+                    <View key={idx} style={styles.trialListItem}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: '700', color: Colors.text, fontSize: 16 }}>{group.label}</Text>
+                        <Text style={{ color: Colors.textSecondary, fontSize: 13, marginBottom: 4 }}>{group.actions.length} actions recorded here</Text>
+                        {group.actions.map((a, i) => (
+                          <Text key={a.id} style={{ color: Colors.text, fontSize: 13 }}>• {a.action} ({a.outcomeDb} dB)</Text>
+                        ))}
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                        <Button 
+                          title="Edit" 
+                          variant="outlined" 
+                          size="sm" 
+                          onPress={() => {
+                            if (isLocked) return;
+                            setSelectedCoordinate(group.coords);
+                            setModalLocationLabel(group.label);
+                            setModalActions(group.actions.map(a => ({...a})));
+                            setShowMarkerModal(true);
+                          }}
+                        />
+                        <Button 
+                          title="Del" 
+                          variant="danger" 
+                          size="sm" 
+                          onPress={() => {
+                            if (isLocked) return;
+                            Alert.alert("Delete Location", "Remove this location and all its actions?", [
+                              { text: "Cancel", style: "cancel" },
+                              { text: "Delete", style: "destructive", onPress: () => {
+                                updateData({ trials: data.trials.filter(t => !(t.coordinates && t.coordinates.latitude === group.coords.latitude && t.coordinates.longitude === group.coords.longitude)) });
+                              }}
+                            ])
+                          }}
+                        />
+                      </View>
+                    </View>
+                  ))}
+                </View>
               )}
             </Card>
 
@@ -500,16 +774,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: Spacing.md,
   },
-  trialBlock: {
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-  },
-  trialTitle: {
-    ...Typography.h3,
-    marginBottom: Spacing.sm,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -522,10 +786,15 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
   },
+  markerModalContent: {
+    backgroundColor: Colors.white,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+  },
   modalTitle: {
     ...Typography.h2,
-    color: Colors.danger,
-    marginBottom: Spacing.sm,
+    color: Colors.text,
+    marginBottom: Spacing.lg,
   },
   modalText: {
     ...Typography.body,
@@ -533,4 +802,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
+  trialListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  }
 });
