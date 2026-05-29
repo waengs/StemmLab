@@ -42,11 +42,6 @@ export default function Sensors() {
     setIsRecording(!!value);
   };
 
-  const handleResultReady = (value: string) => {
-    setSensorValue(value);
-    setIsRecording(!!value);
-  };
-
   const simulateSensorData = async (sensorToRun: string | null = selectedSensor) => {
     if (!sensorToRun) return;
 
