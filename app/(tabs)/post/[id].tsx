@@ -7,6 +7,7 @@ import {
   View,
   Pressable,
   Text,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,7 @@ import { useForumStore } from '../../../src/stores';
 import { useRequireAuth } from '../../../src/stores';
 import { Spacing, BorderRadius } from '../../../src/theme';
 import type { ForumReply } from '../../../src/types';
+import { hasProfanity } from '../../../src/utils/profanity';
 
 type SortOption = 'new' | 'old' | 'top';
 
@@ -139,6 +141,11 @@ export default function PostThreadScreen() {
 
   const handleReplySubmit = async () => {
     if (!replyContent.trim()) return;
+
+    if (hasProfanity(replyContent)) {
+      Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
+      return;
+    }
 
     const target = replyTarget;
     const body = replyContent.trim();

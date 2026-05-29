@@ -181,7 +181,7 @@ export default function Forum() {
   const handleCreatePost = async () => {
     if (!user || !team || !draftTitle.trim() || !draftContent.trim()) return;
 
-    if (hasProfanity(draftContent)) {
+    if (hasProfanity(draftTitle) || hasProfanity(draftContent)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
       return;
     }
