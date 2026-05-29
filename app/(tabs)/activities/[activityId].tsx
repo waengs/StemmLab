@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion, EarthquakeForm, EarthquakeResults, EarthquakePostActivity, EarthquakeDiscussion, HumanPerformanceForm, HumanPerformancePostActivity, HumanPerformanceResults, HumanPerformanceDiscussion, BreathingPaceForm, BreathingPacePostActivity, BreathingPaceResults, BreathingPaceDiscussion } from '../../../src/components';
+import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion, EarthquakeForm, EarthquakeResults, EarthquakePostActivity, EarthquakeDiscussion, HumanPerformanceForm, HumanPerformancePostActivity, HumanPerformanceResults, HumanPerformanceDiscussion, BreathingPaceForm, BreathingPacePostActivity, BreathingPaceResults, BreathingPaceDiscussion, ReactionBoardForm, ReactionBoardPostActivity, ReactionBoardResults, ReactionBoardDiscussion } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
@@ -50,6 +50,7 @@ export default function ActivityDetail() {
   // Custom State for Human Performance Menu Flow
   const [humanPerformanceViewState, setHumanPerformanceViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
   const [breathingPaceViewState, setBreathingPaceViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
+  const [reactionBoardViewState, setReactionBoardViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
 
   useEffect(() => {
     // If they open the activity and already have results, default to the menu
@@ -87,6 +88,12 @@ export default function ActivityDetail() {
       const justLoaded = Object.keys(formData).length === 0;
       if (justLoaded) {
         setBreathingPaceViewState('menu');
+      }
+    }
+    if (activityId === 'reaction-board' && pastResults.length > 0 && reactionBoardViewState === 'form') {
+      const justLoaded = Object.keys(formData).length === 0;
+      if (justLoaded) {
+        setReactionBoardViewState('menu');
       }
     }
   }, [activityId, pastResults.length]);
@@ -130,6 +137,8 @@ export default function ActivityDetail() {
       setHumanPerformanceViewState('quiz');
     } else if (activity.id === 'breathing-pace') {
       setBreathingPaceViewState('quiz');
+    } else if (activity.id === 'reaction-board') {
+      setReactionBoardViewState('quiz');
     }
   };
 
@@ -153,6 +162,8 @@ export default function ActivityDetail() {
              setHumanPerformanceViewState('form');
           } else if (activity.id === 'breathing-pace' && pastResults.length <= 1) {
              setBreathingPaceViewState('form');
+          } else if (activity.id === 'reaction-board' && pastResults.length <= 1) {
+             setReactionBoardViewState('form');
           }
         },
       },
@@ -219,6 +230,8 @@ export default function ActivityDetail() {
                  setHumanPerformanceViewState('menu');
               } else if (activity.id === 'breathing-pace' && breathingPaceViewState !== 'menu' && pastResults.length > 0) {
                  setBreathingPaceViewState('menu');
+              } else if (activity.id === 'reaction-board' && reactionBoardViewState !== 'menu' && pastResults.length > 0) {
+                 setReactionBoardViewState('menu');
               } else {
                  router.back();
               }
@@ -244,7 +257,7 @@ export default function ActivityDetail() {
             <View style={styles.alert}>
               <Ionicons name="information-circle" size={18} color={Colors.primary} />
               <Text style={styles.alertText}>
-                {activity.id === 'parachute-drop' ? t('data.activities.parachute-drop.overview') : activity.id === 'human-performance' ? t('data.activities.human-performance.overview') : activity.id === 'breathing-pace' ? t('data.activities.breathing-pace.overview') : t('activities.infoAlert')}
+                {activity.id === 'parachute-drop' ? t('data.activities.parachute-drop.overview') : activity.id === 'human-performance' ? t('data.activities.human-performance.overview') : activity.id === 'breathing-pace' ? t('data.activities.breathing-pace.overview') : activity.id === 'reaction-board' ? t('data.activities.reaction-board.overview') : t('activities.infoAlert')}
               </Text>
             </View>
 
@@ -561,6 +574,45 @@ export default function ActivityDetail() {
                   </View>
                 )}
               </>
+            ) : activity.id === 'reaction-board' ? (
+              <>
+                {reactionBoardViewState === 'form' && (
+                  <ReactionBoardForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {reactionBoardViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button
+                      title="View Past Results"
+                      onPress={() => setReactionBoardViewState('past-result')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title={latestResult?.data?.quizCompleted ? 'View Quiz' : 'Do Quiz'}
+                      onPress={() => setReactionBoardViewState('quiz')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title="Discussions"
+                      onPress={() => setReactionBoardViewState('forum')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title="Do Another Experiment"
+                      onPress={() => {
+                        setFormData({});
+                        setReactionBoardViewState('form');
+                      }}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />}
+                      variant="outlined"
+                    />
+                  </View>
+                )}
+              </>
             ) : (
               <>
                 {fields.map((field) =>
@@ -595,7 +647,7 @@ export default function ActivityDetail() {
               </>
             )}
 
-            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && activity.id !== 'sound-pollution' && activity.id !== 'earthquake' && activity.id !== 'human-performance' && activity.id !== 'breathing-pace' && (
+            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && activity.id !== 'sound-pollution' && activity.id !== 'earthquake' && activity.id !== 'human-performance' && activity.id !== 'breathing-pace' && activity.id !== 'reaction-board' && (
               <Button
                 title={t('common.save')}
                 onPress={handleSubmit}
@@ -794,6 +846,38 @@ export default function ActivityDetail() {
                         </View>
                       </View>
                       <BreathingPaceResults data={result.data} />
+                    </Card>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : activity.id === 'reaction-board' ? (
+            <View>
+              {reactionBoardViewState === 'quiz' && latestResult && (
+                <ReactionBoardPostActivity result={latestResult} onComplete={() => setReactionBoardViewState('forum')} />
+              )}
+              {reactionBoardViewState === 'forum' && (
+                <ReactionBoardDiscussion />
+              )}
+              {reactionBoardViewState === 'past-result' && pastResults.length > 0 && (
+                <View style={styles.resultsSection}>
+                  <Text style={styles.resultsTitle}>
+                    {t('activities.pastResults', { count: pastResults.length })}
+                  </Text>
+                  {pastResults.map((result) => (
+                    <Card key={result.id} style={styles.resultCard}>
+                      <View style={styles.resultHeader}>
+                        <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                          <Text style={{ fontWeight: '700', color: Colors.primary }}>
+                            Score: {calculateScore(result)}
+                          </Text>
+                          <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <ReactionBoardResults data={result.data as any} />
                     </Card>
                   ))}
                 </View>

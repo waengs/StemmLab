@@ -53,6 +53,13 @@ export { HumanPerformancePostActivity, HumanPerformanceDiscussion } from './acti
 export { BreathingPaceForm } from './activities/BreathingPaceForm';
 export { BreathingPaceResults } from './activities/BreathingPaceResults';
 export { BreathingPacePostActivity, BreathingPaceDiscussion } from './activities/BreathingPacePostActivity';
+export { ActivityListCard } from './activities/ActivityListCard';
+
+// Reaction Board
+export { ReactionBoardForm } from './activities/ReactionBoardForm';
+export { ReactionBoardExperiment } from './activities/ReactionBoardExperiment';
+export { ReactionBoardResults } from './activities/ReactionBoardResults';
+export { ReactionBoardPostActivity, ReactionBoardDiscussion } from './activities/ReactionBoardPostActivity';
 
 // Leaderboard
 export { LeaderboardTabs } from './leaderboard/LeaderboardTabs';
