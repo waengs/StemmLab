@@ -108,7 +108,16 @@
     "recentLogs": "Recent Logs",
     "startMeasurement": "Start Measurement",
     "saveLog": "Save to Log",
-    "notesPlaceholder": "Add any notes..."
+    "notesPlaceholder": "Add any notes...",
+    "uploadingVideo": "Uploading video...",
+    "noVideoTitle": "No video",
+    "noVideoMsg": "Record a video before saving.",
+    "cloudinaryNotConfiguredTitle": "Cloudinary not configured",
+    "cloudinaryNotConfiguredMsg": "Add EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME and EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET to .env, then restart Expo.",
+    "uploadFailedTitle": "Upload failed",
+    "uploadFailedMsg": "Could not upload the video. Try again.",
+    "savedLocallyHint": "Videos save on this device. Cloud upload will work once Cloudinary is configured.",
+    "noVideoInLog": "No video saved with this log."
   },
   "leaderboard": {
     "pageTitle": "Leaderboard",
@@ -262,7 +271,23 @@
       },
       "human-performance": {
         "name": "Human Performance Lab",
-        "desc": "Test stretch speed and gracefulness",
+        "desc": "Stretch Speed & Gracefulness — test movement control with vibration sensors",
+        "overview": "Record your movement trials using the vibration sensor below. Follow all instructions carefully and reflect on your results as a group.",
+        "timerTitle": "Activity Timer (30 min)",
+        "timeUpTitle": "Time is up!",
+        "timeUpText": "Your 30 minutes are up. The form is now locked, but you can still review your data.",
+        "predictionsTitle": "Questions Before the Experiment",
+        "predictHardest": "Predict what movement is the hardest to keep the vibration low",
+        "predictVibration": "Predict Phone Vibration Sensor result (cm)",
+        "sensorTitle": "Vibration + Speed Sensor",
+        "resultsTitle": "Results",
+        "tabs": {
+          "setup": "Setup",
+          "predictions": "Predictions",
+          "experiment": "Experiment",
+          "results": "Results",
+          "calculations": "Calculations"
+        },
         "fields": {
           "bendAngle": "Max Bend Angle (degrees)",
           "speed": "Movement Speed (1-10)",
@@ -279,7 +304,25 @@
       },
       "breathing-pace": {
         "name": "Breathing Pace Trainer",
-        "desc": "Monitor and improve breathing patterns",
+        "desc": "Analyse breathing patterns at rest and after exercise",
+        "overview": "Students analyse breathing patterns at rest and after exercise using the phone accelerometer on the chest.",
+        "timerTitle": "Activity Timer (30 min)",
+        "timeUpTitle": "Time is up!",
+        "timeUpText": "Your 30 minutes are up. The form is now locked, but you can still review your data.",
+        "equipmentPhone": "Mobile phone with STEMM Lab app",
+        "equipmentMat": "Flat surface or mat",
+        "predictionsTitle": "Questions Before the Experiment",
+        "predictMostMovement": "Predict which exercise makes the phone move the most on your chest",
+        "predictBpmTitle": "Predict breaths per minute",
+        "afterJog": "After jog",
+        "afterStarJump": "After star jumps",
+        "resultsTitle": "Results",
+        "tabs": {
+          "setup": "Setup",
+          "predictions": "Predictions",
+          "experiment": "Recording",
+          "results": "Results"
+        },
         "fields": {
           "breathsPerMinute": "Breaths Per Minute",
           "consistency": "Consistency Score (1-10)"
@@ -305,7 +348,7 @@
       },
       "vibration": {
         "name": "Vibration Sensor",
-        "desc": "Detect and measure vibrations"
+        "desc": "Record 10s of real accelerometer data with optional live feedback"
       },
       "movement-detector": {
         "name": "Movement Detector",

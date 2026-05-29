@@ -108,7 +108,16 @@
     "recentLogs": "Catatan Terbaru",
     "startMeasurement": "Mulai Pengukuran",
     "saveLog": "Simpan ke Catatan",
-    "notesPlaceholder": "Tambahkan catatan..."
+    "notesPlaceholder": "Tambahkan catatan...",
+    "uploadingVideo": "Mengunggah video...",
+    "noVideoTitle": "Tidak ada video",
+    "noVideoMsg": "Rekam video sebelum menyimpan.",
+    "cloudinaryNotConfiguredTitle": "Cloudinary belum dikonfigurasi",
+    "cloudinaryNotConfiguredMsg": "Tambahkan EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME dan EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ke .env, lalu mulai ulang Expo.",
+    "uploadFailedTitle": "Unggahan gagal",
+    "uploadFailedMsg": "Video tidak dapat diunggah. Coba lagi.",
+    "savedLocallyHint": "Video disimpan di perangkat ini. Unggah cloud akan aktif setelah Cloudinary dikonfigurasi.",
+    "noVideoInLog": "Tidak ada video tersimpan pada catatan ini."
   },
   "leaderboard": {
     "pageTitle": "Papan Peringkat",
@@ -215,7 +224,23 @@
       },
       "human-performance": {
         "name": "Laboratorium Kinerja Manusia",
-        "desc": "Uji kecepatan peregangan dan keanggunan",
+        "desc": "Kecepatan Peregangan & Keanggunan — uji kontrol gerak dengan sensor getaran",
+        "overview": "Catat percobaan gerak Anda menggunakan sensor getaran di bawah. Ikuti semua instruksi dengan cermat dan refleksikan hasil sebagai kelompok.",
+        "timerTitle": "Timer Aktivitas (30 menit)",
+        "timeUpTitle": "Waktu habis!",
+        "timeUpText": "30 menit Anda telah habis. Formulir terkunci, tetapi Anda masih dapat meninjau data.",
+        "predictionsTitle": "Pertanyaan Sebelum Eksperimen",
+        "predictHardest": "Prediksi gerakan mana yang paling sulit untuk menjaga getaran tetap rendah",
+        "predictVibration": "Prediksi hasil Sensor Getaran Ponsel (cm)",
+        "sensorTitle": "Sensor Getaran + Kecepatan",
+        "resultsTitle": "Hasil",
+        "tabs": {
+          "setup": "Persiapan",
+          "predictions": "Prediksi",
+          "experiment": "Eksperimen",
+          "results": "Hasil",
+          "calculations": "Perhitungan"
+        },
         "fields": {
           "bendAngle": "Sudut Tekuk Maksimal (derajat)",
           "speed": "Kecepatan Gerak (1-10)",
@@ -232,7 +257,25 @@
       },
       "breathing-pace": {
         "name": "Pelatih Kecepatan Pernapasan",
-        "desc": "Pantau dan tingkatkan pola pernapasan",
+        "desc": "Analisis pola pernapasan saat istirahat dan setelah olahraga",
+        "overview": "Siswa menganalisis pola pernapasan saat istirahat dan setelah olahraga menggunakan akselerometer ponsel di dada.",
+        "timerTitle": "Timer Aktivitas (30 menit)",
+        "timeUpTitle": "Waktu habis!",
+        "timeUpText": "30 menit Anda habis. Formulir terkunci, tetapi Anda masih dapat meninjau data.",
+        "equipmentPhone": "Ponsel dengan aplikasi STEMM Lab",
+        "equipmentMat": "Permukaan datar atau matras",
+        "predictionsTitle": "Pertanyaan Sebelum Eksperimen",
+        "predictMostMovement": "Prediksi latihan mana yang membuat ponsel bergerak paling banyak di dada",
+        "predictBpmTitle": "Prediksi napas per menit",
+        "afterJog": "Setelah joging",
+        "afterStarJump": "Setelah star jump",
+        "resultsTitle": "Hasil",
+        "tabs": {
+          "setup": "Persiapan",
+          "predictions": "Prediksi",
+          "experiment": "Rekaman",
+          "results": "Hasil"
+        },
         "fields": {
           "breathsPerMinute": "Napas Per Menit",
           "consistency": "Skor Konsistensi (1-10)"
@@ -258,7 +301,7 @@
       },
       "vibration": {
         "name": "Sensor Getaran",
-        "desc": "Deteksi dan ukur getaran"
+        "desc": "Rekam 10 detik data akselerometer dengan umpan balik opsional"
       },
       "movement-detector": {
         "name": "Detektor Gerakan",

@@ -112,7 +112,7 @@ export const ACTIVITIES = {
     name: 'Human Performance Lab',
     category: 'Health/Medical',
     description: 'Test stretch speed and gracefulness',
-    sensors: ['slow-mo', 'movement-detector'],
+    sensors: ['vibration', 'movement-detector'],
   },
   'reaction-board': {
     id: 'reaction-board',
@@ -125,8 +125,8 @@ export const ACTIVITIES = {
     id: 'breathing-pace',
     name: 'Breathing Pace Trainer',
     category: 'Health/Medical',
-    description: 'Monitor and improve breathing patterns',
-    sensors: ['movement-detector'],
+    description: 'Analyse breathing patterns at rest and after exercise',
+    sensors: ['vibration'],
   },
 };
 

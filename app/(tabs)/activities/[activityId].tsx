@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion, EarthquakeForm, EarthquakeResults, EarthquakePostActivity, EarthquakeDiscussion } from '../../../src/components';
+import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion, EarthquakeForm, EarthquakeResults, EarthquakePostActivity, EarthquakeDiscussion, HumanPerformanceForm, HumanPerformancePostActivity, HumanPerformanceResults, HumanPerformanceDiscussion, BreathingPaceForm, BreathingPacePostActivity, BreathingPaceResults, BreathingPaceDiscussion } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
@@ -47,6 +47,9 @@ export default function ActivityDetail() {
   const [soundPollutionViewState, setSoundPollutionViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
   // Custom State for Earthquake Menu Flow
   const [earthquakeViewState, setEarthquakeViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
+  // Custom State for Human Performance Menu Flow
+  const [humanPerformanceViewState, setHumanPerformanceViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
+  const [breathingPaceViewState, setBreathingPaceViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
 
   useEffect(() => {
     // If they open the activity and already have results, default to the menu
@@ -72,6 +75,18 @@ export default function ActivityDetail() {
       const justLoaded = Object.keys(formData).length === 0;
       if (justLoaded) {
         setEarthquakeViewState('menu');
+      }
+    }
+    if (activityId === 'human-performance' && pastResults.length > 0 && humanPerformanceViewState === 'form') {
+      const justLoaded = Object.keys(formData).length === 0;
+      if (justLoaded) {
+        setHumanPerformanceViewState('menu');
+      }
+    }
+    if (activityId === 'breathing-pace' && pastResults.length > 0 && breathingPaceViewState === 'form') {
+      const justLoaded = Object.keys(formData).length === 0;
+      if (justLoaded) {
+        setBreathingPaceViewState('menu');
       }
     }
   }, [activityId, pastResults.length]);
@@ -111,6 +126,10 @@ export default function ActivityDetail() {
       setSoundPollutionViewState('quiz');
     } else if (activity.id === 'earthquake') {
       setEarthquakeViewState('quiz');
+    } else if (activity.id === 'human-performance') {
+      setHumanPerformanceViewState('quiz');
+    } else if (activity.id === 'breathing-pace') {
+      setBreathingPaceViewState('quiz');
     }
   };
 
@@ -130,6 +149,10 @@ export default function ActivityDetail() {
              setSoundPollutionViewState('form');
           } else if (activity.id === 'earthquake' && pastResults.length <= 1) {
              setEarthquakeViewState('form');
+          } else if (activity.id === 'human-performance' && pastResults.length <= 1) {
+             setHumanPerformanceViewState('form');
+          } else if (activity.id === 'breathing-pace' && pastResults.length <= 1) {
+             setBreathingPaceViewState('form');
           }
         },
       },
@@ -192,6 +215,10 @@ export default function ActivityDetail() {
                  setSoundPollutionViewState('menu');
               } else if (activity.id === 'earthquake' && earthquakeViewState !== 'menu' && pastResults.length > 0) {
                  setEarthquakeViewState('menu');
+              } else if (activity.id === 'human-performance' && humanPerformanceViewState !== 'menu' && pastResults.length > 0) {
+                 setHumanPerformanceViewState('menu');
+              } else if (activity.id === 'breathing-pace' && breathingPaceViewState !== 'menu' && pastResults.length > 0) {
+                 setBreathingPaceViewState('menu');
               } else {
                  router.back();
               }
@@ -217,7 +244,7 @@ export default function ActivityDetail() {
             <View style={styles.alert}>
               <Ionicons name="information-circle" size={18} color={Colors.primary} />
               <Text style={styles.alertText}>
-                {activity.id === 'parachute-drop' ? t('data.activities.parachute-drop.overview') : t('activities.infoAlert')}
+                {activity.id === 'parachute-drop' ? t('data.activities.parachute-drop.overview') : activity.id === 'human-performance' ? t('data.activities.human-performance.overview') : activity.id === 'breathing-pace' ? t('data.activities.breathing-pace.overview') : t('activities.infoAlert')}
               </Text>
             </View>
 
@@ -296,6 +323,162 @@ export default function ActivityDetail() {
                       style={styles.menuBtn} 
                       icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
                       variant="outlined" 
+                    />
+                  </View>
+                )}
+              </>
+            ) : activity.id === 'human-performance' ? (
+              <>
+                {humanPerformanceViewState === 'form' && (
+                  <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {humanPerformanceViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button 
+                      title="View Past Results" 
+                      onPress={() => setHumanPerformanceViewState('past-result')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
+                      onPress={() => setHumanPerformanceViewState('quiz')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Discussions" 
+                      onPress={() => setHumanPerformanceViewState('forum')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Do Another Experiment" 
+                      onPress={() => {
+                        setFormData({});
+                        setHumanPerformanceViewState('form');
+                      }} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
+                      variant="outlined" 
+                    />
+                  </View>
+                )}
+              </>
+            ) : activity.id === 'breathing-pace' ? (
+              <>
+                {breathingPaceViewState === 'form' && (
+                  <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {breathingPaceViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button
+                      title="View Past Results"
+                      onPress={() => setBreathingPaceViewState('past-result')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title={latestResult?.data?.quizCompleted ? 'View Quiz' : 'Do Quiz'}
+                      onPress={() => setBreathingPaceViewState('quiz')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title="Discussions"
+                      onPress={() => setBreathingPaceViewState('forum')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title="Do Another Experiment"
+                      onPress={() => {
+                        setFormData({});
+                        setBreathingPaceViewState('form');
+                      }}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />}
+                      variant="outlined"
+                    />
+                  </View>
+                )}
+              </>
+            ) : activity.id === 'human-performance' ? (
+              <>
+                {humanPerformanceViewState === 'form' && (
+                  <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {humanPerformanceViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button 
+                      title="View Past Results" 
+                      onPress={() => setHumanPerformanceViewState('past-result')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
+                      onPress={() => setHumanPerformanceViewState('quiz')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Discussions" 
+                      onPress={() => setHumanPerformanceViewState('forum')} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
+                    />
+                    <Button 
+                      title="Do Another Experiment" 
+                      onPress={() => {
+                        setFormData({});
+                        setHumanPerformanceViewState('form');
+                      }} 
+                      style={styles.menuBtn} 
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
+                      variant="outlined" 
+                    />
+                  </View>
+                )}
+              </>
+            ) : activity.id === 'breathing-pace' ? (
+              <>
+                {breathingPaceViewState === 'form' && (
+                  <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                )}
+                {breathingPaceViewState === 'menu' && (
+                  <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
+                    <Button
+                      title="View Past Results"
+                      onPress={() => setBreathingPaceViewState('past-result')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="time" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title={latestResult?.data?.quizCompleted ? 'View Quiz' : 'Do Quiz'}
+                      onPress={() => setBreathingPaceViewState('quiz')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="school" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title="Discussions"
+                      onPress={() => setBreathingPaceViewState('forum')}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />}
+                    />
+                    <Button
+                      title="Do Another Experiment"
+                      onPress={() => {
+                        setFormData({});
+                        setBreathingPaceViewState('form');
+                      }}
+                      style={styles.menuBtn}
+                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />}
+                      variant="outlined"
                     />
                   </View>
                 )}
@@ -412,7 +595,7 @@ export default function ActivityDetail() {
               </>
             )}
 
-            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && activity.id !== 'sound-pollution' && activity.id !== 'earthquake' && (
+            {activity.id !== 'parachute-drop' && activity.id !== 'hand-fan' && activity.id !== 'sound-pollution' && activity.id !== 'earthquake' && activity.id !== 'human-performance' && activity.id !== 'breathing-pace' && (
               <Button
                 title={t('common.save')}
                 onPress={handleSubmit}
@@ -547,6 +730,70 @@ export default function ActivityDetail() {
                         </View>
                       </View>
                       <EarthquakeResults results={[result]} />
+                    </Card>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : activity.id === 'human-performance' ? (
+            <View>
+              {humanPerformanceViewState === 'quiz' && latestResult && (
+                 <HumanPerformancePostActivity result={latestResult} onComplete={() => setHumanPerformanceViewState('forum')} />
+              )}
+              {humanPerformanceViewState === 'forum' && (
+                 <HumanPerformanceDiscussion />
+              )}
+              {humanPerformanceViewState === 'past-result' && pastResults.length > 0 && (
+                <View style={styles.resultsSection}>
+                  <Text style={styles.resultsTitle}>
+                    {t('activities.pastResults', { count: pastResults.length })}
+                  </Text>
+                  {pastResults.map((result) => (
+                    <Card key={result.id} style={styles.resultCard}>
+                      <View style={styles.resultHeader}>
+                        <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
+                          <Text style={{fontWeight: '700', color: Colors.primary}}>
+                            Score: {calculateScore(result)}
+                          </Text>
+                          <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <HumanPerformanceResults data={result.data} />
+                    </Card>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : activity.id === 'breathing-pace' ? (
+            <View>
+              {breathingPaceViewState === 'quiz' && latestResult && (
+                <BreathingPacePostActivity result={latestResult} onComplete={() => setBreathingPaceViewState('forum')} />
+              )}
+              {breathingPaceViewState === 'forum' && (
+                <BreathingPaceDiscussion />
+              )}
+              {breathingPaceViewState === 'past-result' && pastResults.length > 0 && (
+                <View style={styles.resultsSection}>
+                  <Text style={styles.resultsTitle}>
+                    {t('activities.pastResults', { count: pastResults.length })}
+                  </Text>
+                  {pastResults.map((result) => (
+                    <Card key={result.id} style={styles.resultCard}>
+                      <View style={styles.resultHeader}>
+                        <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                          <Text style={{ fontWeight: '700', color: Colors.primary }}>
+                            Score: {calculateScore(result)}
+                          </Text>
+                          <TouchableOpacity onPress={() => handleDelete(result.id)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <BreathingPaceResults data={result.data} />
                     </Card>
                   ))}
                 </View>
