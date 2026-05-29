@@ -9,6 +9,7 @@ import { Chip } from '../ui/Chip';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
 import type { ForumPost, ForumReply } from '../../types';
+import { translateText } from '../../utils/translate';
 
 interface ForumPostCardProps {
   post: ForumPost;
@@ -47,10 +48,30 @@ export function ForumPostCard({
   isThreadView = false,
   onPress,
 }: ForumPostCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors, typography } = useTheme();
   const MAX_VISIBLE_DEPTH = 2;
   const [expandedBranches, setExpandedBranches] = useState<Record<string, boolean>>({});
+  
+  // Translation state for the main post
+  const [translatedTitle, setTranslatedTitle] = useState<string | null>(null);
+  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [isSameLanguage, setIsSameLanguage] = useState(false);
+
+  // Translation state for individual replies
+  const [replyTranslations, setReplyTranslations] = useState<Record<string, { translatedContent?: string; showTranslation?: boolean; isTranslating?: boolean; isSameLanguage?: boolean }>>({});
+
+  // Reset translations if the user switches the system language
+  useEffect(() => {
+    setTranslatedTitle(null);
+    setTranslatedContent(null);
+    setShowTranslation(false);
+    setIsSameLanguage(false);
+    setReplyTranslations({});
+  }, [i18n.language]);
+
   const formatDate = (timestamp: number) =>
     new Date(timestamp).toLocaleString([], {
       year: '2-digit',
@@ -74,6 +95,60 @@ export function ForumPostCard({
     }
   }, [hasUpvoted, scaleAnim]);
 
+  const handleTranslatePost = async () => {
+    if (isSameLanguage) return;
+    if (showTranslation) {
+      setShowTranslation(false);
+      return;
+    }
+    if (translatedContent !== null) {
+      setShowTranslation(true);
+      return;
+    }
+    
+    setIsTranslating(true);
+    const targetLang = i18n.language?.split('-')[0] || 'en';
+    try {
+      const [newTitle, newContent] = await Promise.all([
+        translateText(post.topicTitle, targetLang),
+        translateText(post.content, targetLang)
+      ]);
+      
+      if (newTitle === post.topicTitle && newContent === post.content) {
+        setIsSameLanguage(true);
+      } else {
+        setTranslatedTitle(newTitle);
+        setTranslatedContent(newContent);
+        setShowTranslation(true);
+      }
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleTranslateReply = async (replyId: string, textToTranslate: string) => {
+    const state = replyTranslations[replyId];
+    if (state?.isSameLanguage) return;
+    if (state?.showTranslation) {
+      setReplyTranslations(prev => ({ ...prev, [replyId]: { ...prev[replyId], showTranslation: false } }));
+      return;
+    }
+    if (state?.translatedContent) {
+      setReplyTranslations(prev => ({ ...prev, [replyId]: { ...prev[replyId], showTranslation: true } }));
+      return;
+    }
+    
+    setReplyTranslations(prev => ({ ...prev, [replyId]: { ...prev[replyId], isTranslating: true } }));
+    const targetLang = i18n.language?.split('-')[0] || 'en';
+    const translated = await translateText(textToTranslate, targetLang);
+    
+    if (translated === textToTranslate) {
+      setReplyTranslations(prev => ({ ...prev, [replyId]: { ...prev[replyId], isTranslating: false, isSameLanguage: true } }));
+    } else {
+      setReplyTranslations(prev => ({ ...prev, [replyId]: { translatedContent: translated, showTranslation: true, isTranslating: false } }));
+    }
+  };
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -89,8 +164,9 @@ export function ForumPostCard({
         date: { ...typography.caption },
         postTitle: { ...typography.h3, fontSize: 18, lineHeight: 24, marginBottom: Spacing.xs },
         deleteBtn: { padding: Spacing.xs },
-        content: { ...typography.body, marginBottom: Spacing.sm },
+        content: { ...typography.body, marginBottom: Spacing.xs },
         categoryChip: { marginBottom: Spacing.md },
+        translateLink: { ...typography.caption, color: colors.primary, fontWeight: '600', marginBottom: Spacing.sm },
         // Upvote row
         actionsRow: {
           flexDirection: 'row',
@@ -157,7 +233,8 @@ export function ForumPostCard({
         replyActionText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
         replyUpvoteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing.xs, paddingVertical: 2 },
         replyUpvoteText: { ...typography.caption, fontWeight: '600' },
-        replyContent: { ...typography.bodySmall, paddingLeft: 26, marginTop: 2, marginBottom: Spacing.md },
+        replyContent: { ...typography.bodySmall, paddingLeft: 26, marginTop: 2, marginBottom: Spacing.xs },
+        replyTranslateLink: { ...typography.caption, color: colors.primary, fontWeight: '600', paddingLeft: 26, marginBottom: Spacing.sm },
         continueThreadBtn: {
           marginTop: Spacing.sm,
           marginLeft: 26,
@@ -226,6 +303,7 @@ export function ForumPostCard({
     return replies.map((reply) => {
       const replyHasUpvoted = !!(currentUid && (reply.upvotes ?? []).includes(currentUid));
       const replyUpvoteCount = (reply.upvotes ?? []).length;
+      const tState = replyTranslations[reply.id] || {};
 
       return (
         <View key={reply.id} style={[styles.replyItem, depth > 0 && styles.nestedReplyItem]}>
@@ -287,7 +365,12 @@ export function ForumPostCard({
               <Text style={styles.replyDate}>{formatDate(reply.timestamp)}</Text>
             </View>
           </View>
-          <Text style={styles.replyContent}>{reply.content}</Text>
+          <Text style={styles.replyContent}>{tState.showTranslation ? tState.translatedContent : reply.content}</Text>
+          <Pressable onPress={() => handleTranslateReply(reply.id, reply.content)} hitSlop={8}>
+            <Text style={[styles.replyTranslateLink, tState.isSameLanguage && { color: colors.textSecondary }]}>
+              {tState.isTranslating ? 'Translating...' : tState.isSameLanguage ? 'Already in your language' : tState.showTranslation ? 'Show original' : 'Translate reply'}
+            </Text>
+          </Pressable>
           {depth < MAX_VISIBLE_DEPTH || expandedBranches[reply.id] ? (
             renderReplies(reply.id, depth + 1)
           ) : (repliesByParent[reply.id] ?? []).length > 0 ? (
@@ -331,8 +414,13 @@ export function ForumPostCard({
         )}
       </View>
 
-      <Text style={styles.postTitle}>{post.topicTitle}</Text>
-      <Text style={styles.content}>{post.content}</Text>
+      <Text style={styles.postTitle}>{showTranslation && translatedTitle ? translatedTitle : post.topicTitle}</Text>
+      <Text style={styles.content}>{showTranslation && translatedContent ? translatedContent : post.content}</Text>
+      <Pressable onPress={handleTranslatePost} hitSlop={8}>
+        <Text style={[styles.translateLink, isSameLanguage && { color: colors.textSecondary }]}>
+          {isTranslating ? 'Translating...' : isSameLanguage ? 'Already in your language' : showTranslation ? 'Show original' : 'Translate post'}
+        </Text>
+      </Pressable>
       {post.categoryLabel ? (
         <Chip
           label={post.categoryLabel}
