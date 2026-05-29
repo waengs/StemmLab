@@ -125,8 +125,8 @@ export const ACTIVITIES = {
     id: 'breathing-pace',
     name: 'Breathing Pace Trainer',
     category: 'Health/Medical',
-    description: 'Monitor and improve breathing patterns',
-    sensors: ['movement-detector'],
+    description: 'Analyse breathing patterns at rest and after exercise',
+    sensors: ['vibration'],
   },
 };
 

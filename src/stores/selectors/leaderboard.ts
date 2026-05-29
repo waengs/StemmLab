@@ -114,8 +114,40 @@ export function calculateScore(result: ActivityResult): number {
     }
     case 'reaction-board':
       return (parseFloat(result.data.accuracy) || 0) - (parseFloat(result.data.reactionTime) || 1000) / 100;
-    case 'breathing-pace':
-      return (parseFloat(result.data.consistency) || 0) * 10;
+    case 'breathing-pace': {
+      let score = 100;
+
+      if (result.data.trials && Array.isArray(result.data.trials)) {
+        let totalDiff = 0;
+        let validTrials = 0;
+        result.data.trials.forEach((trial: any) => {
+          const pred = parseFloat(trial.predictedBpm);
+          const act = parseFloat(trial.breathsPerMinute);
+          if (!isNaN(pred) && !isNaN(act)) {
+            totalDiff += Math.abs(pred - act);
+            validTrials += 1;
+          }
+        });
+        if (validTrials > 0) {
+          score -= (totalDiff / validTrials) * 3;
+        }
+
+        const jogTrial = result.data.trials.find((trial: any) => trial.id === 'afterJog');
+        const starTrial = result.data.trials.find((trial: any) => trial.id === 'afterStarJump');
+        const jogMove = parseFloat(jogTrial?.movementAvg) || 0;
+        const starMove = parseFloat(starTrial?.movementAvg) || 0;
+        const actualMostLabel = jogMove >= starMove ? 'After Jog' : 'After Star Jumps';
+        if (result.data.predictedMostMovement && result.data.predictedMostMovement !== actualMostLabel) {
+          score -= 10;
+        }
+      }
+
+      if (result.data.quizScore) {
+        score += (result.data.quizScore as number) * 2;
+      }
+
+      return Math.max(0, Math.round(score));
+    }
     default:
       return 0;
   }

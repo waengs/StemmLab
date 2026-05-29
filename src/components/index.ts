@@ -44,6 +44,9 @@ export { HandFanPostActivity, HandFanDiscussion } from './activities/HandFanPost
 export { HumanPerformanceForm } from './activities/HumanPerformanceForm';
 export { HumanPerformanceResults } from './activities/HumanPerformanceResults';
 export { HumanPerformancePostActivity, HumanPerformanceDiscussion } from './activities/HumanPerformancePostActivity';
+export { BreathingPaceForm } from './activities/BreathingPaceForm';
+export { BreathingPaceResults } from './activities/BreathingPaceResults';
+export { BreathingPacePostActivity, BreathingPaceDiscussion } from './activities/BreathingPacePostActivity';
 
 // Leaderboard
 export { LeaderboardTabs } from './leaderboard/LeaderboardTabs';

@@ -304,7 +304,25 @@
       },
       "breathing-pace": {
         "name": "Breathing Pace Trainer",
-        "desc": "Monitor and improve breathing patterns",
+        "desc": "Analyse breathing patterns at rest and after exercise",
+        "overview": "Students analyse breathing patterns at rest and after exercise using the phone accelerometer on the chest.",
+        "timerTitle": "Activity Timer (30 min)",
+        "timeUpTitle": "Time is up!",
+        "timeUpText": "Your 30 minutes are up. The form is now locked, but you can still review your data.",
+        "equipmentPhone": "Mobile phone with STEMM Lab app",
+        "equipmentMat": "Flat surface or mat",
+        "predictionsTitle": "Questions Before the Experiment",
+        "predictMostMovement": "Predict which exercise makes the phone move the most on your chest",
+        "predictBpmTitle": "Predict breaths per minute",
+        "afterJog": "After jog",
+        "afterStarJump": "After star jumps",
+        "resultsTitle": "Results",
+        "tabs": {
+          "setup": "Setup",
+          "predictions": "Predictions",
+          "experiment": "Recording",
+          "results": "Results"
+        },
         "fields": {
           "breathsPerMinute": "Breaths Per Minute",
           "consistency": "Consistency Score (1-10)"
