@@ -2,11 +2,13 @@ import type { ActivityResult } from '../../types';
 import type { LeaderboardEntry } from '../../components/leaderboard/LeaderboardEntryCard';
 
 export function calculateScore(result: ActivityResult): number {
+  let baseScore = 0;
+
   switch (result.activityId) {
     case 'parachute-drop': {
-      let score = 100;
+      baseScore = 100;
       if (result.data.usedInstantCalc) {
-        score -= 20; // Penalty
+        baseScore -= 20; // Penalty
       }
       if (result.data.trials && Array.isArray(result.data.trials)) {
         let totalDiff = 0;
@@ -21,17 +23,40 @@ export function calculateScore(result: ActivityResult): number {
         });
         if (validTrials > 0) {
           const avgDiff = totalDiff / validTrials;
-          score -= (avgDiff * 20); // Deduct points based on inaccuracy
+          baseScore -= (avgDiff * 20); // Deduct points based on inaccuracy
         }
       }
-      return Math.max(0, Math.round(score));
+      baseScore = Math.max(0, Math.round(baseScore));
+      break;
     }
-    case 'sound-pollution':
-      return parseFloat(result.data.maxDecibels) || 0;
+    case 'sound-pollution': {
+      baseScore = 100;
+      if (result.data.trials && Array.isArray(result.data.trials) && result.data.trials.length > 0) {
+        let maxDb = -1;
+        let actualLoudestAction = '';
+        
+        result.data.trials.forEach((t: any) => {
+          const db = parseFloat(t.outcomeDb) || 0;
+          if (db > maxDb) {
+            maxDb = db;
+            actualLoudestAction = t.action;
+          }
+          if (t.wereYouRight === 'Yes') {
+            baseScore += 5;
+          }
+        });
+
+        if (actualLoudestAction && result.data.predictedLoudestAction && result.data.predictedLoudestAction !== actualLoudestAction) {
+          baseScore -= 10;
+        }
+      }
+      baseScore = Math.max(0, Math.round(baseScore));
+      break;
+    }
     case 'hand-fan': {
-      let score = 100;
+      baseScore = 100;
       if (result.data.usedInstantCalc) {
-        score -= 20;
+        baseScore -= 20;
       }
       
       if (result.data.trials && Array.isArray(result.data.trials) && result.data.trials.length > 0) {
@@ -51,27 +76,30 @@ export function calculateScore(result: ActivityResult): number {
         });
 
         if (bestMaterial && result.data.predictedMaterial && result.data.predictedMaterial !== bestMaterial) {
-          score -= 10;
+          baseScore -= 10;
         }
         
         if (bestDesign && result.data.predictedDesign && 
             !bestDesign.toLowerCase().includes(result.data.predictedDesign.toLowerCase()) && 
             !result.data.predictedDesign.toLowerCase().includes(bestDesign.toLowerCase())) {
-          score -= 10;
+          baseScore -= 10;
         }
 
         if (bestDistance && result.data.predictedDistance && result.data.predictedDistance !== bestDistance) {
-          score -= 10;
+          baseScore -= 10;
         }
       }
-      return Math.max(0, score);
+      baseScore = Math.max(0, Math.round(baseScore));
+      break;
     }
-    case 'earthquake':
-      return result.data.survived === 'Yes' ? 100 : 0;
+    case 'earthquake': {
+      baseScore = result.data.survived === 'Yes' ? 100 : 0;
+      break;
+    }
     case 'human-performance': {
-      let score = 100;
+      baseScore = 100;
       if (result.data.usedInstantCalc) {
-        score -= 20;
+        baseScore -= 20;
       }
 
       if (result.data.trials && Array.isArray(result.data.trials)) {
@@ -86,7 +114,7 @@ export function calculateScore(result: ActivityResult): number {
           }
         });
         if (validTrials > 0) {
-          score -= (totalDiff / validTrials) * 2;
+          baseScore -= (totalDiff / validTrials) * 2;
         }
 
         const hardest = result.data.trials.reduce((best: any, t: any) => {
@@ -94,28 +122,28 @@ export function calculateScore(result: ActivityResult): number {
           return !best || v > (parseFloat(best.vibrationAvg) || 0) ? t : best;
         }, null);
         if (hardest && result.data.predictedHardestMovement && result.data.predictedHardestMovement !== hardest.label) {
-          score -= 10;
+          baseScore -= 10;
         }
 
         result.data.trials.forEach((t: any) => {
           const feedback = parseFloat(t.vibrationAvgWithFeedback) || 0;
           const baseline = parseFloat(t.vibrationAvg) || 0;
           if (feedback > 0 && baseline > 0 && feedback < baseline) {
-            score += 3;
+            baseScore += 3;
           }
         });
       }
 
-      if (result.data.quizScore) {
-        score += (result.data.quizScore as number) * 2;
-      }
-
-      return Math.max(0, Math.round(score));
+      baseScore = Math.max(0, Math.round(baseScore));
+      break;
     }
-    case 'reaction-board':
-      return (parseFloat(result.data.accuracy) || 0) - (parseFloat(result.data.reactionTime) || 1000) / 100;
+    case 'reaction-board': {
+      baseScore = (parseFloat(result.data.accuracy) || 0) - (parseFloat(result.data.reactionTime) || 1000) / 100;
+      baseScore = Math.max(0, Math.round(baseScore));
+      break;
+    }
     case 'breathing-pace': {
-      let score = 100;
+      baseScore = 100;
 
       if (result.data.trials && Array.isArray(result.data.trials)) {
         let totalDiff = 0;
@@ -129,7 +157,7 @@ export function calculateScore(result: ActivityResult): number {
           }
         });
         if (validTrials > 0) {
-          score -= (totalDiff / validTrials) * 3;
+          baseScore -= (totalDiff / validTrials) * 3;
         }
 
         const jogTrial = result.data.trials.find((trial: any) => trial.id === 'afterJog');
@@ -138,19 +166,24 @@ export function calculateScore(result: ActivityResult): number {
         const starMove = parseFloat(starTrial?.movementAvg) || 0;
         const actualMostLabel = jogMove >= starMove ? 'After Jog' : 'After Star Jumps';
         if (result.data.predictedMostMovement && result.data.predictedMostMovement !== actualMostLabel) {
-          score -= 10;
+          baseScore -= 10;
         }
       }
 
-      if (result.data.quizScore) {
-        score += (result.data.quizScore as number) * 2;
-      }
-
-      return Math.max(0, Math.round(score));
+      baseScore = Math.max(0, Math.round(baseScore));
+      break;
     }
     default:
-      return 0;
+      baseScore = 0;
+      break;
   }
+
+  // Uniformly add quiz score (2 points per correct question) to ALL activities
+  if (result.data.quizScore) {
+    baseScore += (result.data.quizScore as number) * 2;
+  }
+
+  return baseScore;
 }
 
 const BOARD_KEYS = [
