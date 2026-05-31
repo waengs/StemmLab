@@ -178,7 +178,7 @@ export default function Forum() {
     [colors]
   );
 
-  const handleCreatePost = async () => {
+  const handleCreatePost = async (attachments?: { url: string; type: 'image' | 'video' | 'raw'; name: string }[]) => {
     if (!user || !team || !draftTitle.trim() || !draftContent.trim()) return;
 
     if (hasProfanity(draftTitle) || hasProfanity(draftContent)) {
@@ -199,6 +199,7 @@ export default function Forum() {
       timestamp: Date.now(),
       replies: [],
       upvotes: [],
+      attachments,
     };
 
     await addPost(post);

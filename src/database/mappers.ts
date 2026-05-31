@@ -43,6 +43,12 @@ export function rowsToForumPost(post: ForumPostRow, replies: ForumReplyRow[]): F
     content: post.content,
     timestamp: post.timestamp,
     upvotes: JSON.parse(post.upvotes_json || '[]'),
+    attachmentUrl: post.attachment_url ?? undefined,
+    attachments: post.attachments_json 
+      ? JSON.parse(post.attachments_json) 
+      : post.attachment_url 
+        ? [{ url: post.attachment_url, type: 'image', name: 'Legacy Attachment' }] 
+        : [],
     replies: replies.map(rowToForumReply),
   };
 }
@@ -58,6 +64,12 @@ export function rowToForumReply(row: ForumReplyRow): ForumReply {
     content: row.content,
     timestamp: row.timestamp,
     upvotes: JSON.parse(row.upvotes_json || '[]'),
+    attachmentUrl: row.attachment_url ?? undefined,
+    attachments: row.attachments_json 
+      ? JSON.parse(row.attachments_json) 
+      : row.attachment_url 
+        ? [{ url: row.attachment_url, type: 'image', name: 'Legacy Attachment' }] 
+        : [],
   };
 }
 

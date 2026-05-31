@@ -139,8 +139,8 @@ export default function PostThreadScreen() {
     return { ...post, replies: clonedReplies };
   }, [post, sortBy]);
 
-  const handleReplySubmit = async () => {
-    if (!replyContent.trim()) return;
+  const handleReplySubmit = async (attachments?: { url: string; type: 'image' | 'video' | 'raw'; name: string }[]) => {
+    if (!user || !team || (!replyContent.trim() && (!attachments || attachments.length === 0))) return;
 
     if (hasProfanity(replyContent)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
@@ -163,6 +163,7 @@ export default function PostThreadScreen() {
       teamName: team.name,
       content,
       timestamp: Date.now(),
+      attachments,
     };
 
     const updatedPost = { ...post, replies: [...post.replies, reply] };

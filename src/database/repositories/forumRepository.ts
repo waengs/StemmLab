@@ -9,8 +9,8 @@ export async function upsertForumPost(post: ForumPost): Promise<void> {
   await db.runAsync(
     `INSERT INTO forum_posts (
       id, topic_title, author_uid, author_name, team_discriminator, team_name, category_id, category_label, content,
-      timestamp, upvotes_json, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      timestamp, upvotes_json, attachment_url, attachments_json, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       topic_title = excluded.topic_title,
       author_uid = excluded.author_uid,
@@ -21,6 +21,8 @@ export async function upsertForumPost(post: ForumPost): Promise<void> {
       content = excluded.content,
       timestamp = excluded.timestamp,
       upvotes_json = excluded.upvotes_json,
+      attachment_url = excluded.attachment_url,
+      attachments_json = excluded.attachments_json,
       updated_at = excluded.updated_at`,
     post.id,
     post.topicTitle,
@@ -33,6 +35,8 @@ export async function upsertForumPost(post: ForumPost): Promise<void> {
     post.content,
     post.timestamp,
     JSON.stringify(post.upvotes ?? []),
+    post.attachmentUrl ?? null,
+    JSON.stringify(post.attachments ?? []),
     now,
     now
   );
@@ -48,8 +52,8 @@ export async function upsertForumReply(postId: string, reply: ForumReply): Promi
   await db.runAsync(
     `INSERT INTO forum_replies (
       id, post_id, parent_reply_id, author_uid, author_name, team_discriminator, team_name,
-      content, timestamp, upvotes_json, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      content, timestamp, upvotes_json, attachment_url, attachments_json, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       parent_reply_id = excluded.parent_reply_id,
       author_uid = excluded.author_uid,
@@ -57,6 +61,8 @@ export async function upsertForumReply(postId: string, reply: ForumReply): Promi
       content = excluded.content,
       timestamp = excluded.timestamp,
       upvotes_json = excluded.upvotes_json,
+      attachment_url = excluded.attachment_url,
+      attachments_json = excluded.attachments_json,
       updated_at = excluded.updated_at`,
     reply.id,
     postId,
@@ -68,6 +74,8 @@ export async function upsertForumReply(postId: string, reply: ForumReply): Promi
     reply.content,
     reply.timestamp,
     JSON.stringify(reply.upvotes ?? []),
+    reply.attachmentUrl ?? null,
+    JSON.stringify(reply.attachments ?? []),
     now,
     now
   );

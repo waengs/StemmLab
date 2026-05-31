@@ -8,7 +8,13 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { uploadFileToCloudinary, isCloudinaryConfigured } from '../../services/cloudinary';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../ui/Avatar';
 import { Input } from '../ui/Input';
@@ -29,7 +35,7 @@ interface ForumComposerProps {
   onCategoryChange: (label: string) => void;
   value: string;
   onChangeText: (text: string) => void;
-  onSubmit: () => void;
+  onSubmit: (attachments?: { url: string; type: 'image' | 'video' | 'raw'; name: string }[]) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -53,6 +59,75 @@ export function ForumComposer({
   // While it is open we disable KeyboardAvoidingView so its modal
   // mount/unmount events don't cause the sheet to jitter.
   const [selectOpen, setSelectOpen] = useState(false);
+  const [attachments, setAttachments] = useState<{ uri: string; type: 'image' | 'video' | 'raw'; name: string; mimeType: string }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleCancel = () => {
+    setAttachments([]);
+    onCancel();
+  };
+
+  const pickImage = async () => {
+    if (!isCloudinaryConfigured()) {
+      Alert.alert(t('settings.cloudinaryNotConfiguredTitle', 'Cloudinary Not Configured'), t('settings.cloudinaryNotConfiguredMsg', 'Please configure Cloudinary in .env to upload images.'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets) {
+      const newAttachments = result.assets.map((asset) => ({
+        uri: asset.uri,
+        type: asset.type === 'video' ? 'video' as const : 'image' as const,
+        name: asset.fileName ?? `upload-${Date.now()}`,
+        mimeType: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+      }));
+      setAttachments((prev) => [...prev, ...newAttachments]);
+    }
+  };
+
+  const pickDocument = async () => {
+    if (!isCloudinaryConfigured()) {
+      Alert.alert(t('settings.cloudinaryNotConfiguredTitle', 'Cloudinary Not Configured'), t('settings.cloudinaryNotConfiguredMsg', 'Please configure Cloudinary in .env to upload files.'));
+      return;
+    }
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: false,
+      multiple: true,
+    });
+    if (!result.canceled && result.assets) {
+      const newAttachments = result.assets.map((asset) => ({
+        uri: asset.uri,
+        type: 'raw' as const,
+        name: asset.name,
+        mimeType: asset.mimeType ?? 'application/octet-stream',
+      }));
+      setAttachments((prev) => [...prev, ...newAttachments]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsUploading(true);
+      const uploadedAttachments = [];
+      for (const file of attachments) {
+        const url = await uploadFileToCloudinary(file.uri, file.mimeType);
+        uploadedAttachments.push({ url, type: file.type, name: file.name });
+      }
+      await onSubmit(uploadedAttachments.length > 0 ? uploadedAttachments : undefined);
+      setAttachments([]);
+    } catch (err: any) {
+      Alert.alert(t('common.error', 'Error'), err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const styles = useMemo(
     () =>
@@ -62,7 +137,7 @@ export function ForumComposer({
           justifyContent: 'flex-end',
         },
         backdrop: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           backgroundColor: 'rgba(0,0,0,0.55)',
         },
         sheetOuter: {
@@ -175,20 +250,57 @@ export function ForumComposer({
           onOpen={() => setSelectOpen(true)}
           onClose={() => setSelectOpen(false)}
         />
+        
+        {attachments.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
+            {attachments.map((att, idx) => (
+              <View key={idx} style={{ marginRight: Spacing.sm, position: 'relative' }}>
+                {att.type === 'image' || att.type === 'video' ? (
+                  <Image source={{ uri: att.uri }} style={{ width: 80, height: 80, borderRadius: BorderRadius.md }} />
+                ) : (
+                  <View style={{ width: 80, height: 80, borderRadius: BorderRadius.md, backgroundColor: colors.borderLight, alignItems: 'center', justifyContent: 'center', padding: Spacing.xs }}>
+                    <Ionicons name="document-text" size={32} color={colors.textSecondary} />
+                    <Text numberOfLines={1} style={{ ...typography.caption, marginTop: 4, textAlign: 'center' }}>{att.name}</Text>
+                  </View>
+                )}
+                <Pressable 
+                  onPress={() => removeAttachment(idx)} 
+                  style={{ position: 'absolute', top: -8, right: -8, backgroundColor: colors.surface, borderRadius: 12, ...Shadows.sm }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close-circle" size={24} color={colors.text} />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
         <View style={styles.actionRow}>
+          <Pressable 
+            style={{ padding: Spacing.sm }} 
+            onPress={pickImage}
+          >
+            <Ionicons name="image-outline" size={24} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable 
+            style={{ marginRight: 'auto', padding: Spacing.sm }} 
+            onPress={pickDocument}
+          >
+            <Ionicons name="document-attach-outline" size={24} color={colors.textSecondary} />
+          </Pressable>
+
           <Button
             title={t('common.cancel')}
-            onPress={onCancel}
+            onPress={handleCancel}
             variant="outlined"
-            fullWidth
-            style={styles.actionBtn}
+            disabled={isUploading}
+            style={[{ flex: 1, marginRight: Spacing.sm }]}
           />
           <Button
-            title={t('forum.postBtn')}
-            onPress={onSubmit}
-            fullWidth
-            disabled={!topicTitle.trim() || !value.trim()}
-            style={styles.actionBtn}
+            title={isUploading ? '...' : t('forum.postBtn')}
+            onPress={handleSubmit}
+            disabled={!topicTitle.trim() || !value.trim() || isUploading}
+            style={[{ flex: 1 }]}
           />
         </View>
       </ScrollView>
@@ -201,7 +313,7 @@ export function ForumComposer({
       animationType="slide"
       transparent
       statusBarTranslucent
-      onRequestClose={onCancel}
+      onRequestClose={handleCancel}
     >
       {/*
        * When the category picker (Select) is open its own Modal fires keyboard
@@ -210,15 +322,15 @@ export function ForumComposer({
        */}
       {selectOpen ? (
         <View style={styles.kav}>
-          <Pressable style={styles.backdrop} onPress={onCancel} />
+          <Pressable style={styles.backdrop} onPress={handleCancel} />
           {sheet}
         </View>
       ) : (
         <KeyboardAvoidingView
           style={styles.kav}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <Pressable style={styles.backdrop} onPress={onCancel} />
+          <Pressable style={styles.backdrop} onPress={handleCancel} />
           {sheet}
         </KeyboardAvoidingView>
       )}

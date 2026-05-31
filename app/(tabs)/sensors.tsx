@@ -128,7 +128,7 @@ export default function Sensors() {
         setIsSaving(true);
         try {
           const videoUrl = await uploadVideoToCloudinary(sensorValue, {
-            folder: cloudinaryEnv.folder,
+            folder: cloudinaryEnv.slowmoFolder,
             publicId: `${team.discriminator}-${Date.now()}`,
           });
           await saveLog(formatSlowMoLogData(videoUrl, notes));

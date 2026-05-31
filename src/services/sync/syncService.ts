@@ -63,6 +63,8 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
         content: rd.content as string,
         timestamp: rd.timestamp as number,
         upvotes: (rd.upvotes as string[]) ?? [],
+        attachmentUrl: (rd.attachmentUrl as string) ?? undefined,
+        attachments: rd.attachments as any[] | undefined,
       };
     });
     await forumRepo.upsertForumPost({
@@ -77,6 +79,8 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
       content: data.content as string,
       timestamp: data.timestamp as number,
       upvotes: (data.upvotes as string[]) ?? [],
+      attachmentUrl: (data.attachmentUrl as string) ?? undefined,
+      attachments: data.attachments as any[] | undefined,
       replies,
     });
   }
@@ -126,6 +130,8 @@ export async function pushSyncQueue(): Promise<void> {
           content: post.content,
           timestamp: post.timestamp,
           upvotes: post.upvotes ?? [],
+          attachmentUrl: post.attachmentUrl ?? null,
+          attachments: post.attachments ?? [],
           updatedAt: Date.now(),
         });
       } else if (item.entityType === 'forum_post' && item.operation === 'delete') {
@@ -147,6 +153,8 @@ export async function pushSyncQueue(): Promise<void> {
             content: payload.reply.content,
             timestamp: payload.reply.timestamp,
             upvotes: payload.reply.upvotes ?? [],
+            attachmentUrl: payload.reply.attachmentUrl ?? null,
+            attachments: payload.reply.attachments ?? [],
             updatedAt: Date.now(),
           }
         );

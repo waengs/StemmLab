@@ -1,5 +1,5 @@
 export const DB_NAME = 'stemmlab.db';
-export const DB_VERSION = 7;
+export const DB_VERSION = 9;
 
 /** Ordered migrations — only bump DB_VERSION when adding new statements. */
 export const MIGRATIONS: string[] = [
@@ -204,4 +204,16 @@ export const MIGRATIONS_V7: string[] = [
     content TEXT NOT NULL,
     updated_at INTEGER NOT NULL
   );`,
+];
+
+/** Cloudinary Image Attachments (v8). */
+export const MIGRATIONS_V8: string[] = [
+  `ALTER TABLE forum_posts ADD COLUMN attachment_url TEXT;`,
+  `ALTER TABLE forum_replies ADD COLUMN attachment_url TEXT;`,
+];
+
+/** Multiple File Attachments JSON (v9). */
+export const MIGRATIONS_V9: string[] = [
+  `ALTER TABLE forum_posts ADD COLUMN attachments_json TEXT DEFAULT '[]';`,
+  `ALTER TABLE forum_replies ADD COLUMN attachments_json TEXT DEFAULT '[]';`,
 ];

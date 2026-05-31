@@ -40,6 +40,8 @@ export interface ForumPostRow {
   created_at: number;
   updated_at: number;
   synced_at: number | null;
+  attachment_url: string | null;
+  attachments_json: string | null;
 }
 
 export interface ForumReplyRow {
@@ -56,6 +58,8 @@ export interface ForumReplyRow {
   created_at: number;
   updated_at: number;
   synced_at: number | null;
+  attachment_url: string | null;
+  attachments_json: string | null;
 }
 
 export interface ForumDraftRow {

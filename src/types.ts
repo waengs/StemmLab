@@ -47,6 +47,12 @@ export interface SensorLog {
   recordedByUid?: string;
 }
 
+export type ForumAttachment = {
+  url: string;
+  type: 'image' | 'video' | 'raw';
+  name: string;
+};
+
 export interface ForumPost {
   id: string;
   topicTitle: string;
@@ -62,6 +68,10 @@ export interface ForumPost {
   replies: ForumReply[];
   /** UIDs of users who have upvoted this post. */
   upvotes: string[];
+  /** Optional image attachment URL. */
+  attachmentUrl?: string;
+  /** Multiple files array for V9+ */
+  attachments?: ForumAttachment[];
 }
 
 export interface ForumReply {
@@ -76,6 +86,10 @@ export interface ForumReply {
   timestamp: number;
   /** UIDs of users who have upvoted this reply. */
   upvotes?: string[];
+  /** Optional image attachment URL. */
+  attachmentUrl?: string;
+  /** Multiple files array for V9+ */
+  attachments?: ForumAttachment[];
 }
 
 export const ACTIVITIES = {

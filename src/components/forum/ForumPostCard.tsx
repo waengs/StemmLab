@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Animated, Alert, ActivityIndicator, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/Card';
@@ -10,6 +10,11 @@ import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
 import type { ForumPost, ForumReply } from '../../types';
 import { translateText } from '../../utils/translate';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Linking from 'expo-linking';
+import { uploadFileToCloudinary, isCloudinaryConfigured } from '../../services/cloudinary';
+import { BorderRadius, Shadows } from '../../theme';
 
 interface ForumPostCardProps {
   post: ForumPost;
@@ -19,7 +24,7 @@ interface ForumPostCardProps {
   expanded: boolean;
   onToggleReplies: () => void;
   onReplyChange: (text: string) => void;
-  onReplySubmit: () => void;
+  onReplySubmit: (attachments?: { url: string; type: 'image' | 'video' | 'raw'; name: string }[]) => void | Promise<void>;
   onReplyToReply?: (replyId: string, authorName: string) => void;
   onClearReplyTarget?: () => void;
   onDelete?: () => void;
@@ -52,6 +57,9 @@ export function ForumPostCard({
   const { colors, typography } = useTheme();
   const MAX_VISIBLE_DEPTH = 2;
   const [expandedBranches, setExpandedBranches] = useState<Record<string, boolean>>({});
+  
+  const [replyAttachments, setReplyAttachments] = useState<{ uri: string; type: 'image' | 'video' | 'raw'; name: string; mimeType: string }[]>([]);
+  const [isUploadingReply, setIsUploadingReply] = useState(false);
   
   // Translation state for the main post
   const [translatedTitle, setTranslatedTitle] = useState<string | null>(null);
@@ -146,6 +154,68 @@ export function ForumPostCard({
       setReplyTranslations(prev => ({ ...prev, [replyId]: { ...prev[replyId], isTranslating: false, isSameLanguage: true } }));
     } else {
       setReplyTranslations(prev => ({ ...prev, [replyId]: { translatedContent: translated, showTranslation: true, isTranslating: false } }));
+    }
+  };
+
+  const pickReplyImage = async () => {
+    if (!isCloudinaryConfigured()) {
+      Alert.alert(t('settings.cloudinaryNotConfiguredTitle', 'Cloudinary Not Configured'), t('settings.cloudinaryNotConfiguredMsg', 'Please configure Cloudinary in .env to upload images.'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets) {
+      const newAttachments = result.assets.map((asset) => ({
+        uri: asset.uri,
+        type: asset.type === 'video' ? 'video' as const : 'image' as const,
+        name: asset.fileName ?? `upload-${Date.now()}`,
+        mimeType: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+      }));
+      setReplyAttachments((prev) => [...prev, ...newAttachments]);
+    }
+  };
+
+  const pickReplyDocument = async () => {
+    if (!isCloudinaryConfigured()) {
+      Alert.alert(t('settings.cloudinaryNotConfiguredTitle', 'Cloudinary Not Configured'), t('settings.cloudinaryNotConfiguredMsg', 'Please configure Cloudinary in .env to upload files.'));
+      return;
+    }
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: false,
+      multiple: true,
+    });
+    if (!result.canceled && result.assets) {
+      const newAttachments = result.assets.map((asset) => ({
+        uri: asset.uri,
+        type: 'raw' as const,
+        name: asset.name,
+        mimeType: asset.mimeType ?? 'application/octet-stream',
+      }));
+      setReplyAttachments((prev) => [...prev, ...newAttachments]);
+    }
+  };
+
+  const removeReplyAttachment = (index: number) => {
+    setReplyAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReplySubmitInternal = async () => {
+    try {
+      setIsUploadingReply(true);
+      const uploadedAttachments = [];
+      for (const file of replyAttachments) {
+        const url = await uploadFileToCloudinary(file.uri, file.mimeType);
+        uploadedAttachments.push({ url, type: file.type, name: file.name });
+      }
+      await onReplySubmit(uploadedAttachments.length > 0 ? uploadedAttachments : undefined);
+      setReplyAttachments([]);
+    } catch (err: any) {
+      Alert.alert(t('common.error', 'Error'), err.message);
+    } finally {
+      setIsUploadingReply(false);
     }
   };
 
@@ -270,6 +340,7 @@ export function ForumPostCard({
           paddingTop: Spacing.sm,
         },
         replyInput: { flex: 1 },
+        replyInputActions: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
         sendBtn: {
           width: 38,
           height: 38,
@@ -367,11 +438,27 @@ export function ForumPostCard({
           </View>
           <Text style={styles.replyContent}>{tState.showTranslation ? tState.translatedContent : reply.content}</Text>
           <Pressable onPress={() => handleTranslateReply(reply.id, reply.content)} hitSlop={8}>
-            <Text style={[styles.replyTranslateLink, tState.isSameLanguage && { color: colors.textSecondary }]}>
+            <Text style={styles.replyTranslateLink}>
               {tState.isTranslating ? 'Translating...' : tState.isSameLanguage ? 'Already in your language' : tState.showTranslation ? 'Show original' : 'Translate reply'}
             </Text>
           </Pressable>
-          {depth < MAX_VISIBLE_DEPTH || expandedBranches[reply.id] ? (
+          {reply.attachments && reply.attachments.length > 0 && (
+            <View style={{ marginLeft: 26, marginBottom: Spacing.sm }}>
+              {reply.attachments.map((att, idx) => (
+                <Pressable key={idx} onPress={() => Linking.openURL(att.url)} style={{ marginTop: Spacing.xs }}>
+                  {att.type === 'image' || att.type === 'video' ? (
+                    <Image source={{ uri: att.url }} style={{ width: '100%', aspectRatio: 1.5, borderRadius: BorderRadius.md }} resizeMode="cover" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.borderLight, padding: Spacing.sm, borderRadius: BorderRadius.md }}>
+                      <Ionicons name="document-text" size={24} color={colors.primary} />
+                      <Text style={{ ...typography.bodySmall, color: colors.primary, marginLeft: Spacing.xs, flex: 1 }} numberOfLines={1}>{att.name}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
+          {(!reply.parentReplyId || depth < MAX_VISIBLE_DEPTH) && (expandedBranches[reply.id] ? (
             renderReplies(reply.id, depth + 1)
           ) : (repliesByParent[reply.id] ?? []).length > 0 ? (
             <Pressable
@@ -386,7 +473,7 @@ export function ForumPostCard({
                 })}
               </Text>
             </Pressable>
-          ) : null}
+          ) : null)}
         </View>
       );
     });
@@ -429,6 +516,23 @@ export function ForumPostCard({
           style={styles.categoryChip}
         />
       ) : null}
+
+      {post.attachments && post.attachments.length > 0 && (
+        <View style={{ marginBottom: Spacing.md, gap: Spacing.sm }}>
+          {post.attachments.map((att, idx) => (
+            <Pressable key={idx} onPress={() => Linking.openURL(att.url)}>
+              {att.type === 'image' || att.type === 'video' ? (
+                <Image source={{ uri: att.url }} style={{ width: '100%', aspectRatio: 1.5, borderRadius: BorderRadius.md }} resizeMode="cover" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.borderLight, padding: Spacing.sm, borderRadius: BorderRadius.md }}>
+                  <Ionicons name="document-text" size={24} color={colors.primary} />
+                  <Text style={{ ...typography.body, color: colors.primary, marginLeft: Spacing.xs, flex: 1 }} numberOfLines={1}>{att.name}</Text>
+                </View>
+              )}
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* Upvote + reply count row */}
       <View style={styles.actionsRow}>
@@ -508,14 +612,55 @@ export function ForumPostCard({
               placeholder={t('forum.writeReply')}
               containerStyle={{ marginBottom: 0, flex: 1 }}
             />
+            {replyAttachments.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.xs }}>
+                {replyAttachments.map((att, idx) => (
+                  <View key={idx} style={{ marginRight: Spacing.sm, position: 'relative' }}>
+                    {att.type === 'image' || att.type === 'video' ? (
+                      <Image source={{ uri: att.uri }} style={{ width: 60, height: 60, borderRadius: BorderRadius.md }} />
+                    ) : (
+                      <View style={{ width: 60, height: 60, borderRadius: BorderRadius.md, backgroundColor: colors.borderLight, alignItems: 'center', justifyContent: 'center', padding: Spacing.xs }}>
+                        <Ionicons name="document-text" size={24} color={colors.textSecondary} />
+                        <Text numberOfLines={1} style={{ ...typography.caption, marginTop: 2, textAlign: 'center', fontSize: 10 }}>{att.name}</Text>
+                      </View>
+                    )}
+                    <Pressable 
+                      onPress={() => removeReplyAttachment(idx)} 
+                      style={{ position: 'absolute', top: -8, right: -8, backgroundColor: colors.surface, borderRadius: 12, ...Shadows.sm }}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="close-circle" size={20} color={colors.text} />
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <View style={styles.replyInputActions}>
+              <Pressable 
+                style={{ padding: Spacing.xs }} 
+                onPress={pickReplyImage}
+              >
+                <Ionicons name="image-outline" size={22} color={colors.textSecondary} />
+              </Pressable>
+              <Pressable 
+                style={{ marginRight: 'auto', padding: Spacing.xs }} 
+                onPress={pickReplyDocument}
+              >
+                <Ionicons name="document-attach-outline" size={22} color={colors.textSecondary} />
+              </Pressable>
+            </View>
           </View>
           <Pressable
-            style={[styles.sendBtn, !replyText.trim() && styles.sendBtnDisabled]}
-            onPress={onReplySubmit}
-            disabled={!replyText.trim()}
+            style={[styles.sendBtn, (!replyText.trim() && replyAttachments.length === 0) && styles.sendBtnDisabled, { marginBottom: Spacing.sm }]}
+            onPress={handleReplySubmitInternal}
+            disabled={(!replyText.trim() && replyAttachments.length === 0) || isUploadingReply}
             android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
           >
-            <Ionicons name="send" size={18} color={colors.white} />
+            {isUploadingReply ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Ionicons name="send" size={18} color={colors.white} />
+            )}
           </Pressable>
         </View>
       )}
