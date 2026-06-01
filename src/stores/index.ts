@@ -6,7 +6,13 @@ export {
   useCompletedCount,
 } from './activityResultsStore';
 export { useForumStore } from './forumStore';
-export { useSensorStore, useTeamSensorLogs } from './sensorStore';
+export { useSensorStore, useMySensorLogs, useMySensorLogsAll } from './sensorStore';
 export { hydrateStores } from './hydrateStores';
 export { rehydrateAppData } from './rehydrateAppData';
-export { buildLeaderboards, buildTeamNameLookup, calculateScore } from './selectors/leaderboard';
+export {
+  buildLeaderboards,
+  buildTeamNameLookup,
+  calculateScore,
+  getTeamActivityCompletions,
+} from './selectors/leaderboard';
+export type { TeamActivityCompletion } from './selectors/leaderboard';

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
@@ -8,23 +9,31 @@ import {
   PageTitle,
   SearchBar,
   SensorGrid,
-  SensorLogList,
   SensorModal,
+  SensorLogBookModal,
+  FeatureCard,
 } from '../../src/components';
 import { hasProfanity } from '../../src/utils/profanity';
 import { formatSlowMoLogData } from '../../src/utils/slowMoLog';
 import { isCloudinaryConfigured, uploadVideoToCloudinary } from '../../src/services/cloudinary';
 import { cloudinaryEnv } from '../../src/config/env';
-import { useAuthStore, useSensorStore, useTeamSensorLogs } from '../../src/stores';
+import { useForumStore, useSensorStore, useMySensorLogsAll } from '../../src/stores';
+import { buildSensorLogForumShare } from '../../src/utils/sensorLogForumShare';
 import { useRequireAuth } from '../../src/stores';
+import { useTheme } from '../../src/context/ThemeContext';
+import { Spacing } from '../../src/theme';
 import type { SensorLog } from '../../src/types';
 
 export default function Sensors() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const { colors } = useTheme();
   const { user, team } = useRequireAuth();
-  const logs = useTeamSensorLogs(team?.discriminator);
+  const allLogs = useMySensorLogsAll(user?.uid, team?.discriminator);
   const addLog = useSensorStore((s) => s.addLog);
+  const setPendingSensorShare = useForumStore((s) => s.setPendingSensorShare);
   const [searchQuery, setSearchQuery] = useState('');
+  const [logBookOpen, setLogBookOpen] = useState(false);
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sensorValue, setSensorValue] = useState('');
@@ -64,14 +73,13 @@ export default function Sensors() {
         setIsRecording(true);
         setSensorValue(result.assets[0].uri);
       } else {
-        // If they cancelled the camera, close the modal
         handleClose();
       }
       return;
     }
 
     setIsRecording(true);
-    setSensorValue('LOADING...'); // Show buffer state
+    setSensorValue('LOADING...');
     let value = '';
 
     switch (sensorToRun) {
@@ -126,8 +134,8 @@ export default function Sensors() {
         setIsSaving(true);
         try {
           const videoUrl = await uploadVideoToCloudinary(sensorValue, {
-            folder: cloudinaryEnv.slowmoFolder,
-            publicId: `${team.discriminator}-${Date.now()}`,
+            folder: cloudinaryEnv.sensorLogsFolder,
+            publicId: `${user.uid}-${Date.now()}`,
           });
           await saveLog(formatSlowMoLogData(videoUrl, notes));
         } catch (error) {
@@ -143,7 +151,20 @@ export default function Sensors() {
         return;
       }
 
-      await saveLog(formatSlowMoLogData(sensorValue, notes));
+      Alert.alert(
+        t('sensors.cloudinaryRequiredTitle', { defaultValue: 'Cloudinary required' }),
+        t('sensors.cloudinaryRequiredMsg', {
+          defaultValue:
+            'Slow-motion videos are stored in Cloudinary so they survive reinstall and sync across devices. Add Cloudinary keys to .env and restart Expo, or save will only keep a copy on this device.',
+        }),
+        [
+          { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
+          {
+            text: t('sensors.saveOnDeviceOnly', { defaultValue: 'Save on this device only' }),
+            onPress: () => void saveLog(formatSlowMoLogData(sensorValue, notes)),
+          },
+        ]
+      );
       return;
     }
 
@@ -170,14 +191,41 @@ export default function Sensors() {
     setIsSaving(false);
   };
 
+  const handleShareToForum = (log: SensorLog) => {
+    if (!user || !team) return;
+    setPendingSensorShare(buildSensorLogForumShare(log, t));
+    setLogBookOpen(false);
+    router.push('/(tabs)/forum');
+  };
+
   return (
     <>
       <Screen>
         <PageTitle showSettings>{t('sensors.pageTitle')}</PageTitle>
         <SearchBar value={searchQuery} onChangeText={setSearchQuery} placeholder={t('sensors.searchPlaceholder')} />
+
+        <View style={styles.logBookRow}>
+          <FeatureCard
+            title={t('sensors.logBook.title')}
+            description={t('sensors.logBook.cardDescription', { count: allLogs.length })}
+            icon="book-outline"
+            iconColor={colors.primary}
+            chipLabel={t('sensors.logBook.chip')}
+            onPress={() => setLogBookOpen(true)}
+          />
+        </View>
+
         <SensorGrid onSensorPress={handleSensorClick} searchQuery={searchQuery} />
-        <SensorLogList logs={logs} searchQuery={searchQuery} />
       </Screen>
+
+      <SensorLogBookModal
+        visible={logBookOpen}
+        logs={allLogs}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onClose={() => setLogBookOpen(false)}
+        onShareToForum={handleShareToForum}
+      />
 
       <SensorModal
         sensorId={selectedSensor}
@@ -195,3 +243,9 @@ export default function Sensors() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  logBookRow: {
+    marginBottom: Spacing.lg,
+  },
+});

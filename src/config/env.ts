@@ -15,6 +15,10 @@ export const cloudinaryEnv = {
   cloudName: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ?? '',
   uploadPreset: process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? '',
   slowmoFolder: process.env.EXPO_PUBLIC_CLOUDINARY_SLOWMO_FOLDER ?? 'stemmlab/slow-mo',
+  sensorLogsFolder:
+    process.env.EXPO_PUBLIC_CLOUDINARY_SENSOR_LOGS_FOLDER ??
+    process.env.EXPO_PUBLIC_CLOUDINARY_SLOWMO_FOLDER ??
+    'stemmlab/sensor-logs',
   forumFolder: process.env.EXPO_PUBLIC_CLOUDINARY_FORUM_FOLDER ?? 'stemmlab/forum',
 };
 

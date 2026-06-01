@@ -1,5 +1,5 @@
 export const DB_NAME = 'stemmlab.db';
-export const DB_VERSION = 10;
+export const DB_VERSION = 11;
 
 /** Ordered migrations — only bump DB_VERSION when adding new statements. */
 export const MIGRATIONS: string[] = [
@@ -234,4 +234,10 @@ export const MIGRATIONS_V10: string[] = [
      WHERE t.discriminator = forum_posts.team_discriminator
    )
    WHERE grade_band IS NULL;`,
+];
+
+/** Personal sensor log ownership + cloud sync (v11). */
+export const MIGRATIONS_V11: string[] = [
+  `ALTER TABLE sensor_logs ADD COLUMN recorded_by_uid TEXT;`,
+  `CREATE INDEX IF NOT EXISTS idx_sensor_logs_user ON sensor_logs(recorded_by_uid);`,
 ];

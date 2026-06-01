@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/Card';
@@ -20,6 +20,7 @@ export interface LeaderboardEntry {
 interface LeaderboardEntryCardProps {
   entry: LeaderboardEntry;
   rank: number;
+  onPress?: () => void;
 }
 
 function getRankIcon(rank: number, colors: ReturnType<typeof useTheme>['colors']): { name: IoniconsName; color: string } | null {
@@ -48,7 +49,7 @@ function getRankColor(rank: number, colors: ReturnType<typeof useTheme>['colors'
   }
 }
 
-export function LeaderboardEntryCard({ entry, rank }: LeaderboardEntryCardProps) {
+export function LeaderboardEntryCard({ entry, rank, onPress }: LeaderboardEntryCardProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const rankIcon = getRankIcon(rank, colors);
@@ -68,7 +69,7 @@ export function LeaderboardEntryCard({ entry, rank }: LeaderboardEntryCardProps)
     [colors, typography]
   );
 
-  return (
+  const content = (
     <Card style={[styles.card, rank === 0 && styles.cardFirst]}>
       <View style={styles.row}>
         <View style={styles.rank}>
@@ -94,5 +95,13 @@ export function LeaderboardEntryCard({ entry, rank }: LeaderboardEntryCardProps)
         />
       </View>
     </Card>
+  );
+
+  if (!onPress) return content;
+
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button">
+      {content}
+    </Pressable>
   );
 }

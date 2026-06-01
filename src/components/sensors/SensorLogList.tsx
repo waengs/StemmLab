@@ -8,9 +8,10 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useSensorStore } from '../../stores/sensorStore';
 import { useTheme } from '../../context/ThemeContext';
-import { matchesSearch } from '../../utils/search';
+import { filterSensorLogsBySearch } from '../../utils/sensorLogSearch';
 import { getSensorChipLabel } from '../../utils/sensorChip';
 import { parseSlowMoLogData, parseVibrationLogData } from '../../utils/slowMoLog';
+import { EmptyState } from '../layout/EmptyState';
 import { Spacing } from '../../theme';
 import type { SensorLog } from '../../types';
 import { TrialVideoPlayer } from './TrialVideoPlayer';
@@ -18,6 +19,12 @@ import { TrialVideoPlayer } from './TrialVideoPlayer';
 interface SensorLogListProps {
   logs: SensorLog[];
   searchQuery?: string;
+  /** Section title; defaults to sensors.recentLogs */
+  title?: string;
+  /** When true, show an empty state instead of rendering nothing */
+  showWhenEmpty?: boolean;
+  emptyMessage?: string;
+  onShareToForum?: (log: SensorLog) => void;
 }
 
 function LogNotes({ text, label, styles }: { text: string; label: string; styles: ReturnType<typeof createStyles> }) {
@@ -106,7 +113,14 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors'], typography:
   });
 }
 
-export function SensorLogList({ logs, searchQuery = '' }: SensorLogListProps) {
+export function SensorLogList({
+  logs,
+  searchQuery = '',
+  title,
+  showWhenEmpty = false,
+  emptyMessage,
+  onShareToForum,
+}: SensorLogListProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
 
@@ -118,13 +132,10 @@ export function SensorLogList({ logs, searchQuery = '' }: SensorLogListProps) {
 
   const styles = useMemo(() => createStyles(colors, typography), [colors, typography]);
 
-  const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const sensorName = t(`data.sensors.${log.sensorType}.name`, { defaultValue: log.sensorType });
-      const chip = getSensorChipLabel(log.sensorType, t);
-      return matchesSearch(`${sensorName} ${chip} ${log.data}`, searchQuery);
-    });
-  }, [logs, searchQuery, t]);
+  const filteredLogs = useMemo(
+    () => filterSensorLogsBySearch(logs, searchQuery, t),
+    [logs, searchQuery, t]
+  );
 
   const handleEdit = (log: SensorLog) => {
     setEditingLogId(log.id);
@@ -196,11 +207,24 @@ export function SensorLogList({ logs, searchQuery = '' }: SensorLogListProps) {
     return <Text style={styles.plainData}>{data}</Text>;
   };
 
-  if (logs.length === 0) return null;
+  const sectionTitle = title ?? t('sensors.recentLogs');
+
+  if (logs.length === 0) {
+    if (!showWhenEmpty) return null;
+    return (
+      <View style={styles.section}>
+        <Text style={styles.title}>{sectionTitle}</Text>
+        <EmptyState
+          icon="book-outline"
+          message={emptyMessage ?? t('sensors.logBook.empty')}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>{t('sensors.recentLogs')}</Text>
+      <Text style={styles.title}>{sectionTitle}</Text>
       {filteredLogs.length === 0 ? (
         <Text style={styles.empty}>{t('common.noSearchResults')}</Text>
       ) : (
@@ -224,6 +248,15 @@ export function SensorLogList({ logs, searchQuery = '' }: SensorLogListProps) {
                   </Text>
                   {!isEditing && (
                     <View style={styles.actions}>
+                      {onShareToForum ? (
+                        <TouchableOpacity
+                          style={styles.actionBtn}
+                          onPress={() => onShareToForum(log)}
+                          accessibilityLabel={t('sensors.shareForum.button')}
+                        >
+                          <Ionicons name="chatbubble-outline" size={18} color={colors.primary} />
+                        </TouchableOpacity>
+                      ) : null}
                       <TouchableOpacity style={styles.actionBtn} onPress={() => handleEdit(log)}>
                         <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
                       </TouchableOpacity>

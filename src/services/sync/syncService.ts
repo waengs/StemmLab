@@ -7,6 +7,7 @@ import {
   orderBy,
   query,
   limit,
+  where,
 } from 'firebase/firestore';
 import { isSigningOut } from '../../auth/sessionFlags';
 import { getFirebaseAuth, getFirestoreDb } from '../../config/firebase';
@@ -24,8 +25,43 @@ import { normalizeTeamName } from '../../database/mappers';
 import type { ActivityResult, SensorLog, ForumPost, ForumReply, Team } from '../../types';
 import { getGradeBandFromStoredLevel } from '../../utils/gradeLevel';
 import * as teamRepo from '../../database/repositories/teamRepository';
+import * as sensorRepo from '../../database/repositories/sensorLogRepository';
 
 const PULL_LIMIT = 500;
+
+function parseFirestoreSensorLogData(data: unknown): string {
+  if (typeof data === 'string') return data;
+  if (data != null) return JSON.stringify(data);
+  return '';
+}
+
+/** Pull the signed-in user's sensor logs from Firestore into SQLite (videos live on Cloudinary URLs in data). */
+export async function pullUserSensorLogsFromFirestore(uid: string): Promise<void> {
+  if (isSigningOut()) return;
+
+  const firebaseUser = await waitForSignedInUser();
+  if (!firebaseUser || firebaseUser.uid !== uid) return;
+
+  const db = getFirestoreDb();
+  const snap = await getDocs(
+    query(collection(db, FS.sensorLogs), where('recordedByUid', '==', uid), limit(PULL_LIMIT))
+  );
+
+  for (const d of snap.docs) {
+    const raw = d.data();
+    await sensorRepo.upsertSensorLog({
+      id: d.id,
+      sensorType: String(raw.sensorType ?? 'unknown'),
+      teamDiscriminator: String(raw.teamDiscriminator ?? ''),
+      timestamp: Number(raw.timestamp) || 0,
+      data: parseFirestoreSensorLogData(raw.data),
+      recordedByUid:
+        typeof raw.recordedByUid === 'string' && raw.recordedByUid.length > 0
+          ? raw.recordedByUid
+          : uid,
+    });
+  }
+}
 
 /** Pull shared Firestore data into SQLite cache. */
 export async function pullSharedDataFromFirestore(): Promise<void> {
@@ -122,6 +158,7 @@ export async function pushSyncQueue(): Promise<void> {
         await setDoc(doc(db, FS.sensorLogs, log.id), {
           sensorType: log.sensorType,
           teamDiscriminator: log.teamDiscriminator,
+          recordedByUid: log.recordedByUid ?? null,
           timestamp: log.timestamp,
           data: log.data,
           updatedAt: Date.now(),
@@ -207,6 +244,12 @@ export async function syncWhenOnline(): Promise<void> {
 
   const firebaseUser = await waitForSignedInUser();
   if (!firebaseUser || isSigningOut()) return;
+
+  try {
+    await pullUserSensorLogsFromFirestore(firebaseUser.uid);
+  } catch (err) {
+    console.warn('[sync] sensor log pull failed:', err);
+  }
 
   try {
     await pushSyncQueue();

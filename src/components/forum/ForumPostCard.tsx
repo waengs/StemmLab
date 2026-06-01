@@ -15,6 +15,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Linking from 'expo-linking';
 import { uploadFileToCloudinary, isCloudinaryConfigured } from '../../services/cloudinary';
 import { BorderRadius, Shadows } from '../../theme';
+import { ForumMediaAttachment } from './ForumMediaAttachment';
 
 interface ForumPostCardProps {
   post: ForumPost;
@@ -443,19 +444,25 @@ export function ForumPostCard({
             </Text>
           </Pressable>
           {reply.attachments && reply.attachments.length > 0 && (
-            <View style={{ marginLeft: 26, marginBottom: Spacing.sm }}>
-              {reply.attachments.map((att, idx) => (
-                <Pressable key={idx} onPress={() => Linking.openURL(att.url)} style={{ marginTop: Spacing.xs }}>
-                  {att.type === 'image' || att.type === 'video' ? (
-                    <Image source={{ uri: att.url }} style={{ width: '100%', aspectRatio: 1.5, borderRadius: BorderRadius.md }} resizeMode="cover" />
-                  ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.borderLight, padding: Spacing.sm, borderRadius: BorderRadius.md }}>
-                      <Ionicons name="document-text" size={24} color={colors.primary} />
-                      <Text style={{ ...typography.bodySmall, color: colors.primary, marginLeft: Spacing.xs, flex: 1 }} numberOfLines={1}>{att.name}</Text>
-                    </View>
-                  )}
-                </Pressable>
-              ))}
+            <View style={{ marginLeft: 26, marginBottom: Spacing.sm, gap: Spacing.xs }}>
+              {reply.attachments.map((att, idx) =>
+                att.type === 'video' ? (
+                  <ForumMediaAttachment key={idx} uri={att.url} type="video" variant="inline" />
+                ) : att.type === 'image' ? (
+                  <Pressable key={idx} onPress={() => Linking.openURL(att.url)}>
+                    <ForumMediaAttachment uri={att.url} type="image" variant="inline" />
+                  </Pressable>
+                ) : (
+                  <ForumMediaAttachment
+                    key={idx}
+                    uri={att.url}
+                    type="raw"
+                    name={att.name}
+                    variant="inline"
+                    onRawPress={() => Linking.openURL(att.url)}
+                  />
+                )
+              )}
             </View>
           )}
           {(!reply.parentReplyId || depth < MAX_VISIBLE_DEPTH) && (expandedBranches[reply.id] ? (
@@ -519,18 +526,24 @@ export function ForumPostCard({
 
       {post.attachments && post.attachments.length > 0 && (
         <View style={{ marginBottom: Spacing.md, gap: Spacing.sm }}>
-          {post.attachments.map((att, idx) => (
-            <Pressable key={idx} onPress={() => Linking.openURL(att.url)}>
-              {att.type === 'image' || att.type === 'video' ? (
-                <Image source={{ uri: att.url }} style={{ width: '100%', aspectRatio: 1.5, borderRadius: BorderRadius.md }} resizeMode="cover" />
-              ) : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.borderLight, padding: Spacing.sm, borderRadius: BorderRadius.md }}>
-                  <Ionicons name="document-text" size={24} color={colors.primary} />
-                  <Text style={{ ...typography.body, color: colors.primary, marginLeft: Spacing.xs, flex: 1 }} numberOfLines={1}>{att.name}</Text>
-                </View>
-              )}
-            </Pressable>
-          ))}
+          {post.attachments.map((att, idx) =>
+            att.type === 'video' ? (
+              <ForumMediaAttachment key={idx} uri={att.url} type="video" variant="inline" />
+            ) : att.type === 'image' ? (
+              <Pressable key={idx} onPress={() => Linking.openURL(att.url)}>
+                <ForumMediaAttachment uri={att.url} type="image" variant="inline" />
+              </Pressable>
+            ) : (
+              <ForumMediaAttachment
+                key={idx}
+                uri={att.url}
+                type="raw"
+                name={att.name}
+                variant="inline"
+                onRawPress={() => Linking.openURL(att.url)}
+              />
+            )
+          )}
         </View>
       )}
 
@@ -616,14 +629,13 @@ export function ForumPostCard({
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.xs }}>
                 {replyAttachments.map((att, idx) => (
                   <View key={idx} style={{ marginRight: Spacing.sm, position: 'relative' }}>
-                    {att.type === 'image' || att.type === 'video' ? (
-                      <Image source={{ uri: att.uri }} style={{ width: 60, height: 60, borderRadius: BorderRadius.md }} />
-                    ) : (
-                      <View style={{ width: 60, height: 60, borderRadius: BorderRadius.md, backgroundColor: colors.borderLight, alignItems: 'center', justifyContent: 'center', padding: Spacing.xs }}>
-                        <Ionicons name="document-text" size={24} color={colors.textSecondary} />
-                        <Text numberOfLines={1} style={{ ...typography.caption, marginTop: 2, textAlign: 'center', fontSize: 10 }}>{att.name}</Text>
-                      </View>
-                    )}
+                    <ForumMediaAttachment
+                      uri={att.uri}
+                      type={att.type}
+                      name={att.name}
+                      variant="thumbnail"
+                      thumbnailSize={60}
+                    />
                     <Pressable 
                       onPress={() => removeReplyAttachment(idx)} 
                       style={{ position: 'absolute', top: -8, right: -8, backgroundColor: colors.surface, borderRadius: 12, ...Shadows.sm }}

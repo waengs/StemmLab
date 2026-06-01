@@ -19,7 +19,7 @@ Global state lives in `src/stores/`. Persistence goes through `src/utils/storage
 3. Register `hydrate()` in `hydrateStores.ts` and `reset()` in `resetDataStores.ts` if needed.
 4. Export from `src/stores/index.ts`.
 5. In screens, use narrow selectors: `useMyStore((s) => s.items)` — keep UI-only state (search text, modals) local with `useState`.
-6. Selectors that return **arrays or objects** must use `useShallow` from `zustand/react/shallow`, or a dedicated hook (see `useResultsForActivity`, `useTeamSensorLogs`). Otherwise React hits "Maximum update depth exceeded".
+6. Selectors that return **arrays or objects** must use `useShallow` from `zustand/react/shallow`, or a dedicated hook (see `useResultsForActivity`, `useMySensorLogsAll`). Otherwise React hits "Maximum update depth exceeded".
 
 Auth is **Firebase only** — see `docs/DATA_STORAGE.md` and `docs/FIREBASE_SETUP.md`.
 

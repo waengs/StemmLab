@@ -30,6 +30,7 @@ export { ProgressBanner } from './dashboard/ProgressBanner';
 // Sensors
 export { SensorGrid } from './sensors/SensorGrid';
 export { SensorLogList } from './sensors/SensorLogList';
+export { SensorLogBookModal } from './sensors/SensorLogBookModal';
 export { SensorModal } from './sensors/SensorModal';
 export { TrialVideoPlayer } from './sensors/TrialVideoPlayer';
 
@@ -64,6 +65,7 @@ export { ReactionBoardPostActivity, ReactionBoardDiscussion } from './activities
 // Leaderboard
 export { LeaderboardTabs } from './leaderboard/LeaderboardTabs';
 export { LeaderboardEntryCard } from './leaderboard/LeaderboardEntryCard';
+export { TeamLeaderboardDetailModal } from './leaderboard/TeamLeaderboardDetailModal';
 export type { LeaderboardEntry } from './leaderboard/LeaderboardEntryCard';
 
 // Forum

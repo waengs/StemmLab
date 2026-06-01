@@ -105,8 +105,30 @@
   },
   "sensors": {
     "pageTitle": "Sensors",
-    "searchPlaceholder": "Search sensors or logs...",
+    "searchPlaceholder": "Search sensors, log notes, or measurements...",
     "recentLogs": "Recent Logs",
+    "shareForum": {
+      "button": "Share to forum",
+      "title": "Sensor log: {{sensor}}",
+      "intro": "Sharing a sensor measurement I recorded:",
+      "sensorLine": "Sensor: {{sensor}} ({{chip}})",
+      "timeLine": "Recorded: {{time}}",
+      "notesLine": "Notes: {{notes}}",
+      "resultLine": "Result: {{result}}",
+      "measurementsHeader": "Measurements:",
+      "localVideoLine": "Video was saved on device only (not uploaded to cloud).",
+      "footer": "Posted from the Sensors log book."
+    },
+    "logBook": {
+      "title": "Log Book",
+      "chip": "All logs",
+      "cardDescription": "{{count}} saved measurement(s). Tap to view and manage.",
+      "subtitle": "{{count}} personal log(s)",
+      "subtitleFiltered": "{{shown}} of {{total}} log(s) match your search",
+      "searchPlaceholder": "Search notes, sensor type, or measurements...",
+      "allLogs": "All measurements",
+      "empty": "No sensor logs yet. Use a sensor above and tap Save to Log to add an entry."
+    },
     "startMeasurement": "Start Measurement",
     "saveLog": "Save to Log",
     "notesPlaceholder": "Add any notes...",
@@ -141,7 +163,15 @@
     "attempt": "attempt",
     "attempt_plural": "attempts",
     "pts": "pts",
-    "searchPlaceholder": "Search teams or categories..."
+    "searchPlaceholder": "Search teams or categories...",
+    "gradeBandHint": "Showing teams in your grade level only",
+    "teamDetail": {
+      "members": "Team members",
+      "completed": "Completed activities",
+      "noCompleted": "No activities submitted yet.",
+      "attempts": "{{count}} attempt(s)",
+      "lastActivity": "Last: {{date}}"
+    }
   },
   "forum": {
     "pageTitle": "Class Forum",
@@ -149,6 +179,10 @@
     "categoriesTitle": "Categories",
     "allCategories": "All Topics",
     "generalCategory": "General",
+    "sensorsCategory": "Sensors",
+    "videoAttachment": "Video",
+    "imageAttachment": "Image attachment",
+    "fileAttachment": "File",
     "topicTitlePlaceholder": "Title (what is this post about?)",
     "categoryLabel": "Post category",
     "categoryPlaceholder": "Choose category",

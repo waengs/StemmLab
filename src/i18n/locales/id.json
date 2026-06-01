@@ -105,8 +105,30 @@
   },
   "sensors": {
     "pageTitle": "Sensor",
-    "searchPlaceholder": "Cari sensor atau catatan...",
+    "searchPlaceholder": "Cari sensor, catatan, atau pengukuran...",
     "recentLogs": "Catatan Terbaru",
+    "shareForum": {
+      "button": "Bagikan ke forum",
+      "title": "Catatan sensor: {{sensor}}",
+      "intro": "Membagikan pengukuran sensor yang saya catat:",
+      "sensorLine": "Sensor: {{sensor}} ({{chip}})",
+      "timeLine": "Dicatat: {{time}}",
+      "notesLine": "Catatan: {{notes}}",
+      "resultLine": "Hasil: {{result}}",
+      "measurementsHeader": "Pengukuran:",
+      "localVideoLine": "Video hanya tersimpan di perangkat (belum diunggah ke cloud).",
+      "footer": "Diposting dari Buku Catatan Sensor."
+    },
+    "logBook": {
+      "title": "Buku Catatan",
+      "chip": "Semua catatan",
+      "cardDescription": "{{count}} pengukuran tersimpan. Ketuk untuk melihat dan mengelola.",
+      "subtitle": "{{count}} catatan pribadi",
+      "subtitleFiltered": "{{shown}} dari {{total}} catatan cocok dengan pencarian",
+      "searchPlaceholder": "Cari catatan, jenis sensor, atau pengukuran...",
+      "allLogs": "Semua pengukuran",
+      "empty": "Belum ada catatan sensor. Gunakan sensor di atas lalu ketuk Simpan ke Catatan."
+    },
     "startMeasurement": "Mulai Pengukuran",
     "saveLog": "Simpan ke Catatan",
     "notesPlaceholder": "Tambahkan catatan...",
@@ -141,7 +163,15 @@
     "attempt": "percobaan",
     "attempt_plural": "percobaan",
     "pts": "poin",
-    "searchPlaceholder": "Cari tim atau kategori..."
+    "searchPlaceholder": "Cari tim atau kategori...",
+    "gradeBandHint": "Hanya menampilkan tim di tingkat kelas Anda",
+    "teamDetail": {
+      "members": "Anggota tim",
+      "completed": "Aktivitas selesai",
+      "noCompleted": "Belum ada aktivitas yang dikirim.",
+      "attempts": "{{count}} percobaan",
+      "lastActivity": "Terakhir: {{date}}"
+    }
   },
   "forum": {
     "pageTitle": "Forum Kelas",
@@ -149,6 +179,10 @@
     "categoriesTitle": "Kategori",
     "allCategories": "Semua Topik",
     "generalCategory": "Umum",
+    "sensorsCategory": "Sensor",
+    "videoAttachment": "Video",
+    "imageAttachment": "Lampiran gambar",
+    "fileAttachment": "Berkas",
     "topicTitlePlaceholder": "Judul (postingan ini tentang apa?)",
     "categoryLabel": "Kategori postingan",
     "categoryPlaceholder": "Pilih kategori",

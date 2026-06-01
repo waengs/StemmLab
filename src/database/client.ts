@@ -13,6 +13,7 @@ import {
   MIGRATIONS_V8,
   MIGRATIONS_V9,
   MIGRATIONS_V10,
+  MIGRATIONS_V11,
 } from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -178,10 +179,23 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
     }
   }
 
-  if (currentVersion < DB_VERSION) {
+  if (currentVersion < 10) {
     await database.execAsync('BEGIN');
     try {
       await execStatements(database, MIGRATIONS_V10);
+      await setDbVersion(database, 10);
+      await database.execAsync('COMMIT');
+      currentVersion = 10;
+    } catch (error) {
+      await database.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  if (currentVersion < DB_VERSION) {
+    await database.execAsync('BEGIN');
+    try {
+      await execStatements(database, MIGRATIONS_V11);
       await setDbVersion(database, DB_VERSION);
       await database.execAsync('COMMIT');
     } catch (error) {

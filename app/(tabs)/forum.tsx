@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { PageTitle, SearchBar, ForumComposer, ForumPostCard, EmptyState, Chip } from '../../src/components';
@@ -21,7 +21,7 @@ import { useTheme } from '../../src/stores/themeStore';
 import { useForumStore } from '../../src/stores';
 import { useRequireAuth } from '../../src/stores';
 import { BorderRadius, Shadows, Spacing } from '../../src/theme';
-import { ACTIVITIES, type ForumPost, type ForumReply } from '../../src/types';
+import { ACTIVITIES, type ForumAttachment, type ForumPost, type ForumReply } from '../../src/types';
 
 type SortOption = 'new' | 'top' | 'trending' | 'relevance';
 
@@ -79,6 +79,9 @@ export default function Forum() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composerInitialAttachments, setComposerInitialAttachments] = useState<
+    ForumAttachment[] | undefined
+  >();
   const [sortBy, setSortBy] = useState<SortOption>('new');
 
   const categoryOptions = useMemo(() => {
@@ -86,8 +89,23 @@ export default function Forum() {
       id: activity.id,
       label: activity.name,
     }));
-    return [{ id: 'general', label: t('forum.generalCategory') }, ...activityOptions];
+    return [
+      { id: 'general', label: t('forum.generalCategory') },
+      { id: 'sensors', label: t('forum.sensorsCategory') },
+      ...activityOptions,
+    ];
   }, [t]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const share = useForumStore.getState().consumePendingSensorShare();
+      if (share) {
+        setComposerInitialAttachments(share.attachments);
+        setActiveCategoryId(share.categoryId);
+        setComposerOpen(true);
+      }
+    }, [])
+  );
 
   const composerCategoryLabel = useMemo(
     () =>
@@ -215,6 +233,7 @@ export default function Forum() {
     await addPost(post);
     await clearDraft();
     setComposerOpen(false);
+    setComposerInitialAttachments(undefined);
   };
 
   const handleDeletePost = (postId: string) => {
@@ -363,8 +382,10 @@ export default function Forum() {
         value={draftContent}
         onChangeText={(text) => saveDraft(draftTitle, text, draftCategoryId)}
         onSubmit={handleCreatePost}
+        initialAttachments={composerInitialAttachments}
         onCancel={() => {
           setComposerOpen(false);
+          setComposerInitialAttachments(undefined);
         }}
       />
     </SafeAreaView>

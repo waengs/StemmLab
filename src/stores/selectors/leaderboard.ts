@@ -2,6 +2,44 @@ import type { ActivityResult } from '../../types';
 import type { LeaderboardEntry } from '../../components/leaderboard/LeaderboardEntryCard';
 import { calculateActivityScore } from '../../utils/activityScoring';
 
+export type TeamActivityCompletion = {
+  activityId: string;
+  activityName: string;
+  bestScore: number;
+  attempts: number;
+  lastTimestamp: number;
+};
+
+export function getTeamActivityCompletions(
+  results: ActivityResult[],
+  teamDiscriminator: string
+): TeamActivityCompletion[] {
+  const code = teamDiscriminator.toUpperCase();
+  const byActivity = new Map<string, TeamActivityCompletion>();
+
+  results
+    .filter((r) => r.teamDiscriminator.toUpperCase() === code)
+    .forEach((result) => {
+      const score = calculateScore(result);
+      const existing = byActivity.get(result.activityId);
+      if (existing) {
+        existing.bestScore = Math.max(existing.bestScore, score);
+        existing.attempts += 1;
+        existing.lastTimestamp = Math.max(existing.lastTimestamp, result.timestamp);
+      } else {
+        byActivity.set(result.activityId, {
+          activityId: result.activityId,
+          activityName: result.activityName,
+          bestScore: score,
+          attempts: 1,
+          lastTimestamp: result.timestamp,
+        });
+      }
+    });
+
+  return Array.from(byActivity.values()).sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+}
+
 export function calculateScore(result: ActivityResult): number {
   return calculateActivityScore(result);
 }

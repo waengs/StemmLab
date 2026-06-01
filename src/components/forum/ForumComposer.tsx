@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -22,8 +22,9 @@ import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Shadows, Spacing } from '../../theme';
-import type { AppUser } from '../../types';
+import type { AppUser, ForumAttachment } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { ForumMediaAttachment } from './ForumMediaAttachment';
 
 interface ForumComposerProps {
   visible: boolean;
@@ -37,6 +38,8 @@ interface ForumComposerProps {
   onChangeText: (text: string) => void;
   onSubmit: (attachments?: { url: string; type: 'image' | 'video' | 'raw'; name: string }[]) => void | Promise<void>;
   onCancel: () => void;
+  /** Pre-filled attachments (e.g. sensor log video already on Cloudinary). */
+  initialAttachments?: ForumAttachment[];
 }
 
 export function ForumComposer({
@@ -51,6 +54,7 @@ export function ForumComposer({
   onChangeText,
   onSubmit,
   onCancel,
+  initialAttachments,
 }: ForumComposerProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
@@ -59,8 +63,38 @@ export function ForumComposer({
   // While it is open we disable KeyboardAvoidingView so its modal
   // mount/unmount events don't cause the sheet to jitter.
   const [selectOpen, setSelectOpen] = useState(false);
-  const [attachments, setAttachments] = useState<{ uri: string; type: 'image' | 'video' | 'raw'; name: string; mimeType: string }[]>([]);
+  const [attachments, setAttachments] = useState<
+    {
+      uri: string;
+      type: 'image' | 'video' | 'raw';
+      name: string;
+      mimeType: string;
+      remoteUrl?: string;
+    }[]
+  >([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setAttachments([]);
+      return;
+    }
+    if (!initialAttachments?.length) return;
+    setAttachments(
+      initialAttachments.map((file) => ({
+        uri: file.url,
+        remoteUrl: file.url,
+        type: file.type,
+        name: file.name,
+        mimeType:
+          file.type === 'video'
+            ? 'video/mp4'
+            : file.type === 'image'
+              ? 'image/jpeg'
+              : 'application/octet-stream',
+      }))
+    );
+  }, [visible, initialAttachments]);
 
   const handleCancel = () => {
     setAttachments([]);
@@ -117,6 +151,10 @@ export function ForumComposer({
       setIsUploading(true);
       const uploadedAttachments = [];
       for (const file of attachments) {
+        if (file.remoteUrl) {
+          uploadedAttachments.push({ url: file.remoteUrl, type: file.type, name: file.name });
+          continue;
+        }
         const url = await uploadFileToCloudinary(file.uri, file.mimeType);
         uploadedAttachments.push({ url, type: file.type, name: file.name });
       }
@@ -255,14 +293,12 @@ export function ForumComposer({
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
             {attachments.map((att, idx) => (
               <View key={idx} style={{ marginRight: Spacing.sm, position: 'relative' }}>
-                {att.type === 'image' || att.type === 'video' ? (
-                  <Image source={{ uri: att.uri }} style={{ width: 80, height: 80, borderRadius: BorderRadius.md }} />
-                ) : (
-                  <View style={{ width: 80, height: 80, borderRadius: BorderRadius.md, backgroundColor: colors.borderLight, alignItems: 'center', justifyContent: 'center', padding: Spacing.xs }}>
-                    <Ionicons name="document-text" size={32} color={colors.textSecondary} />
-                    <Text numberOfLines={1} style={{ ...typography.caption, marginTop: 4, textAlign: 'center' }}>{att.name}</Text>
-                  </View>
-                )}
+                <ForumMediaAttachment
+                  uri={att.uri}
+                  type={att.type}
+                  name={att.name}
+                  variant="thumbnail"
+                />
                 <Pressable 
                   onPress={() => removeAttachment(idx)} 
                   style={{ position: 'absolute', top: -8, right: -8, backgroundColor: colors.surface, borderRadius: 12, ...Shadows.sm }}

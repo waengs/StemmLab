@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getForumPosts, saveForumPost, updateForumPost } from '../utils/storage';
 import type { ForumPost } from '../types';
+import type { SensorLogForumSharePayload } from '../utils/sensorLogForumShare';
 
 interface ForumState {
   posts: ForumPost[];
@@ -8,6 +9,7 @@ interface ForumState {
   draftTitle: string;
   draftContent: string;
   draftCategoryId: string;
+  pendingSensorShare: SensorLogForumSharePayload | null;
   fetchPosts: () => Promise<void>;
   hydrate: () => Promise<void>;
   reset: () => void;
@@ -20,14 +22,17 @@ interface ForumState {
   saveDraft: (title: string, content: string, categoryId: string) => Promise<void>;
   loadDraft: () => Promise<void>;
   clearDraft: () => Promise<void>;
+  setPendingSensorShare: (share: SensorLogForumSharePayload) => void;
+  consumePendingSensorShare: () => SensorLogForumSharePayload | null;
 }
 
-export const useForumStore = create<ForumState>((set) => ({
+export const useForumStore = create<ForumState>((set, get) => ({
   posts: [],
   isHydrated: false,
   draftTitle: '',
   draftContent: '',
   draftCategoryId: 'general',
+  pendingSensorShare: null,
 
   fetchPosts: async () => {
     const { getForumPosts, getForumDraft } = await import('../utils/storage');
@@ -55,7 +60,29 @@ export const useForumStore = create<ForumState>((set) => ({
     });
   },
 
-  reset: () => set({ posts: [], isHydrated: false, draftTitle: '', draftContent: '', draftCategoryId: 'general' }),
+  reset: () =>
+    set({
+      posts: [],
+      isHydrated: false,
+      draftTitle: '',
+      draftContent: '',
+      draftCategoryId: 'general',
+      pendingSensorShare: null,
+    }),
+
+  setPendingSensorShare: (share) => set({ pendingSensorShare: share }),
+
+  consumePendingSensorShare: () => {
+    const share = get().pendingSensorShare;
+    if (!share) return null;
+    set({
+      pendingSensorShare: null,
+      draftTitle: share.title,
+      draftContent: share.content,
+      draftCategoryId: share.categoryId,
+    });
+    return share;
+  },
 
   addPost: async (post) => {
     await saveForumPost(post);
