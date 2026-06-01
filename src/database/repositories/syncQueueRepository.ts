@@ -1,4 +1,4 @@
-import { getDatabase } from '../client';
+import { withDatabase } from '../client';
 
 export type SyncEntityType =
   | 'team'
@@ -15,15 +15,16 @@ export async function enqueueSync(
   operation: SyncOperation,
   payload: unknown
 ): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    `INSERT INTO sync_queue (entity_type, entity_id, operation, payload_json, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    entityType,
-    entityId,
-    operation,
-    JSON.stringify(payload),
-    Date.now()
+  await withDatabase((db) =>
+    db.runAsync(
+      `INSERT INTO sync_queue (entity_type, entity_id, operation, payload_json, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      entityType,
+      entityId,
+      operation,
+      JSON.stringify(payload),
+      Date.now()
+    )
   );
 }
 
@@ -37,35 +38,33 @@ export async function getPendingSyncItems(): Promise<
     retryCount: number;
   }>
 > {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<{
-    id: number;
-    entity_type: SyncEntityType;
-    entity_id: string;
-    operation: SyncOperation;
-    payload_json: string;
-    retry_count: number;
-  }>(`SELECT * FROM sync_queue ORDER BY created_at ASC`);
+  return withDatabase(async (db) => {
+    const rows = await db.getAllAsync<{
+      id: number;
+      entity_type: SyncEntityType;
+      entity_id: string;
+      operation: SyncOperation;
+      payload_json: string;
+      retry_count: number;
+    }>(`SELECT * FROM sync_queue ORDER BY created_at ASC`);
 
-  return rows.map((row) => ({
-    id: row.id,
-    entityType: row.entity_type,
-    entityId: row.entity_id,
-    operation: row.operation,
-    payload: JSON.parse(row.payload_json),
-    retryCount: row.retry_count,
-  }));
+    return rows.map((row) => ({
+      id: row.id,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      operation: row.operation,
+      payload: JSON.parse(row.payload_json),
+      retryCount: row.retry_count,
+    }));
+  });
 }
 
 export async function removeSyncItem(id: number): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(`DELETE FROM sync_queue WHERE id = ?`, id);
+  await withDatabase((db) => db.runAsync(`DELETE FROM sync_queue WHERE id = ?`, id));
 }
 
 export async function incrementSyncRetry(id: number): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    `UPDATE sync_queue SET retry_count = retry_count + 1 WHERE id = ?`,
-    id
+  await withDatabase((db) =>
+    db.runAsync(`UPDATE sync_queue SET retry_count = retry_count + 1 WHERE id = ?`, id)
   );
 }

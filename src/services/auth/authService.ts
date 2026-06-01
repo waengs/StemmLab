@@ -224,7 +224,9 @@ export async function updateUserProfile(
 export async function signOut(): Promise<void> {
   await sessionRepo.clearSession();
   const auth = getFirebaseAuth();
-  if (auth.currentUser) await firebaseSignOut(auth);
+  if (auth.currentUser) {
+    await firebaseSignOut(auth);
+  }
 }
 
 export async function resolveUserAfterAuth(firebaseUser: FirebaseUser | null): Promise<{

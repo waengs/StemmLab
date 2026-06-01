@@ -1,5 +1,5 @@
 export const DB_NAME = 'stemmlab.db';
-export const DB_VERSION = 9;
+export const DB_VERSION = 10;
 
 /** Ordered migrations — only bump DB_VERSION when adding new statements. */
 export const MIGRATIONS: string[] = [
@@ -216,4 +216,22 @@ export const MIGRATIONS_V8: string[] = [
 export const MIGRATIONS_V9: string[] = [
   `ALTER TABLE forum_posts ADD COLUMN attachments_json TEXT DEFAULT '[]';`,
   `ALTER TABLE forum_replies ADD COLUMN attachments_json TEXT DEFAULT '[]';`,
+];
+
+/** Forum posts scoped by grade band (v10). */
+export const MIGRATIONS_V10: string[] = [
+  `ALTER TABLE forum_posts ADD COLUMN grade_band TEXT;`,
+  `UPDATE forum_posts
+   SET grade_band = (
+     SELECT CASE
+       WHEN t.grade_level LIKE '%High%'
+         OR t.grade_level LIKE '%SMP%'
+         OR t.grade_level = 'Lower High School (Grades 7–9)'
+       THEN 'high_school'
+       ELSE 'primary'
+     END
+     FROM teams t
+     WHERE t.discriminator = forum_posts.team_discriminator
+   )
+   WHERE grade_band IS NULL;`,
 ];

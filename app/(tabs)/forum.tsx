@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageTitle, SearchBar, ForumComposer, ForumPostCard, EmptyState, Chip } from '../../src/components';
 import { matchesSearch } from '../../src/utils/search';
 import { hasProfanity } from '../../src/utils/profanity';
+import { getGradeBand, isForumPostVisibleToBand } from '../../src/utils/gradeLevel';
 import { useTheme } from '../../src/stores/themeStore';
 import { useForumStore } from '../../src/stores';
 import { useRequireAuth } from '../../src/stores';
@@ -58,7 +59,15 @@ export default function Forum() {
   const router = useRouter();
   const { colors } = useTheme();
   const { user, team } = useRequireAuth();
-  const posts = useForumStore((s) => s.posts);
+  const allPosts = useForumStore((s) => s.posts);
+  const viewerGradeBand = useMemo(
+    () => getGradeBand(team?.gradeLevel, t),
+    [team?.gradeLevel, t]
+  );
+  const posts = useMemo(
+    () => allPosts.filter((post) => isForumPostVisibleToBand(post, viewerGradeBand)),
+    [allPosts, viewerGradeBand]
+  );
   const addPost = useForumStore((s) => s.addPost);
   const deletePost = useForumStore((s) => s.deletePost);
   const upvotePost = useForumStore((s) => s.upvotePost);
@@ -193,6 +202,7 @@ export default function Forum() {
       authorName: user.displayName,
       teamDiscriminator: team.discriminator,
       teamName: team.name,
+      gradeBand: viewerGradeBand,
       categoryId: draftCategoryId,
       categoryLabel: composerCategoryLabel,
       content: draftContent,

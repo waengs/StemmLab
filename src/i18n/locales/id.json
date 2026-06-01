@@ -100,7 +100,8 @@
     "savedTitle": "Tersimpan!",
     "savedMsg": "Hasil Anda telah dicatat.",
     "enterValue": "Masukkan {{label}}",
-    "searchPlaceholder": "Cari aktivitas atau jenis sensor..."
+    "searchPlaceholder": "Cari aktivitas atau jenis sensor...",
+    "equipmentRequiredMsg": "Centang semua peralatan di tab Persiapan sebelum melanjutkan."
   },
   "sensors": {
     "pageTitle": "Sensor",
@@ -229,6 +230,7 @@
       "hand-fan": {
         "name": "Tantangan Kipas Tangan",
         "desc": "Buat kipas bertenaga tangan yang efisien",
+        "recordHint": "Untuk setiap percobaan, ketuk Rekam Video Gerak Lambat, kipasi kertas, lalu isi sudut lentur maksimum.",
         "chips": {
           "slow-mo": "Kamera"
         },

@@ -23,7 +23,8 @@ import { BorderRadius, Spacing, lightColors } from '../../theme';
 import type { TeamListing, TeamMemberSummary } from '../../types';
 
 interface TeamJoinPanelProps {
-  onJoinSuccess: () => void;
+  /** @deprecated Navigation is handled by AuthNavigationSync after joinTeam updates auth state. */
+  onJoinSuccess?: () => void;
   joinTeam: (discriminator: string, joinPassword: string) => Promise<boolean>;
 }
 
@@ -84,7 +85,7 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
     try {
       const ok = await joinTeam(selected.discriminator, joinPassword);
       if (ok) {
-        onJoinSuccess();
+        onJoinSuccess?.();
       } else {
         const { Alert } = await import('react-native');
         Alert.alert(t('setup.joinError'), t('setup.joinErrorMsg'));

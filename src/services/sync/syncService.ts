@@ -8,6 +8,7 @@ import {
   query,
   limit,
 } from 'firebase/firestore';
+import { isSigningOut } from '../../auth/sessionFlags';
 import { getFirebaseAuth, getFirestoreDb } from '../../config/firebase';
 
 async function waitForSignedInUser() {
@@ -21,6 +22,8 @@ import * as forumRepo from '../../database/repositories/forumRepository';
 import * as syncQueue from '../../database/repositories/syncQueueRepository';
 import { normalizeTeamName } from '../../database/mappers';
 import type { ActivityResult, SensorLog, ForumPost, ForumReply, Team } from '../../types';
+import { getGradeBandFromStoredLevel } from '../../utils/gradeLevel';
+import * as teamRepo from '../../database/repositories/teamRepository';
 
 const PULL_LIMIT = 500;
 
@@ -67,13 +70,21 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
         attachments: rd.attachments as any[] | undefined,
       };
     });
+    const teamDiscriminator = data.teamDiscriminator as string;
+    let gradeBand = (data.gradeBand as ForumPost['gradeBand']) ?? undefined;
+    if (!gradeBand && teamDiscriminator) {
+      const localTeam = await teamRepo.getTeamByDiscriminator(teamDiscriminator);
+      gradeBand = getGradeBandFromStoredLevel(localTeam?.gradeLevel);
+    }
+
     await forumRepo.upsertForumPost({
       id: postDoc.id,
       topicTitle: (data.topicTitle as string) ?? 'Untitled topic',
       authorUid: (data.authorUid as string) ?? 'legacy',
       authorName: (data.authorName as string) ?? 'Student',
-      teamDiscriminator: data.teamDiscriminator as string,
+      teamDiscriminator,
       teamName: (data.teamName as string) ?? 'Legacy Team',
+      gradeBand,
       categoryId: (data.categoryId as string) ?? undefined,
       categoryLabel: (data.categoryLabel as string) ?? undefined,
       content: data.content as string,
@@ -125,6 +136,7 @@ export async function pushSyncQueue(): Promise<void> {
           authorName: post.authorName,
           teamDiscriminator: post.teamDiscriminator,
           teamName: post.teamName,
+          gradeBand: post.gradeBand ?? null,
           categoryId: post.categoryId ?? null,
           categoryLabel: post.categoryLabel ?? null,
           content: post.content,
@@ -191,8 +203,10 @@ export async function pushSyncQueue(): Promise<void> {
 }
 
 export async function syncWhenOnline(): Promise<void> {
+  if (isSigningOut()) return;
+
   const firebaseUser = await waitForSignedInUser();
-  if (!firebaseUser) return;
+  if (!firebaseUser || isSigningOut()) return;
 
   try {
     await pushSyncQueue();
@@ -205,9 +219,11 @@ export async function syncWhenOnline(): Promise<void> {
   } catch (err) {
     const code = (err as { code?: string })?.code;
     if (code === 'permission-denied') {
-      console.warn(
-        '[sync] Firestore permission denied. Publish firestore.rules in Firebase Console (see docs/FIREBASE_SETUP.md).'
-      );
+      if (!isSigningOut()) {
+        console.warn(
+          '[sync] Firestore permission denied. Publish firestore.rules in Firebase Console (see docs/FIREBASE_SETUP.md).'
+        );
+      }
     } else {
       console.warn('[sync] pull failed:', err);
     }

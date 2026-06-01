@@ -2,7 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../stores/authStore';
-import { navigateToAuthSetup } from '../navigation/authNavigation';
+import {
+  navigateToAuthSetup,
+  registerAuthRedirectReset,
+  runWhenNavigationReady,
+} from '../navigation/authNavigation';
 
 /** Routes unauthenticated users to setup; users without a team stay on setup for team step. */
 export function useAuthRedirect() {
@@ -18,14 +22,24 @@ export function useAuthRedirect() {
   );
 
   const lastTarget = useRef<string | null>(null);
+  const prevUser = useRef<typeof user>(undefined);
 
   const onSetupScreen =
     pathname === '/' || pathname === '/index' || pathname === '';
 
   useEffect(() => {
+    registerAuthRedirectReset(() => {
+      lastTarget.current = null;
+    });
+  }, []);
+
+  useEffect(() => {
     if (!isHydrated) return;
 
-    if (!user || needsTeam) {
+    const signedOut = Boolean(prevUser.current) && !user;
+    prevUser.current = user;
+
+    if (!user || needsTeam || signedOut) {
       lastTarget.current = null;
     }
 
@@ -43,7 +57,7 @@ export function useAuthRedirect() {
     if (target === '/') {
       navigateToAuthSetup();
     } else {
-      router.replace(target);
+      runWhenNavigationReady(() => router.replace(target));
     }
   }, [isHydrated, user, team, needsTeam, onSetupScreen, router, pathname]);
 }

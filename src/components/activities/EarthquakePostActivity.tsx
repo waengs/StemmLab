@@ -1,12 +1,75 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
 import { useActivityResultsStore } from '../../stores';
+import { useGradeBand } from '../../hooks/useGradeBand';
+import {
+  allQuizOpenAnswersFilled,
+  getQuizOpenQuestions,
+  loadQuizOpenAnswers,
+  saveQuizOpenAnswers,
+} from '../../utils/quizOpenQuestions';
+import { QuizOpenSection } from './QuizOpenSection';
 import { ForumComposer } from '../forum/ForumComposer';
 import type { ActivityResult } from '../../types';
+
+function getQuizQuestions(isHighSchool: boolean) {
+  if (isHighSchool) {
+    return [
+      {
+        q: 'Why do engineers design structures to absorb and distribute energy during an earthquake?',
+        options: [
+          'To make the building heavier',
+          'To prevent ground vibrations from collapsing the structure',
+          'To increase the speed of the vibrations',
+          'To save construction materials',
+        ],
+        correct: 1,
+        explanation:
+          'Engineers design buildings to absorb and distribute energy safely to prevent vibrations from collapsing poorly designed structures.',
+      },
+      {
+        q: 'What is the main cause of damage to buildings during an earthquake?',
+        options: ['High winds', 'Heavy rain', 'Ground vibrations', 'Loud noises'],
+        correct: 2,
+        explanation: 'Earthquakes cause severe ground vibrations that shake and can ultimately collapse buildings.',
+      },
+      {
+        q: 'Which structural modification generally makes a building MORE resistant to earthquake vibrations?',
+        options: [
+          'Making the base narrower',
+          'Adding shock-absorbing layers and cross-bracing',
+          'Building taller without support',
+          'Using weaker materials',
+        ],
+        correct: 1,
+        explanation: 'Adding anti-vibration layers, cross-bracing, and strong pillars helps a building distribute the energy.',
+      },
+    ];
+  }
+  return [
+    {
+      q: 'During an earthquake, the ground…',
+      options: ['Shakes', 'Turns to ice', 'Stops moving forever', 'Becomes invisible'],
+      correct: 0,
+      explanation: 'Earthquakes shake the ground back and forth.',
+    },
+    {
+      q: 'A wide, steady base usually helps a tower…',
+      options: ['Stay upright longer', 'Fall over faster', 'Float away', 'Melt'],
+      correct: 0,
+      explanation: 'A wider base can make a structure more stable when it shakes.',
+    },
+    {
+      q: 'Soft padding or folded layers can help because they…',
+      options: ['Absorb some shaking', 'Make the phone heavier', 'Stop gravity', 'Remove all sound'],
+      correct: 0,
+      explanation: 'Cushioning can soak up some of the shaking energy.',
+    },
+  ];
+}
 
 interface Props {
   result: ActivityResult;
@@ -14,33 +77,15 @@ interface Props {
 }
 
 export function EarthquakePostActivity({ result, onComplete }: Props) {
-  const { t } = useTranslation();
+  const { isHighSchool, isPrimary } = useGradeBand();
   const updateResult = useActivityResultsStore((s) => s.updateResult);
-  
+  const questions = getQuizQuestions(isHighSchool);
+  const openQuestions = getQuizOpenQuestions('earthquake', isPrimary);
+
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [showResults, setShowResults] = useState(false);
-
-  const questions = [
-    {
-      q: 'Why do engineers design structures to absorb and distribute energy during an earthquake?',
-      options: ['To make the building heavier', 'To prevent ground vibrations from collapsing the structure', 'To increase the speed of the vibrations', 'To save construction materials'],
-      correct: 1,
-      explanation: 'Engineers design buildings to absorb and distribute energy safely to prevent vibrations from collapsing poorly designed structures.'
-    },
-    {
-      q: 'What is the main cause of damage to buildings during an earthquake?',
-      options: ['High winds', 'Heavy rain', 'Ground vibrations', 'Loud noises'],
-      correct: 2,
-      explanation: 'Earthquakes cause severe ground vibrations that shake and can ultimately collapse buildings.'
-    },
-    {
-      q: 'Which structural modification generally makes a building MORE resistant to earthquake vibrations?',
-      options: ['Making the base narrower', 'Adding shock-absorbing layers and cross-bracing', 'Building taller without support', 'Using weaker materials'],
-      correct: 1,
-      explanation: 'Adding anti-vibration layers, cross-bracing, and strong pillars helps a building distribute the energy.'
-    }
-  ];
+  const [openAnswers, setOpenAnswers] = useState(() => loadQuizOpenAnswers(result.data));
 
   const handleAnswer = (index: number) => {
     if (index === questions[currentQuestion].correct) {
@@ -55,9 +100,18 @@ export function EarthquakePostActivity({ result, onComplete }: Props) {
   };
 
   const handleFinish = async () => {
+    if (!allQuizOpenAnswersFilled(openAnswers)) {
+      alert('Please answer all reflection questions before continuing.');
+      return;
+    }
+
     await updateResult(result.id, {
-      quizCompleted: true,
-      quizScore: score + (currentQuestion === questions.length - 1 && !showResults ? (0) : 0),
+      data: {
+        ...result.data,
+        quizCompleted: true,
+        quizScore: score,
+        ...saveQuizOpenAnswers(openAnswers),
+      },
     });
     onComplete();
   };
@@ -72,25 +126,44 @@ export function EarthquakePostActivity({ result, onComplete }: Props) {
         <Text style={styles.desc}>
           You previously scored {result.data.quizScore} / {questions.length}
         </Text>
-        <Button title="Back to Menu" onPress={onComplete} variant="outlined" />
+        <Button title="Continue to Discussion" onPress={onComplete} size="lg" />
       </Card>
     );
   }
 
   if (showResults) {
     return (
-      <Card style={styles.container}>
-        <Text style={styles.title}>Quiz Results</Text>
-        <Text style={styles.scoreText}>
-          You scored {score} out of {questions.length}
-        </Text>
-        <View style={styles.explanationBox}>
-          <Text style={styles.explanationTitle}>Did you know?</Text>
-          <Text style={styles.explanationText}>
-            Earthquakes cause ground vibrations that can collapse poorly designed structures. Engineers design buildings to absorb and distribute energy safely.
+      <Card style={[styles.container, styles.resultsCard]}>
+        <ScrollView contentContainerStyle={styles.resultsContent} showsVerticalScrollIndicator={false}>
+          <Text style={styles.title}>Quiz Results</Text>
+          <Text style={styles.scoreText}>
+            You scored {score} out of {questions.length}
           </Text>
-        </View>
-        <Button title="Finish & Save" onPress={handleFinish} />
+          <View style={styles.explanationBox}>
+            <Text style={styles.explanationTitle}>Did you know?</Text>
+            <Text style={styles.explanationText}>
+              Earthquakes cause ground vibrations that can collapse poorly designed structures. Engineers design buildings to absorb and distribute energy safely.
+            </Text>
+          </View>
+          <QuizOpenSection
+            questions={openQuestions}
+            answers={openAnswers}
+            onChange={(index, value) => {
+              setOpenAnswers((prev) => {
+                const next = [...prev];
+                next[index] = value;
+                return next;
+              });
+            }}
+          />
+          <Button
+            title="Continue to Discussion"
+            onPress={handleFinish}
+            size="lg"
+            disabled={!allQuizOpenAnswersFilled(openAnswers)}
+            style={{ marginTop: Spacing.md }}
+          />
+        </ScrollView>
       </Card>
     );
   }
@@ -117,11 +190,15 @@ export function EarthquakePostActivity({ result, onComplete }: Props) {
 }
 
 export function EarthquakeDiscussion() {
+  const { isPrimary } = useGradeBand();
+
   return (
     <View style={styles.discussionContainer}>
       <Text style={styles.discussionTitle}>Activity Discussion</Text>
       <Text style={styles.discussionDesc}>
-        Share your most stable building designs! What combination of folds and pillars worked best for you?
+        {isPrimary
+          ? 'Show your strongest tower! What helped it stay up when the phone shook — wide base, pillars, or soft layers?'
+          : 'Share your most stable building designs! What combination of folds and pillars worked best for you?'}
       </Text>
       <ForumComposer categoryId="earthquake" />
     </View>
@@ -133,6 +210,15 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     alignItems: 'center',
     marginBottom: Spacing.xl,
+  },
+  resultsCard: {
+    alignItems: 'stretch',
+    maxHeight: '85%',
+  },
+  resultsContent: {
+    width: '100%',
+    alignItems: 'center',
+    paddingBottom: Spacing.md,
   },
   progress: {
     ...Typography.caption,

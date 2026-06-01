@@ -42,6 +42,7 @@ export interface ForumPostRow {
   synced_at: number | null;
   attachment_url: string | null;
   attachments_json: string | null;
+  grade_band: string | null;
 }
 
 export interface ForumReplyRow {

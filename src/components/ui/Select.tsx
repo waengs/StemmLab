@@ -101,8 +101,13 @@ export function Select({
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <Pressable
-        style={styles.trigger}
-        onPress={() => { setVisible(true); onOpen?.(); }}
+        style={[styles.trigger, disabled && { opacity: 0.5 }]}
+        onPress={() => {
+          if (disabled) return;
+          setVisible(true);
+          onOpen?.();
+        }}
+        disabled={disabled}
         android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
       >
         <Text style={[styles.triggerText, !value && styles.placeholder]}>{value || placeholder}</Text>

@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { runSerialized } from './dbMutex';
 import {
   DB_NAME,
   DB_VERSION,
@@ -11,6 +12,7 @@ import {
   MIGRATIONS_V7,
   MIGRATIONS_V8,
   MIGRATIONS_V9,
+  MIGRATIONS_V10,
 } from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -163,10 +165,23 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
     }
   }
 
-  if (currentVersion < DB_VERSION) {
+  if (currentVersion < 9) {
     await database.execAsync('BEGIN');
     try {
       await execStatements(database, MIGRATIONS_V9);
+      await setDbVersion(database, 9);
+      await database.execAsync('COMMIT');
+      currentVersion = 9;
+    } catch (error) {
+      await database.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  if (currentVersion < DB_VERSION) {
+    await database.execAsync('BEGIN');
+    try {
+      await execStatements(database, MIGRATIONS_V10);
       await setDbVersion(database, DB_VERSION);
       await database.execAsync('COMMIT');
     } catch (error) {
@@ -176,17 +191,33 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   }
 }
 
+async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
+  const database = await SQLite.openDatabaseAsync(DB_NAME);
+  await database.execAsync('PRAGMA journal_mode = WAL;');
+  await runMigrations(database);
+  return database;
+}
+
+/** Open DB once — must not use runSerialized (withDatabase calls this while holding the lock). */
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   if (!initPromise) {
-    initPromise = (async () => {
-      const database = await SQLite.openDatabaseAsync(DB_NAME);
-      await runMigrations(database);
+    initPromise = openDatabase().then((database) => {
       db = database;
       return database;
-    })();
+    });
   }
   return initPromise;
+}
+
+/** Run a DB operation in the global SQLite queue (use instead of calling getDatabase directly). */
+export async function withDatabase<T>(
+  fn: (database: SQLite.SQLiteDatabase) => Promise<T>
+): Promise<T> {
+  return runSerialized(async () => {
+    const database = await getDatabase();
+    return fn(database);
+  });
 }
 
 export async function initDatabase(): Promise<void> {

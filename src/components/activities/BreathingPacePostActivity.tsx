@@ -4,6 +4,15 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
 import { useActivityResultsStore } from '../../stores';
+import { useGradeBand } from '../../hooks/useGradeBand';
+import {
+  allQuizOpenAnswersFilled,
+  emptyQuizOpenAnswers,
+  getQuizOpenQuestions,
+  loadQuizOpenAnswers,
+  saveQuizOpenAnswers,
+} from '../../utils/quizOpenQuestions';
+import { QuizOpenSection } from './QuizOpenSection';
 import type { ActivityResult } from '../../types';
 
 interface BreathingPacePostActivityProps {
@@ -11,7 +20,37 @@ interface BreathingPacePostActivityProps {
   onComplete: () => void;
 }
 
-const QUIZ_QUESTIONS = [
+type IndexQuiz = { question: string; options: string[]; answer: number };
+
+const PRIMARY_QUIZ: IndexQuiz[] = [
+  {
+    question: 'After exercise, you usually breathe…',
+    options: ['Faster', 'Slower forever', 'Not at all', 'Only through your feet'],
+    answer: 0,
+  },
+  {
+    question: 'Where should the phone go to feel your breathing?',
+    options: ['Gently on your chest', 'On the floor', 'In your bag', 'Under a chair'],
+    answer: 0,
+  },
+  {
+    question: 'The phone sensor feels your chest…',
+    options: ['Moving up and down', 'Getting heavier', 'Turning blue', 'Making noise only'],
+    answer: 0,
+  },
+  {
+    question: 'After star jumps, breathing is faster because your body needs…',
+    options: ['More air and rest', 'Less air', 'No oxygen', 'To stop moving'],
+    answer: 0,
+  },
+  {
+    question: 'Breaths per minute tells you…',
+    options: ['How many breaths in one minute', 'How loud you are', 'Your shoe size', 'The room colour'],
+    answer: 0,
+  },
+];
+
+const HIGH_SCHOOL_QUIZ: IndexQuiz[] = [
   {
     question: 'Why does breathing rate increase during exercise?',
     options: [
@@ -24,7 +63,7 @@ const QUIZ_QUESTIONS = [
   },
   {
     question: 'Where should the phone be placed to detect chest movement?',
-    options: ['On the floor', 'Gently on the chest', 'In your pocket', 'Held at arm\'s length'],
+    options: ['On the floor', 'Gently on the chest', 'In your pocket', "Held at arm's length"],
     answer: 1,
   },
   {
@@ -60,10 +99,14 @@ const QUIZ_QUESTIONS = [
 ];
 
 export function BreathingPacePostActivity({ result, onComplete }: BreathingPacePostActivityProps) {
+  const { isHighSchool, isPrimary } = useGradeBand();
   const updateResult = useActivityResultsStore((s) => s.updateResult);
+  const quizQuestions = isHighSchool ? HIGH_SCHOOL_QUIZ : PRIMARY_QUIZ;
+  const openQuestions = getQuizOpenQuestions('breathing-pace', isPrimary);
 
   const existingAnswers = (result.data.quizAnswers as Record<string, number>) || {};
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>(existingAnswers);
+  const [openAnswers, setOpenAnswers] = useState(() => loadQuizOpenAnswers(result.data));
   const [quizSubmitted, setQuizSubmitted] = useState(!!result.data.quizCompleted);
   const [score, setScore] = useState((result.data.quizScore as number) || 0);
 
@@ -73,13 +116,13 @@ export function BreathingPacePostActivity({ result, onComplete }: BreathingPaceP
   };
 
   const handleSubmitQuiz = async () => {
-    if (Object.keys(quizAnswers).length < QUIZ_QUESTIONS.length) {
-      alert('Please answer all multiple choice questions before submitting.');
+    if (Object.keys(quizAnswers).length < quizQuestions.length || !allQuizOpenAnswersFilled(openAnswers)) {
+      alert('Please answer all multiple choice and reflection questions before submitting.');
       return;
     }
 
     let correct = 0;
-    QUIZ_QUESTIONS.forEach((question, index) => {
+    quizQuestions.forEach((question, index) => {
       if (quizAnswers[index.toString()] === question.answer) correct += 1;
     });
     setScore(correct);
@@ -89,6 +132,7 @@ export function BreathingPacePostActivity({ result, onComplete }: BreathingPaceP
       data: {
         ...result.data,
         quizAnswers,
+        ...saveQuizOpenAnswers(openAnswers),
         quizScore: correct,
         quizCompleted: true,
       },
@@ -98,12 +142,14 @@ export function BreathingPacePostActivity({ result, onComplete }: BreathingPaceP
   const handleRetake = async () => {
     setQuizSubmitted(false);
     setQuizAnswers({});
+    setOpenAnswers(emptyQuizOpenAnswers());
     setScore(0);
 
     await updateResult(result.id, {
       data: {
         ...result.data,
         quizAnswers: {},
+        ...saveQuizOpenAnswers(emptyQuizOpenAnswers()),
         quizScore: 0,
         quizCompleted: false,
       },
@@ -114,9 +160,13 @@ export function BreathingPacePostActivity({ result, onComplete }: BreathingPaceP
     <View style={styles.container}>
       <Card style={styles.card}>
         <Text style={styles.title}>Post-Experiment Quiz</Text>
-        <Text style={styles.subtitle}>Test your knowledge on breathing and exercise physiology!</Text>
+        <Text style={styles.subtitle}>
+          {isPrimary
+            ? 'Quick check — what did you learn about breathing?'
+            : 'Test your knowledge on breathing and exercise physiology!'}
+        </Text>
 
-        {QUIZ_QUESTIONS.map((question, questionIndex) => (
+        {quizQuestions.map((question, questionIndex) => (
           <View key={questionIndex} style={styles.questionBlock}>
             <Text style={styles.question}>
               {questionIndex + 1}. {question.question}
@@ -158,12 +208,26 @@ export function BreathingPacePostActivity({ result, onComplete }: BreathingPaceP
           </View>
         ))}
 
+        <QuizOpenSection
+          questions={openQuestions}
+          answers={openAnswers}
+          onChange={(index, value) => {
+            setOpenAnswers((prev) => {
+              const next = [...prev];
+              next[index] = value;
+              return next;
+            });
+          }}
+          disabled={quizSubmitted}
+          startNumber={quizQuestions.length + 1}
+        />
+
         {!quizSubmitted ? (
           <Button title="Submit Quiz" onPress={handleSubmitQuiz} size="lg" />
         ) : (
           <View style={styles.scoreBox}>
             <Text style={styles.scoreText}>
-              You scored {score} out of {QUIZ_QUESTIONS.length}!
+              You scored {score} out of {quizQuestions.length}!
             </Text>
             <Button title="Retake Quiz" onPress={handleRetake} variant="outlined" style={{ marginTop: Spacing.md }} />
             <Button title="Continue to Discussion" onPress={onComplete} size="lg" style={{ marginTop: Spacing.sm }} />
@@ -175,36 +239,54 @@ export function BreathingPacePostActivity({ result, onComplete }: BreathingPaceP
 }
 
 export function BreathingPaceDiscussion() {
+  const { isHighSchool, isPrimary } = useGradeBand();
+
   return (
     <View style={styles.container}>
       <Card style={styles.discussionCard}>
         <Text style={styles.sectionTitle}>Discussion</Text>
-        <Text style={styles.paragraph}>
-          Breathing rate increases during exercise to supply more oxygen to muscles. Sensors detect chest movement,
-          helping students visualise breathing patterns.
-        </Text>
-
-        <Text style={styles.subHeading}>Breathing at Rest vs After Exercise</Text>
-        <Text style={styles.paragraph}>
-          At rest, your body needs a steady supply of oxygen for basic functions. After jogging or star jumps, muscles
-          work harder and produce more carbon dioxide. Your breathing rate rises so the lungs can bring in more oxygen
-          and remove waste gases faster.
-        </Text>
-
-        <Text style={styles.subHeading}>How the Sensor Works</Text>
-        <Text style={styles.paragraph}>
-          When the phone rests on your chest, the accelerometer picks up tiny movements with each inhale and exhale.
-          Larger, faster breaths after exercise create bigger sensor readings. Comparing breaths per minute and movement
-          data helps you see how exercise affects your body.
-        </Text>
-
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            <Text style={{ fontWeight: '700' }}>Did You Know? </Text>
-            Athletes and medical professionals use wearable sensors to monitor breathing during training and recovery —
-            the same principle as your phone on your chest in this lab.
-          </Text>
-        </View>
+        {isPrimary ? (
+          <>
+            <Text style={styles.paragraph}>
+              When you rest, you breathe steadily. After jogging or star jumps, you breathe faster because your body
+              needs more air. The phone on your chest feels it move up and down.
+            </Text>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                <Text style={{ fontWeight: '700' }}>Talk about: </Text>
+                When did you breathe the fastest — at rest, after jogging, or after star jumps? Why do you think so?
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.paragraph}>
+              Breathing rate increases during exercise to supply more oxygen to muscles. Sensors detect chest movement,
+              helping students visualise breathing patterns.
+            </Text>
+            <Text style={styles.subHeading}>Breathing at Rest vs After Exercise</Text>
+            <Text style={styles.paragraph}>
+              At rest, your body needs a steady supply of oxygen. After exercise, muscles work harder. Your breathing rate
+              rises so your lungs can bring in more oxygen and remove waste gases faster.
+            </Text>
+            {isHighSchool && (
+              <>
+                <Text style={styles.subHeading}>How the Sensor Works</Text>
+                <Text style={styles.paragraph}>
+                  When the phone rests on your chest, the accelerometer picks up tiny movements with each inhale and
+                  exhale. Larger breaths after exercise create bigger sensor readings. Comparing breaths per minute helps
+                  you see how exercise affects your body.
+                </Text>
+              </>
+            )}
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                <Text style={{ fontWeight: '700' }}>Did You Know? </Text>
+                Doctors and athletes sometimes use sensors to watch breathing during training — like your phone in this lab.
+              </Text>
+            </View>
+          </>
+        )}
       </Card>
     </View>
   );

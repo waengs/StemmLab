@@ -100,7 +100,8 @@
     "savedTitle": "Saved!",
     "savedMsg": "Your results have been recorded.",
     "enterValue": "Enter {{label}}",
-    "searchPlaceholder": "Search activities or sensor types..."
+    "searchPlaceholder": "Search activities or sensor types...",
+    "equipmentRequiredMsg": "Tick every item on the Setup tab before continuing."
   },
   "sensors": {
     "pageTitle": "Sensors",
@@ -276,6 +277,7 @@
       "hand-fan": {
         "name": "Hand Fan Challenge",
         "desc": "Build an efficient hand-powered fan",
+        "recordHint": "For each trial, tap Record Slow-Mo Video, fan the paper, then enter the max bend angle.",
         "chips": {
           "slow-mo": "Camera"
         },

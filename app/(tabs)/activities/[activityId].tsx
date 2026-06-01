@@ -17,9 +17,7 @@ import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPost
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
-import { useRequireAuth } from '../../../src/stores';
-import { useActivityResultsStore, useResultsForActivity } from '../../../src/stores';
-import { calculateScore } from '../../../src/stores';
+import { useRequireAuth, useActivityResultsStore, useResultsForActivity, calculateScore } from '../../../src/stores';
 import type { ActivityResult } from '../../../src/types';
 
 interface FormField {
@@ -118,8 +116,10 @@ export default function ActivityDetail() {
       teamDiscriminator: team.discriminator,
       submittedByUid: user.uid,
       timestamp: Date.now(),
-      data: formData,
+      data: { ...formData, __teamName: team.name },
+      score: 0,
     };
+    result.score = calculateScore(result);
 
     await addResult(result);
     setFormData({});
@@ -668,7 +668,7 @@ export default function ActivityDetail() {
           {activity.id === 'parachute-drop' ? (
             <View>
               {parachuteViewState === 'quiz' && latestResult && (
-                 <ParachuteDropPostActivity result={latestResult} onComplete={() => setParachuteViewState('menu')} />
+                 <ParachuteDropPostActivity result={latestResult} onComplete={() => setParachuteViewState('forum')} />
               )}
               {parachuteViewState === 'forum' && (
                  <ParachuteDropDiscussion />
@@ -700,7 +700,7 @@ export default function ActivityDetail() {
           ) : activity.id === 'hand-fan' ? (
             <View>
               {handFanViewState === 'quiz' && latestResult && (
-                 <HandFanPostActivity result={latestResult} onComplete={() => setHandFanViewState('menu')} />
+                 <HandFanPostActivity result={latestResult} onComplete={() => setHandFanViewState('forum')} />
               )}
               {handFanViewState === 'forum' && (
                  <HandFanDiscussion />
@@ -732,7 +732,7 @@ export default function ActivityDetail() {
           ) : activity.id === 'sound-pollution' ? (
             <View>
               {soundPollutionViewState === 'quiz' && latestResult && (
-                 <SoundPollutionPostActivity result={latestResult} onComplete={() => setSoundPollutionViewState('menu')} />
+                 <SoundPollutionPostActivity result={latestResult} onComplete={() => setSoundPollutionViewState('forum')} />
               )}
               {soundPollutionViewState === 'forum' && (
                  <SoundPollutionDiscussion />
@@ -764,7 +764,7 @@ export default function ActivityDetail() {
           ) : activity.id === 'earthquake' ? (
             <View>
               {earthquakeViewState === 'quiz' && latestResult && (
-                 <EarthquakePostActivity result={latestResult} onComplete={() => setEarthquakeViewState('menu')} />
+                 <EarthquakePostActivity result={latestResult} onComplete={() => setEarthquakeViewState('forum')} />
               )}
               {earthquakeViewState === 'forum' && (
                  <EarthquakeDiscussion />

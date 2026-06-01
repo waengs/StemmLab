@@ -1,9 +1,22 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '../../src/context/ThemeContext';
 import { CustomTabBar } from '../../src/components/layout/CustomTabBar';
+import { useAuthStore } from '../../src/stores/authStore';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const { user, team, isHydrated } = useAuthStore(
+    useShallow((s) => ({
+      user: s.user,
+      team: s.team,
+      isHydrated: s.isHydrated,
+    }))
+  );
+
+  if (isHydrated && (!user || !team)) {
+    return <Redirect href="/" />;
+  }
 
   return (
     <Tabs

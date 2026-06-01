@@ -5,6 +5,7 @@ import { Card } from '../ui/Card';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
 import type { ActivityResult } from '../../types';
 import type { HandFanData } from './HandFanForm';
+import { calculateScore } from '../../stores/selectors/leaderboard';
 
 interface HandFanResultsProps {
   results: ActivityResult[];
@@ -27,7 +28,7 @@ export function HandFanResults({ results }: HandFanResultsProps) {
           <Card key={result.id} style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.date}>{date}</Text>
-              <Text style={styles.score}>Score: {result.score ?? 100}</Text>
+              <Text style={styles.score}>Score: {calculateScore(result)}</Text>
             </View>
 
             <View style={styles.predictionsBox}>

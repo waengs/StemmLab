@@ -1,4 +1,4 @@
-import type { ActivityResult, SensorLog, ForumPost, ForumReply } from '../types';
+import type { ActivityResult, SensorLog, ForumPost, ForumReply, ForumGradeBand } from '../types';
 import type {
   ActivityResultRow,
   SensorLogRow,
@@ -38,6 +38,7 @@ export function rowsToForumPost(post: ForumPostRow, replies: ForumReplyRow[]): F
     authorName: post.author_name,
     teamDiscriminator: post.team_discriminator,
     teamName: post.team_name,
+    gradeBand: (post.grade_band as ForumGradeBand | null) ?? undefined,
     categoryId: post.category_id ?? undefined,
     categoryLabel: post.category_label ?? undefined,
     content: post.content,

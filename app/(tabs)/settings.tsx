@@ -91,7 +91,9 @@ export default function Settings() {
     }
   };
 
-  if (!user || !team) return null;
+  if (!user || !team) {
+    return <View style={[styles.safe, { flex: 1 }]} />;
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

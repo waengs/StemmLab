@@ -20,6 +20,7 @@ import { useRequireAuth } from '../../../src/stores';
 import { Spacing, BorderRadius } from '../../../src/theme';
 import type { ForumReply } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
+import { getGradeBand, isForumPostVisibleToBand } from '../../../src/utils/gradeLevel';
 
 type SortOption = 'new' | 'old' | 'top';
 
@@ -36,7 +37,7 @@ export default function PostThreadScreen() {
   const { colors } = useTheme();
   const { user, team } = useRequireAuth();
   
-  const posts = useForumStore((s) => s.posts);
+  const allPosts = useForumStore((s) => s.posts);
   const updatePost = useForumStore((s) => s.updatePost);
   const deletePost = useForumStore((s) => s.deletePost);
   const deleteReply = useForumStore((s) => s.deleteReply);
@@ -49,7 +50,15 @@ export default function PostThreadScreen() {
   // Always keep replies expanded in thread view
   const [expanded, setExpanded] = useState(true);
 
-  const post = useMemo(() => posts.find((p) => p.id === id), [posts, id]);
+  const viewerGradeBand = useMemo(
+    () => getGradeBand(team?.gradeLevel, t),
+    [team?.gradeLevel, t]
+  );
+  const post = useMemo(() => {
+    const found = allPosts.find((p) => p.id === id);
+    if (!found || !isForumPostVisibleToBand(found, viewerGradeBand)) return undefined;
+    return found;
+  }, [allPosts, id, viewerGradeBand]);
 
   const styles = useMemo(
     () =>

@@ -10,7 +10,6 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input, Button, Select } from '../src/components';
@@ -24,7 +23,6 @@ type TeamMode = 'create' | 'join';
 
 export default function AuthSetup() {
   const { t, i18n } = useTranslation();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const needsTeam = useAuthStore((s) => s.needsTeam);
@@ -109,7 +107,6 @@ export default function AuthSetup() {
       return;
     }
     await createTeamAction({ name: teamName.trim(), gradeLevel, joinPassword });
-    router.replace('/(tabs)');
   };
 
   return (
@@ -265,10 +262,7 @@ export default function AuthSetup() {
                       />
                     </>
                   ) : (
-                    <TeamJoinPanel
-                      joinTeam={joinTeamAction}
-                      onJoinSuccess={() => router.replace('/(tabs)')}
-                    />
+                    <TeamJoinPanel joinTeam={joinTeamAction} />
                   )}
 
                   <Button

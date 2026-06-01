@@ -51,14 +51,20 @@ export function ParachuteDropResults({ data }: Props) {
         {data.trials.map((trial: any) => {
           const p = parseFloat(trial.predictedTime) || 0;
           const a = parseFloat(trial.actualTime) || 0;
-          const diff = p - a;
+          const absDiff = Math.abs(p - a);
+          const hasActual = Boolean(trial.actualTime);
+          const diffColor = !hasActual
+            ? Colors.textSecondary
+            : absDiff < 0.01
+              ? Colors.secondary
+              : Colors.danger;
           return (
             <View key={trial.id} style={styles.tableRow}>
               <Text style={[styles.tableCell, styles.flex2, { fontWeight: '700' }]}>{trial.label}</Text>
               <Text style={[styles.tableCell, styles.flex2]}>{trial.predictedTime || '-'}</Text>
               <Text style={[styles.tableCell, styles.flex2]}>{trial.actualTime || '-'}</Text>
-              <Text style={[styles.tableCell, styles.flex2, { color: diff > 0 ? Colors.secondary : Colors.danger }]}>
-                {trial.actualTime ? Math.abs(diff).toFixed(2) : '-'}
+              <Text style={[styles.tableCell, styles.flex2, { color: diffColor }]}>
+                {hasActual ? absDiff.toFixed(2) : '-'}
               </Text>
             </View>
           );

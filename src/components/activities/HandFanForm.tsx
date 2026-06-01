@@ -8,7 +8,7 @@ import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
-import { useRequireAuth } from '../../stores';
+import { useGradeBand } from '../../hooks/useGradeBand';
 import { TrialVideoPlayer } from '../sensors/TrialVideoPlayer';
 
 export interface HandFanTrial {
@@ -45,15 +45,13 @@ const STIFFNESS_DATA = [
   { material: 'Corrugated cardboard', thickness: '3', k: '2–3', notes: 'Very stiff, almost no bend' },
 ];
 
+type HandFanTab = 'setup' | 'predictions' | 'experiment' | 'calculations';
+
 export function HandFanForm({ value, onChange, onSubmit }: Props) {
   const { t } = useTranslation();
-  const { team } = useRequireAuth();
-  
-  const isHighSchool = team?.gradeLevel === t('setup.gradeLowerHigh') || 
-                       team?.gradeLevel === 'Lower High School (Grades 7–9)' || 
-                       team?.gradeLevel?.includes('High');
-  
-  const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment' | 'calculations'>('setup');
+  const { isHighSchool } = useGradeBand();
+
+  const [activeTab, setActiveTab] = useState<HandFanTab>('setup');
   const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
@@ -128,21 +126,68 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
     updateData({ trials: newTrials });
   };
 
+  const goToTab = (tab: HandFanTab) => {
+    if (isLocked && tab !== activeTab) {
+      Alert.alert(
+        t('activities.timeUpTitle', { defaultValue: 'Time is up!' }),
+        t('activities.timeUpText', { defaultValue: 'Your time is up. Reset the activity to make changes.' })
+      );
+      return;
+    }
+    if (tab !== 'setup' && !allEquipmentChecked) {
+      Alert.alert(
+        t('activities.equipmentTitle', { defaultValue: 'Equipment Checklist' }),
+        t('activities.equipmentRequiredMsg', {
+          defaultValue: 'Tick every item on the Setup tab before continuing.',
+        })
+      );
+      return;
+    }
+    if (!isTimerRunning) {
+      setIsTimerRunning(true);
+    }
+    setActiveTab(tab);
+  };
 
+  const ensureCanRecord = (): boolean => {
+    if (isLocked) {
+      Alert.alert(
+        t('activities.timeUpTitle', { defaultValue: 'Time is up!' }),
+        t('activities.timeUpText', { defaultValue: 'Your time is up. Reset the activity to record again.' })
+      );
+      return false;
+    }
+    if (!allEquipmentChecked) {
+      Alert.alert(
+        t('activities.equipmentTitle', { defaultValue: 'Equipment Checklist' }),
+        t('activities.equipmentRequiredMsg', {
+          defaultValue: 'Tick every item on the Setup tab before recording.',
+        })
+      );
+      return false;
+    }
+    if (!isTimerRunning) {
+      setIsTimerRunning(true);
+    }
+    return true;
+  };
 
   const recordVideo = async (trialId: string) => {
-    if (isLocked) return;
+    if (!ensureCanRecord()) return;
+
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (permissionResult.granted === false) {
       Alert.alert(t('common.cameraPermissionMsg', { defaultValue: 'Camera permission is required' }));
       return;
     }
+
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['videos'],
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 1,
     });
-    if (!result.canceled) {
+
+    if (!result.canceled && result.assets?.length) {
       updateTrial(trialId, { videoUri: result.assets[0].uri });
     }
   };
@@ -232,18 +277,11 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {['setup', 'predictions', 'experiment', ...(isHighSchool ? ['calculations'] : [])].map((tab) => (
+          {(['setup', 'predictions', 'experiment', ...(isHighSchool ? ['calculations'] : [])] as HandFanTab[]).map((tab) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
-              onPress={() => {
-                if (!isTimerRunning) {
-                  Alert.alert("Timer Required", "Please start the timer to navigate to other sections.");
-                  return;
-                }
-                setActiveTab(tab as any);
-              }}
-              disabled={!isTimerRunning && activeTab !== tab}
+              style={[styles.tab, activeTab === tab && styles.activeTab]}
+              onPress={() => goToTab(tab)}
             >
               <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
                 {t(`activities.tabs.${tab}`, { defaultValue: tab.charAt(0).toUpperCase() + tab.slice(1) })}
@@ -253,7 +291,7 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.scrollContent}>
         {/* TIMER (Visible on all tabs) */}
         <View style={{ marginBottom: Spacing.lg }}>
           <View style={styles.stickyTimer}>
@@ -338,9 +376,9 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
               />
             </Card>
 
-            <Button 
-              title={t('common.next', { defaultValue: 'Next' })} 
-              onPress={() => setActiveTab('predictions')} 
+            <Button
+              title={t('common.next', { defaultValue: 'Next' })}
+              onPress={() => goToTab('predictions')}
               disabled={!allEquipmentChecked}
             />
           </View>
@@ -355,7 +393,7 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
               <Select
                 label="Predict which fan material is going to perform the best"
                 value={data.predictedMaterial}
-                options={['Paper', 'Cardboard', 'Other']}
+                options={['Paper', 'Cardboard']}
                 onValueChange={(v) => updateData({ predictedMaterial: v })}
                 disabled={isLocked}
               />
@@ -383,8 +421,8 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('setup')} />
-              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('experiment')} />
+              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => goToTab('setup')} />
+              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => goToTab('experiment')} />
             </View>
           </View>
         )}
@@ -394,7 +432,13 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
           <View>
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.trialsTitle', { defaultValue: 'Record Trials' })}</Text>
-              
+              <Text style={styles.recordHint}>
+                {t('data.activities.hand-fan.recordHint', {
+                  defaultValue:
+                    'For each trial, tap Record Slow-Mo Video, fan the paper, then enter the max bend angle.',
+                })}
+              </Text>
+
               {data.trials.map((trial, index) => (
                 <View key={trial.id} style={styles.trialBlock}>
                   <Text style={styles.trialTitle}>Trial {index + 1}</Text>
@@ -470,9 +514,9 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('predictions')} />
+              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => goToTab('predictions')} />
               {isHighSchool ? (
-                <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('calculations')} />
+                <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => goToTab('calculations')} />
               ) : (
                 <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
               )}
@@ -547,12 +591,12 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('experiment')} />
+              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => goToTab('experiment')} />
               <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
             </View>
           </View>
         )}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -572,6 +616,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.h2,
     marginBottom: Spacing.md,
+  },
+  recordHint: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+    lineHeight: 20,
   },
   tabContainer: {
     borderBottomWidth: 1,

@@ -11,14 +11,34 @@ import {
 } from '../../src/components';
 import { matchesSearch } from '../../src/utils/search';
 import { useActivityResultsStore, buildLeaderboards } from '../../src/stores';
+import { listAvailableTeams } from '../../src/services/team/teamDirectoryService';
 
 export default function Leaderboard() {
   const { t } = useTranslation();
   const results = useActivityResultsStore((s) => s.results);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
+  const [teamNamesByDiscriminator, setTeamNamesByDiscriminator] = useState<Record<string, string>>({});
 
-  const leaderboards = useMemo(() => buildLeaderboards(results), [results]);
+  useEffect(() => {
+    let cancelled = false;
+    void listAvailableTeams().then((teams) => {
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      teams.forEach((team) => {
+        map[team.discriminator.toUpperCase()] = team.name;
+      });
+      setTeamNamesByDiscriminator(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const leaderboards = useMemo(
+    () => buildLeaderboards(results, teamNamesByDiscriminator),
+    [results, teamNamesByDiscriminator]
+  );
 
   const categories = useMemo(
     () => [

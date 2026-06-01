@@ -53,6 +53,8 @@ export type ForumAttachment = {
   name: string;
 };
 
+export type ForumGradeBand = 'primary' | 'high_school';
+
 export interface ForumPost {
   id: string;
   topicTitle: string;
@@ -60,6 +62,8 @@ export interface ForumPost {
   authorName: string;
   teamDiscriminator: string;
   teamName: string;
+  /** Which grade cohort can see this post (upper primary vs lower high school). */
+  gradeBand?: ForumGradeBand;
   /** Forum category key, usually an activity id. */
   categoryId?: string;
   categoryLabel?: string;

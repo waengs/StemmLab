@@ -2,9 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
 import { useActivityResultsStore } from '../../stores';
+import { useGradeBand } from '../../hooks/useGradeBand';
+import {
+  allQuizOpenAnswersFilled,
+  emptyQuizOpenAnswers,
+  getQuizOpenQuestions,
+  loadQuizOpenAnswers,
+  saveQuizOpenAnswers,
+} from '../../utils/quizOpenQuestions';
+import { QuizOpenSection } from './QuizOpenSection';
 import type { ActivityResult } from '../../types';
 
 interface HumanPerformancePostActivityProps {
@@ -12,7 +20,37 @@ interface HumanPerformancePostActivityProps {
   onComplete: () => void;
 }
 
-const QUIZ_QUESTIONS = [
+type IndexQuiz = { question: string; options: string[]; answer: number };
+
+const PRIMARY_QUIZ: IndexQuiz[] = [
+  {
+    question: 'When you move quickly, the phone often feels…',
+    options: ['Shakier', 'Completely still', 'Heavier', 'Colder'],
+    answer: 0,
+  },
+  {
+    question: 'Your muscles and joints help you…',
+    options: ['Move your body', 'Charge the phone', 'Change the weather', 'Grow taller instantly'],
+    answer: 0,
+  },
+  {
+    question: 'Smooth, slow movements are usually…',
+    options: ['Easier to control', 'Impossible to do', 'Always the shakiest', 'Invisible to the sensor'],
+    answer: 0,
+  },
+  {
+    question: 'Beeps and warnings during practice can help you…',
+    options: ['Move more smoothly', 'Stop breathing', 'Break the phone', 'Skip the experiment'],
+    answer: 0,
+  },
+  {
+    question: 'This lab measures how…',
+    options: ['Your body moves', 'Clouds form', 'Plants grow', 'Rocks melt'],
+    answer: 0,
+  },
+];
+
+const HIGH_SCHOOL_QUIZ: IndexQuiz[] = [
   {
     question: 'Why do faster movements often produce higher phone vibration readings?',
     options: [
@@ -61,13 +99,14 @@ const QUIZ_QUESTIONS = [
 ];
 
 export function HumanPerformancePostActivity({ result, onComplete }: HumanPerformancePostActivityProps) {
+  const { isHighSchool, isPrimary } = useGradeBand();
   const updateResult = useActivityResultsStore((s) => s.updateResult);
+  const quizQuestions = isHighSchool ? HIGH_SCHOOL_QUIZ : PRIMARY_QUIZ;
+  const openQuestions = getQuizOpenQuestions('human-performance', isPrimary);
 
   const existingAnswers = (result.data.quizAnswers as Record<string, number>) || {};
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>(existingAnswers);
-  const [openAnswer1, setOpenAnswer1] = useState((result.data.quizOpenAnswer1 as string) || '');
-  const [openAnswer2, setOpenAnswer2] = useState((result.data.quizOpenAnswer2 as string) || '');
-  const [openAnswer3, setOpenAnswer3] = useState((result.data.quizOpenAnswer3 as string) || '');
+  const [openAnswers, setOpenAnswers] = useState(() => loadQuizOpenAnswers(result.data));
   const [quizSubmitted, setQuizSubmitted] = useState(!!result.data.quizCompleted);
   const [score, setScore] = useState((result.data.quizScore as number) || 0);
 
@@ -77,18 +116,13 @@ export function HumanPerformancePostActivity({ result, onComplete }: HumanPerfor
   };
 
   const handleSubmitQuiz = async () => {
-    if (
-      Object.keys(quizAnswers).length < QUIZ_QUESTIONS.length ||
-      !openAnswer1.trim() ||
-      !openAnswer2.trim() ||
-      !openAnswer3.trim()
-    ) {
+    if (Object.keys(quizAnswers).length < quizQuestions.length || !allQuizOpenAnswersFilled(openAnswers)) {
       alert('Please answer all multiple choice and reflection questions before submitting.');
       return;
     }
 
     let correct = 0;
-    QUIZ_QUESTIONS.forEach((q, index) => {
+    quizQuestions.forEach((q, index) => {
       if (quizAnswers[index.toString()] === q.answer) correct++;
     });
     setScore(correct);
@@ -98,9 +132,7 @@ export function HumanPerformancePostActivity({ result, onComplete }: HumanPerfor
       data: {
         ...result.data,
         quizAnswers,
-        quizOpenAnswer1: openAnswer1,
-        quizOpenAnswer2: openAnswer2,
-        quizOpenAnswer3: openAnswer3,
+        ...saveQuizOpenAnswers(openAnswers),
         quizScore: correct,
         quizCompleted: true,
       },
@@ -110,18 +142,14 @@ export function HumanPerformancePostActivity({ result, onComplete }: HumanPerfor
   const handleRetake = async () => {
     setQuizSubmitted(false);
     setQuizAnswers({});
-    setOpenAnswer1('');
-    setOpenAnswer2('');
-    setOpenAnswer3('');
+    setOpenAnswers(emptyQuizOpenAnswers());
     setScore(0);
 
     await updateResult(result.id, {
       data: {
         ...result.data,
         quizAnswers: {},
-        quizOpenAnswer1: '',
-        quizOpenAnswer2: '',
-        quizOpenAnswer3: '',
+        ...saveQuizOpenAnswers(emptyQuizOpenAnswers()),
         quizScore: 0,
         quizCompleted: false,
       },
@@ -132,9 +160,13 @@ export function HumanPerformancePostActivity({ result, onComplete }: HumanPerfor
     <View style={styles.container}>
       <Card style={styles.card}>
         <Text style={styles.title}>Post-Experiment Quiz</Text>
-        <Text style={styles.subtitle}>Test your knowledge on biomechanics and human movement!</Text>
+        <Text style={styles.subtitle}>
+          {isPrimary
+            ? 'Quick check — what did you notice about your movements?'
+            : 'Test your knowledge on biomechanics and human movement!'}
+        </Text>
 
-        {QUIZ_QUESTIONS.map((q, qIndex) => (
+        {quizQuestions.map((q, qIndex) => (
           <View key={qIndex} style={styles.questionBlock}>
             <Text style={styles.question}>
               {qIndex + 1}. {q.question}
@@ -176,53 +208,26 @@ export function HumanPerformancePostActivity({ result, onComplete }: HumanPerfor
           </View>
         ))}
 
-        <Text style={styles.reflectionHeading}>Reflection questions</Text>
-
-        <View style={styles.questionBlock}>
-          <Text style={styles.question}>Which movement was hardest to keep smooth?</Text>
-          <Input
-            value={openAnswer1}
-            onChangeText={setOpenAnswer1}
-            multiline
-            numberOfLines={3}
-            editable={!quizSubmitted}
-            placeholder="Your answer..."
-            onLightSurface
-          />
-        </View>
-
-        <View style={styles.questionBlock}>
-          <Text style={styles.question}>Did live feedback help you improve on the second attempt?</Text>
-          <Input
-            value={openAnswer2}
-            onChangeText={setOpenAnswer2}
-            multiline
-            numberOfLines={3}
-            editable={!quizSubmitted}
-            placeholder="Your answer..."
-            onLightSurface
-          />
-        </View>
-
-        <View style={styles.questionBlock}>
-          <Text style={styles.question}>How might athletes or physical therapists use similar sensors?</Text>
-          <Input
-            value={openAnswer3}
-            onChangeText={setOpenAnswer3}
-            multiline
-            numberOfLines={3}
-            editable={!quizSubmitted}
-            placeholder="Your answer..."
-            onLightSurface
-          />
-        </View>
+        <QuizOpenSection
+          questions={openQuestions}
+          answers={openAnswers}
+          onChange={(index, value) => {
+            setOpenAnswers((prev) => {
+              const next = [...prev];
+              next[index] = value;
+              return next;
+            });
+          }}
+          disabled={quizSubmitted}
+          startNumber={quizQuestions.length + 1}
+        />
 
         {!quizSubmitted ? (
           <Button title="Submit Quiz" onPress={handleSubmitQuiz} size="lg" />
         ) : (
           <View style={styles.scoreBox}>
             <Text style={styles.scoreText}>
-              You scored {score} out of {QUIZ_QUESTIONS.length}!
+              You scored {score} out of {quizQuestions.length}!
             </Text>
             <Button title="Retake Quiz" onPress={handleRetake} variant="outlined" style={{ marginTop: Spacing.md }} />
             <Button title="Continue to Discussion" onPress={onComplete} size="lg" style={{ marginTop: Spacing.sm }} />
@@ -234,43 +239,62 @@ export function HumanPerformancePostActivity({ result, onComplete }: HumanPerfor
 }
 
 export function HumanPerformanceDiscussion() {
+  const { isHighSchool, isPrimary } = useGradeBand();
+
   return (
     <View style={styles.container}>
       <Card style={styles.discussionCard}>
         <Text style={styles.sectionTitle}>Discussion</Text>
-        <Text style={styles.paragraph}>
-          Muscles and joints work together to create movement. Faster movements often reduce control, while smoother
-          movements show better coordination. Sensors in the phone measure how quickly and smoothly the body moves,
-          helping students understand biomechanics and fatigue.
-        </Text>
-
-        <Text style={styles.subHeading}>Muscles & Joints</Text>
-        <Text style={styles.paragraph}>
-          Skeletal muscles pull on bones via tendons, while joints act as pivot points. Coordinated muscle activation
-          produces smooth, purposeful motion. When muscles fatigue, control decreases and vibration readings tend to
-          increase.
-        </Text>
-
-        <Text style={styles.subHeading}>Speed vs. Control</Text>
-        <Text style={styles.paragraph}>
-          As movement speed increases, the body must manage greater accelerations and decelerations. Jerky or rushed
-          motions create larger sensor spikes. Practicing slow, deliberate movements builds neuromuscular control.
-        </Text>
-
-        <Text style={styles.subHeading}>Sensor Feedback</Text>
-        <Text style={styles.paragraph}>
-          Phone vibration and movement sensors translate physical motion into measurable data — vibration (cm),
-          speed (m/s), smoothness, and range of motion. Comparing predictions to actual results helps students
-          develop scientific reasoning about their own bodies.
-        </Text>
-
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            <Text style={{ fontWeight: '700' }}>Did You Know? </Text>
-            Athletes and physical therapists use wearable motion sensors to track form, spot shaky movements, and
-            design training that builds smoother, safer motion — the same idea as your phone accelerometer in this lab.
-          </Text>
-        </View>
+        {isPrimary ? (
+          <>
+            <Text style={styles.paragraph}>
+              Your muscles and joints help you move. When you rush, the phone often feels shakier. Slow, smooth moves
+              are easier to control. The sensor shows how steady your movement is.
+            </Text>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                <Text style={{ fontWeight: '700' }}>Talk about: </Text>
+                Which movement was the shakiest? Did the beeps help you slow down on the second try?
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.paragraph}>
+              Muscles and joints work together to create movement. Faster movements often reduce control, while smoother
+              movements show better coordination. Sensors in the phone measure how quickly and smoothly the body moves,
+              helping students understand biomechanics and fatigue.
+            </Text>
+            <Text style={styles.subHeading}>Muscles & Joints</Text>
+            <Text style={styles.paragraph}>
+              Skeletal muscles pull on bones via tendons, while joints act as pivot points. Coordinated muscle activation
+              produces smooth, purposeful motion. When muscles fatigue, control decreases and vibration readings tend to
+              increase.
+            </Text>
+            {isHighSchool && (
+              <>
+                <Text style={styles.subHeading}>Speed vs. Control</Text>
+                <Text style={styles.paragraph}>
+                  As movement speed increases, the body must manage greater accelerations and decelerations. Jerky or rushed
+                  motions create larger sensor spikes. Practicing slow, deliberate movements builds neuromuscular control.
+                </Text>
+                <Text style={styles.subHeading}>Sensor Feedback</Text>
+                <Text style={styles.paragraph}>
+                  Phone vibration and movement sensors translate physical motion into measurable data — vibration (cm),
+                  speed (m/s), smoothness, and range of motion. Comparing predictions to actual results helps students
+                  develop scientific reasoning about their own bodies.
+                </Text>
+              </>
+            )}
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                <Text style={{ fontWeight: '700' }}>Did You Know? </Text>
+                Athletes and coaches use motion sensors to check form and train smoother, safer movement — like your phone
+                in this lab.
+              </Text>
+            </View>
+          </>
+        )}
       </Card>
     </View>
   );

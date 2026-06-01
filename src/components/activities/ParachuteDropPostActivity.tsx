@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useTranslation } from 'react-i18next';
-
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
-import { useRequireAuth, useActivityResultsStore } from '../../stores';
+import { useActivityResultsStore } from '../../stores';
+import { useGradeBand } from '../../hooks/useGradeBand';
+import {
+  allQuizOpenAnswersFilled,
+  emptyQuizOpenAnswers,
+  getQuizOpenQuestions,
+  loadQuizOpenAnswers,
+  saveQuizOpenAnswers,
+} from '../../utils/quizOpenQuestions';
+import { QuizOpenSection } from './QuizOpenSection';
 import type { ActivityResult } from '../../types';
 
 interface Props {
@@ -14,7 +20,47 @@ interface Props {
   onComplete: () => void;
 }
 
-const QUIZ_QUESTIONS = [
+type McqQuestion = {
+  id: string;
+  question: string;
+  options: string[];
+  answer: string;
+};
+
+const PRIMARY_QUIZ: McqQuestion[] = [
+  {
+    id: 'q1',
+    question: 'What pulls the parachute and toy downward?',
+    options: ['Gravity', 'Wind only', 'Glue', 'Magnets'],
+    answer: 'Gravity',
+  },
+  {
+    id: 'q2',
+    question: 'What helps the parachute fall more slowly?',
+    options: ['Air pushing upward', 'Extra weight', 'Making it smaller', 'Turning off gravity'],
+    answer: 'Air pushing upward',
+  },
+  {
+    id: 'q3',
+    question: 'A bigger parachute usually makes the toy fall…',
+    options: ['More slowly', 'More quickly', 'Not at all', 'Sideways only'],
+    answer: 'More slowly',
+  },
+  {
+    id: 'q4',
+    question: 'A very hard landing is usually…',
+    options: ['Rougher and more jarring', 'Softer and safer', 'The same as a soft landing', 'Impossible'],
+    answer: 'Rougher and more jarring',
+  },
+  {
+    id: 'q5',
+    question: 'Why do teams try more than one parachute design?',
+    options: ['To learn which works best', 'To use up all the tape', 'Because one is never fun', 'To make it heavier'],
+    answer: 'To learn which works best',
+  },
+];
+
+const HIGH_SCHOOL_QUIZ: McqQuestion[] = [
   {
     id: 'q1',
     question: 'What force pulls the parachute downward?',
@@ -44,19 +90,18 @@ const QUIZ_QUESTIONS = [
     question: 'Why do engineers build multiple prototypes?',
     options: ['To waste materials', 'To test and improve performance', 'Because one is never enough', 'To make the toy look better'],
     answer: 'To test and improve performance',
-  }
+  },
 ];
 
 export function ParachuteDropPostActivity({ result, onComplete }: Props) {
-  const { t } = useTranslation();
-  const { team } = useRequireAuth();
+  const { isHighSchool, isPrimary } = useGradeBand();
   const updateResult = useActivityResultsStore((s) => s.updateResult);
+  const quizQuestions = isHighSchool ? HIGH_SCHOOL_QUIZ : PRIMARY_QUIZ;
+  const openQuestions = getQuizOpenQuestions('parachute-drop', isPrimary);
 
-  // Initialize state from existing result data if present
   const existingAnswers = result.data.quizAnswers || {};
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>(existingAnswers);
-  const [openAnswer1, setOpenAnswer1] = useState(result.data.quizOpenAnswer1 || '');
-  const [openAnswer2, setOpenAnswer2] = useState(result.data.quizOpenAnswer2 || '');
+  const [openAnswers, setOpenAnswers] = useState(() => loadQuizOpenAnswers(result.data));
   const [quizSubmitted, setQuizSubmitted] = useState(!!result.data.quizCompleted);
   const [score, setScore] = useState(result.data.quizScore || 0);
 
@@ -66,13 +111,13 @@ export function ParachuteDropPostActivity({ result, onComplete }: Props) {
   };
 
   const handleSubmitQuiz = async () => {
-    if (Object.keys(quizAnswers).length < QUIZ_QUESTIONS.length || !openAnswer1.trim() || !openAnswer2.trim()) {
-      alert("Please answer all multiple choice and open questions before submitting.");
+    if (Object.keys(quizAnswers).length < quizQuestions.length || !allQuizOpenAnswersFilled(openAnswers)) {
+      alert('Please answer all multiple choice and reflection questions before submitting.');
       return;
     }
     
     let correct = 0;
-    QUIZ_QUESTIONS.forEach(q => {
+    quizQuestions.forEach((q) => {
       if (quizAnswers[q.id] === q.answer) correct++;
     });
     setScore(correct);
@@ -83,8 +128,7 @@ export function ParachuteDropPostActivity({ result, onComplete }: Props) {
       data: {
         ...result.data,
         quizAnswers,
-        quizOpenAnswer1: openAnswer1,
-        quizOpenAnswer2: openAnswer2,
+        ...saveQuizOpenAnswers(openAnswers),
         quizScore: correct,
         quizCompleted: true,
       }
@@ -95,16 +139,14 @@ export function ParachuteDropPostActivity({ result, onComplete }: Props) {
   const handleRetake = async () => {
     setQuizSubmitted(false);
     setQuizAnswers({});
-    setOpenAnswer1('');
-    setOpenAnswer2('');
+    setOpenAnswers(emptyQuizOpenAnswers());
     setScore(0);
     
     await updateResult(result.id, {
       data: {
         ...result.data,
         quizAnswers: {},
-        quizOpenAnswer1: '',
-        quizOpenAnswer2: '',
+        ...saveQuizOpenAnswers(emptyQuizOpenAnswers()),
         quizScore: 0,
         quizCompleted: false,
       }
@@ -115,9 +157,13 @@ export function ParachuteDropPostActivity({ result, onComplete }: Props) {
     <View style={styles.container}>
       <Card style={styles.quizCard}>
         <Text style={styles.sectionTitle}>Post-Experiment Quiz</Text>
-        <Text style={styles.sectionSubtitle}>Test your knowledge on the science behind parachute drops!</Text>
+        <Text style={styles.sectionSubtitle}>
+          {isPrimary
+            ? 'Quick check — what did you learn about parachutes?'
+            : 'Test your knowledge on the science behind parachute drops!'}
+        </Text>
 
-        {QUIZ_QUESTIONS.map((q, index) => (
+        {quizQuestions.map((q, index) => (
           <View key={q.id} style={styles.questionBlock}>
             <Text style={styles.questionText}>{index + 1}. {q.question}</Text>
             {q.options.map(opt => {
@@ -160,40 +206,31 @@ export function ParachuteDropPostActivity({ result, onComplete }: Props) {
           </View>
         ))}
 
-        <View style={styles.questionBlock}>
-          <Text style={styles.questionText}>Were you correctly predicting the timings and performance?</Text>
-          <Input
-            value={openAnswer1}
-            onChangeText={setOpenAnswer1}
-            multiline
-            numberOfLines={3}
-            editable={!quizSubmitted}
-            placeholder="Type your reflection here..."
-          />
-        </View>
-
-        <View style={styles.questionBlock}>
-          <Text style={styles.questionText}>What design was the easiest to make and why?</Text>
-          <Input
-            value={openAnswer2}
-            onChangeText={setOpenAnswer2}
-            multiline
-            numberOfLines={3}
-            editable={!quizSubmitted}
-            placeholder="Type your reflection here..."
-          />
-        </View>
+        <QuizOpenSection
+          questions={openQuestions}
+          answers={openAnswers}
+          onChange={(index, value) => {
+            setOpenAnswers((prev) => {
+              const next = [...prev];
+              next[index] = value;
+              return next;
+            });
+          }}
+          disabled={quizSubmitted}
+          startNumber={quizQuestions.length + 1}
+        />
 
         {!quizSubmitted ? (
           <Button title="Submit Quiz" onPress={handleSubmitQuiz} size="lg" />
         ) : (
           <View style={styles.scoreBox}>
-            <Text style={styles.scoreText}>You scored {score} out of {QUIZ_QUESTIONS.length}!</Text>
-            <Button 
-              title="Retake Quiz" 
-              onPress={handleRetake} 
-              variant="outlined" 
-              style={{ marginTop: Spacing.md }} 
+            <Text style={styles.scoreText}>You scored {score} out of {quizQuestions.length}!</Text>
+            <Button title="Continue to Discussion" onPress={onComplete} size="lg" style={{ marginTop: Spacing.md }} />
+            <Button
+              title="Retake Quiz"
+              onPress={handleRetake}
+              variant="outlined"
+              style={{ marginTop: Spacing.sm }}
             />
           </View>
         )}
@@ -203,20 +240,29 @@ export function ParachuteDropPostActivity({ result, onComplete }: Props) {
 }
 
 export function ParachuteDropDiscussion() {
-  const { t } = useTranslation();
-  const { team } = useRequireAuth();
-  
-  const isHighSchool = team?.gradeLevel === t('setup.gradeLowerHigh') || 
-                       team?.gradeLevel === 'Lower High School (Grades 7–9)' || 
-                       team?.gradeLevel?.includes('High');
+  const { isHighSchool, isPrimary } = useGradeBand();
 
   return (
     <View style={styles.container}>
       <Card style={styles.discussionCard}>
         <Text style={styles.sectionTitle}>Discussion</Text>
-        <Text style={styles.paragraph}>
-          Gravity pulls objects downward, causing them to speed up as they fall. A parachute increases air resistance (also called drag). Drag acts upward, opposing the motion and slowing the fall. A slower fall reduces the force when the toy hits the ground, making the landing safer. Engineers improve parachute designs through repeated testing and redesign.
-        </Text>
+        {isPrimary ? (
+          <>
+            <Text style={styles.paragraph}>
+              Gravity pulls the toy down. The parachute catches air and slows the fall so the landing is gentler. Bigger parachutes usually slow the fall more. Testing different designs helps you see what works best.
+            </Text>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                <Text style={{ fontWeight: '700' }}>Talk about: </Text>
+                Which parachute gave the softest landing? What would you change next time?
+              </Text>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.paragraph}>
+            Gravity pulls objects downward, causing them to speed up as they fall. A parachute increases air resistance (also called drag). Drag acts upward, opposing the motion and slowing the fall. A slower fall reduces the force when the toy hits the ground, making the landing safer. Engineers improve parachute designs through repeated testing and redesign.
+          </Text>
+        )}
 
         {isHighSchool && (
           <View style={styles.tableBlock}>
@@ -244,6 +290,7 @@ export function ParachuteDropDiscussion() {
           </View>
         )}
 
+        {isHighSchool && (
         <View style={styles.tableBlock}>
           <Text style={styles.tableHeading}>Typical G-Force Ranges and Injury Risk</Text>
           <View style={styles.tableRowHeader}>
@@ -266,13 +313,16 @@ export function ParachuteDropDiscussion() {
             </View>
           ))}
         </View>
-        
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            <Text style={{fontWeight: '700'}}>Important: </Text>
-            Duration matters. A brief spike can be survivable, while sustained g-forces are more dangerous.
-          </Text>
-        </View>
+        )}
+
+        {isHighSchool ? (
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>
+              <Text style={{ fontWeight: '700' }}>Important: </Text>
+              Duration matters. A brief spike can be survivable, while sustained g-forces are more dangerous.
+            </Text>
+          </View>
+        ) : null}
       </Card>
     </View>
   );

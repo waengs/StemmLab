@@ -12,6 +12,7 @@ import {
   updateProfile,
   generateDiscriminator,
 } from '../utils/storage';
+import { isSigningOut, setSigningOut } from '../auth/sessionFlags';
 import { subscribeToAuthState, resolveUserAfterAuth } from '../services/auth/authService';
 import { resetDataStores } from './resetDataStores';
 import { rehydrateAppData } from './rehydrateAppData';
@@ -62,17 +63,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hydrate: async () => {
     if (!authSubscription) {
       authSubscription = subscribeToAuthState(async (firebaseUser) => {
-        set({ firebaseUser });
-        const { user, team } = await resolveUserAfterAuth(firebaseUser);
-        applyAuthState(set, user, team);
-        if (firebaseUser) {
-          try {
-            const { refreshSharedData } = await import('../utils/storage');
-            await refreshSharedData();
-            await rehydrateAppData();
-          } catch (err) {
-            console.warn('[auth] sync after sign-in failed:', err);
+        if (isSigningOut()) return;
+        try {
+          set({ firebaseUser });
+          const { user, team } = await resolveUserAfterAuth(firebaseUser);
+          applyAuthState(set, user, team);
+          if (firebaseUser) {
+            try {
+              const { refreshSharedData } = await import('../utils/storage');
+              await refreshSharedData();
+              await rehydrateAppData();
+            } catch (err) {
+              console.warn('[auth] sync after sign-in failed:', err);
+            }
           }
+        } catch (err) {
+          console.warn('[auth] auth state handler failed:', err);
         }
       });
     }
@@ -99,11 +105,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signIn: async (email, password) => {
-    const user = await signInUser(email, password);
-    if (!user) return false;
-    const ctx = await getAuthContext();
-    applyAuthState(set, ctx?.user ?? user, ctx?.team ?? null);
-    if (ctx?.team) await rehydrateAppData();
+    const signedInUser = await signInUser(email, password);
+    if (!signedInUser) return false;
+    const { getFirebaseAuth } = await import('../config/firebase');
+    const { user, team } = await resolveUserAfterAuth(getFirebaseAuth().currentUser);
+    applyAuthState(set, user, team);
+    if (team) {
+      await rehydrateAppData();
+    }
     return true;
   },
 
@@ -135,8 +144,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = await leaveTeam(uid);
     resetDataStores();
     applyAuthState(set, user, null);
-    const { navigateToAuthSetup } = await import('../navigation/authNavigation');
-    navigateToAuthSetup();
   },
 
   updateUser: async (options) => {
@@ -147,12 +154,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
-    await clearSession();
-    set({ user: null, team: null, firebaseUser: null, needsTeam: false });
+    setSigningOut(true);
     resetDataStores();
-
-    const { navigateToAuthSetup } = await import('../navigation/authNavigation');
-    navigateToAuthSetup();
+    set({ user: null, team: null, firebaseUser: null, needsTeam: false, isHydrated: true });
+    try {
+      await clearSession();
+    } catch (err) {
+      console.warn('[auth] signOut failed:', err);
+    } finally {
+      setSigningOut(false);
+    }
   },
 }));
 
