@@ -2,6 +2,9 @@ import * as Haptics from 'expo-haptics';
 
 export const PRE_COUNTDOWN_SEC = 3;
 export const RECORD_SEC = 10;
+export const DEFAULT_RECORD_SEC = 10;
+export const MIN_RECORD_SEC = 5;
+export const MAX_RECORD_SEC = 60;
 
 async function speak(text: string) {
   try {

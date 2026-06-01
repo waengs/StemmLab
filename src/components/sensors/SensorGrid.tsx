@@ -7,6 +7,7 @@ import { FeatureCard } from '../cards/FeatureCard';
 import { SENSORS } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { matchesSearch } from '../../utils/search';
+import { getSensorChipLabel } from '../../utils/sensorChip';
 import { Spacing } from '../../theme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
@@ -24,7 +25,8 @@ export function SensorGrid({ onSensorPress, searchQuery = '' }: SensorGridProps)
     return Object.values(SENSORS).filter((sensor) => {
       const name = t(`data.sensors.${sensor.id}.name`, { defaultValue: sensor.name });
       const desc = t(`data.sensors.${sensor.id}.desc`, { defaultValue: sensor.description });
-      return matchesSearch(`${name} ${desc} ${sensor.id}`, searchQuery);
+      const chip = getSensorChipLabel(sensor.id, t);
+      return matchesSearch(`${name} ${desc} ${chip} ${sensor.id}`, searchQuery);
     });
   }, [searchQuery, t]);
 
@@ -41,12 +43,13 @@ export function SensorGrid({ onSensorPress, searchQuery = '' }: SensorGridProps)
   }
 
   return (
-    <Grid gap={Spacing.md} rowMinHeight={156}>
+    <Grid gap={Spacing.md} rowMinHeight={172}>
       {sensors.map((sensor) => (
         <FeatureCard
           key={sensor.id}
           title={t(`data.sensors.${sensor.id}.name`, { defaultValue: sensor.name })}
           description={t(`data.sensors.${sensor.id}.desc`, { defaultValue: sensor.description })}
+          chipLabel={getSensorChipLabel(sensor.id, t)}
           icon={sensor.icon as IoniconsName}
           iconColor={colors.primary}
           onPress={() => onSensorPress(sensor.id)}

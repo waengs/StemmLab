@@ -249,7 +249,13 @@ export default function ActivityDetail() {
             <View style={styles.chipRow}>
               <Chip label={t(`data.categories.${activity.category}`, { defaultValue: activity.category })} variant="filled" color={Colors.primary} size="md" />
               {activity.sensors.map((sensor) => (
-                <Chip key={sensor} label={t(`data.sensors.${sensor}.name`, { defaultValue: sensor.replace('-', ' ') })} size="sm" />
+                <Chip
+                  key={sensor}
+                  label={t(`data.activities.${activity.id}.chips.${sensor}`, {
+                    defaultValue: t(`data.sensors.${sensor}.name`, { defaultValue: sensor.replace(/-/g, ' ') }),
+                  })}
+                  size="sm"
+                />
               ))}
             </View>
 

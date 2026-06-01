@@ -1,8 +1,9 @@
 import React from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../ui/Card';
 import { IconBadge } from '../ui/IconBadge';
+import { Chip } from '../ui/Chip';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
 
@@ -13,10 +14,11 @@ interface FeatureCardProps {
   description: string;
   icon: IoniconsName;
   iconColor: string;
+  chipLabel?: string;
   onPress: () => void;
 }
 
-export function FeatureCard({ title, description, icon, iconColor, onPress }: FeatureCardProps) {
+export function FeatureCard({ title, description, icon, iconColor, chipLabel, onPress }: FeatureCardProps) {
   const { typography } = useTheme();
 
   return (
@@ -28,6 +30,11 @@ export function FeatureCard({ title, description, icon, iconColor, onPress }: Fe
       <Text style={[typography.caption, styles.description]} numberOfLines={2}>
         {description}
       </Text>
+      {chipLabel ? (
+        <View style={styles.chips}>
+          <Chip label={chipLabel} size="sm" />
+        </View>
+      ) : null}
     </Card>
   );
 }
@@ -36,4 +43,5 @@ const styles = StyleSheet.create({
   card: { justifyContent: 'flex-start' },
   title: { marginTop: Spacing.md, marginBottom: Spacing.xs },
   description: { flex: 1 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm },
 });

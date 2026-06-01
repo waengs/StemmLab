@@ -44,7 +44,9 @@ export function ActivityListCard({ id, name, description, sensors, onPress }: Ac
             {sensors.map((sensor) => (
               <Chip
                 key={sensor}
-                label={t(`data.sensors.${sensor}.name`, { defaultValue: sensor.replace('-', ' ') })}
+                label={t(`data.activities.${id}.chips.${sensor}`, {
+                  defaultValue: t(`data.sensors.${sensor}.name`, { defaultValue: sensor.replace(/-/g, ' ') }),
+                })}
                 size="sm"
               />
             ))}

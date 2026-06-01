@@ -98,7 +98,7 @@ export const ACTIVITIES = {
     name: 'Parachute Drop Challenge',
     category: 'Engineering',
     description: 'Design and test a parachute to minimize impact force',
-    sensors: ['slow-mo', 'g-force'],
+    sensors: ['slow-mo'],
   },
   'sound-pollution': {
     id: 'sound-pollution',
@@ -112,28 +112,28 @@ export const ACTIVITIES = {
     name: 'Hand Fan Challenge',
     category: 'Engineering',
     description: 'Build an efficient hand-powered fan',
-    sensors: ['movement-detector'],
+    sensors: ['slow-mo'],
   },
   'earthquake': {
     id: 'earthquake',
     name: 'Earthquake-Resistant Structure',
     category: 'Engineering',
     description: 'Design a structure that withstands simulated earthquakes',
-    sensors: ['vibration', 'slow-mo'],
+    sensors: ['phone-vibration'],
   },
   'human-performance': {
     id: 'human-performance',
     name: 'Human Performance Lab',
     category: 'Health/Medical',
     description: 'Test stretch speed and gracefulness',
-    sensors: ['vibration', 'movement-detector'],
+    sensors: ['vibration'],
   },
   'reaction-board': {
     id: 'reaction-board',
     name: 'Reaction Board Challenge',
     category: 'Health/Medical',
     description: 'Measure reaction time and accuracy',
-    sensors: ['movement-detector'],
+    sensors: ['reaction-timer'],
   },
   'breathing-pace': {
     id: 'breathing-pace',
@@ -150,12 +150,6 @@ export const SENSORS = {
     name: 'Slow-Mo Video',
     icon: 'videocam',
     description: 'Record high-speed video for detailed analysis',
-  },
-  'g-force': {
-    id: 'g-force',
-    name: 'G-Force Meter',
-    icon: 'speedometer',
-    description: 'Measure acceleration forces',
   },
   'sound-meter': {
     id: 'sound-meter',
@@ -175,10 +169,10 @@ export const SENSORS = {
     icon: 'pulse',
     description: 'Detect and measure vibrations',
   },
-  'movement-detector': {
-    id: 'movement-detector',
-    name: 'Movement Detector',
-    icon: 'walk',
-    description: 'Track motion and speed',
+  'reaction-timer': {
+    id: 'reaction-timer',
+    name: 'Reaction Test',
+    icon: 'flash',
+    description: 'Measure reaction time to a visual cue',
   },
 };

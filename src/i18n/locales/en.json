@@ -100,7 +100,7 @@
     "savedTitle": "Saved!",
     "savedMsg": "Your results have been recorded.",
     "enterValue": "Enter {{label}}",
-    "searchPlaceholder": "Search activities..."
+    "searchPlaceholder": "Search activities or sensor types..."
   },
   "sensors": {
     "pageTitle": "Sensors",
@@ -117,7 +117,21 @@
     "uploadFailedTitle": "Upload failed",
     "uploadFailedMsg": "Could not upload the video. Try again.",
     "savedLocallyHint": "Videos save on this device. Cloud upload will work once Cloudinary is configured.",
-    "noVideoInLog": "No video saved with this log."
+    "noVideoInLog": "No video saved with this log.",
+    "noResultTitle": "No result",
+    "noResultMsg": "Complete a measurement before saving.",
+    "reactionTooEarlyTitle": "Too early!",
+    "reactionTooEarlyMsg": "Wait for the screen to turn green before tapping.",
+    "reactionIdleHint": "Tap Start, then wait for green and tap as fast as you can.",
+    "reactionWaitHint": "Wait for green…",
+    "reactionGoHint": "TAP NOW!",
+    "reactionDoneHint": "Reaction time: {{ms}} ms",
+    "reactionResult": "{{ms}} ms",
+    "reactionTryAgain": "Try again",
+    "vibrationDurationLabel": "Recording length",
+    "vibrationDurationSeconds": "{{count}} sec",
+    "vibrationDurationUnit": "sec",
+    "vibrationIdleHint": "Hold the phone and tap Start. Countdown 3-2-1, then {{seconds}} seconds of recording. Done plays when finished."
   },
   "leaderboard": {
     "pageTitle": "Leaderboard",
@@ -237,6 +251,9 @@
         "calcWarningText": "Using the instant calculator will deduct 20 points from your team's score. Continue?",
         "btnStartOver": "Start Over",
         "btnSaveResults": "Complete Activity",
+        "chips": {
+          "slow-mo": "Camera"
+        },
         "fields": {
           "gForce": "G-Force Measured",
           "dropHeight": "Drop Height (cm)",
@@ -246,6 +263,10 @@
       "sound-pollution": {
         "name": "Sound Pollution Hunter",
         "desc": "Measure and map sound levels in different environments",
+        "chips": {
+          "sound-meter": "Microphone",
+          "location": "GPS"
+        },
         "fields": {
           "maxDecibels": "Max Sound Level (dB)",
           "avgDecibels": "Average Sound Level (dB)",
@@ -255,6 +276,9 @@
       "hand-fan": {
         "name": "Hand Fan Challenge",
         "desc": "Build an efficient hand-powered fan",
+        "chips": {
+          "slow-mo": "Camera"
+        },
         "fields": {
           "windSpeed": "Wind Speed (m/s)",
           "fanSize": "Fan Diameter (cm)"
@@ -263,6 +287,9 @@
       "earthquake": {
         "name": "Earthquake-Resistant Structure",
         "desc": "Design a structure that withstands simulated earthquakes",
+        "chips": {
+          "phone-vibration": "Vibration motor"
+        },
         "fields": {
           "vibrationLevel": "Max Vibration (Hz)",
           "structureHeight": "Structure Height (cm)",
@@ -281,6 +308,9 @@
         "predictVibration": "Predict Phone Vibration Sensor result (cm)",
         "sensorTitle": "Vibration + Speed Sensor",
         "resultsTitle": "Results",
+        "chips": {
+          "vibration": "Accelerometer"
+        },
         "tabs": {
           "setup": "Setup",
           "predictions": "Predictions",
@@ -297,6 +327,9 @@
       "reaction-board": {
         "name": "Reaction Board Challenge",
         "desc": "Measure reaction time and accuracy",
+        "chips": {
+          "reaction-timer": "Touchscreen"
+        },
         "fields": {
           "reactionTime": "Reaction Time (ms)",
           "accuracy": "Accuracy (%)"
@@ -317,6 +350,9 @@
         "afterJog": "After jog",
         "afterStarJump": "After star jumps",
         "resultsTitle": "Results",
+        "chips": {
+          "vibration": "Accelerometer"
+        },
         "tabs": {
           "setup": "Setup",
           "predictions": "Predictions",
@@ -332,27 +368,28 @@
     "sensors": {
       "slow-mo": {
         "name": "Slow-Mo Video",
-        "desc": "Record high-speed video for detailed analysis"
-      },
-      "g-force": {
-        "name": "G-Force Meter",
-        "desc": "Measure acceleration forces"
+        "desc": "Record high-speed video for detailed analysis",
+        "chip": "Camera"
       },
       "sound-meter": {
         "name": "Live Sound Meter",
-        "desc": "Real-time decibel measurements"
+        "desc": "Real-time decibel measurements",
+        "chip": "Microphone"
       },
       "location": {
         "name": "Location Tag",
-        "desc": "GPS location tracking"
+        "desc": "GPS location tracking",
+        "chip": "GPS"
       },
       "vibration": {
         "name": "Vibration Sensor",
-        "desc": "Record 10s of real accelerometer data with optional live feedback"
+        "desc": "Record accelerometer data for 5–60 seconds with optional live feedback",
+        "chip": "Accelerometer"
       },
-      "movement-detector": {
-        "name": "Movement Detector",
-        "desc": "Track motion and speed"
+      "reaction-timer": {
+        "name": "Reaction Test",
+        "desc": "Measure reaction time to a visual cue",
+        "chip": "Touchscreen"
       }
     }
   }

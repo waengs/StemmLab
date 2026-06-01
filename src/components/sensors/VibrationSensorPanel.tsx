@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, Switch, Alert, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -13,7 +14,9 @@ import {
   playShakyAlert,
   sleep,
   PRE_COUNTDOWN_SEC,
-  RECORD_SEC,
+  DEFAULT_RECORD_SEC,
+  MIN_RECORD_SEC,
+  MAX_RECORD_SEC,
 } from '../../utils/recordingSounds';
 
 interface VibrationSensorPanelProps {
@@ -46,6 +49,7 @@ function LiveMeter({ value, isShaky, feedbackOn }: { value: string | null; isSha
 
 export function VibrationSensorPanel({ notes, onNotesChange, onResultReady, onSave }: VibrationSensorPanelProps) {
   const { t } = useTranslation();
+  const [recordDurationSec, setRecordDurationSec] = useState(DEFAULT_RECORD_SEC);
   const [feedbackOn, setFeedbackOn] = useState(false);
   const [step, setStep] = useState<'idle' | 'countdown' | 'recording' | 'done'>('idle');
   const [countdown, setCountdown] = useState(0);
@@ -92,11 +96,11 @@ export function VibrationSensorPanel({ notes, onNotesChange, onResultReady, onSa
 
     await playStartBeep();
     setStep('recording');
-    setRecordRemaining(RECORD_SEC);
+    setRecordRemaining(recordDurationSec);
 
     try {
       const session = await recordMotion(
-        RECORD_SEC,
+        recordDurationSec,
         feedbackOn,
         (remaining) => setRecordRemaining(remaining),
         (vibrationCm, shaky) => {
@@ -185,8 +189,53 @@ export function VibrationSensorPanel({ notes, onNotesChange, onResultReady, onSa
 
       {step === 'idle' && (
         <>
+          <View style={styles.durationBlock}>
+            <Text style={styles.durationLabel}>
+              {t('sensors.vibrationDurationLabel', { defaultValue: 'Recording length' })}
+            </Text>
+            <View style={styles.durationValueRow}>
+              <Pressable
+                onPress={() => setRecordDurationSec((s) => Math.max(MIN_RECORD_SEC, s - 1))}
+                style={styles.durationStepBtn}
+                hitSlop={8}
+              >
+                <Ionicons name="remove" size={22} color={Colors.primary} />
+              </Pressable>
+              <Text style={styles.durationValue}>
+                {t('sensors.vibrationDurationSeconds', {
+                  defaultValue: '{{count}} sec',
+                  count: recordDurationSec,
+                })}
+              </Text>
+              <Pressable
+                onPress={() => setRecordDurationSec((s) => Math.min(MAX_RECORD_SEC, s + 1))}
+                style={styles.durationStepBtn}
+                hitSlop={8}
+              >
+                <Ionicons name="add" size={22} color={Colors.primary} />
+              </Pressable>
+            </View>
+            <Slider
+              style={styles.durationSlider}
+              minimumValue={MIN_RECORD_SEC}
+              maximumValue={MAX_RECORD_SEC}
+              step={1}
+              value={recordDurationSec}
+              onValueChange={(v) => setRecordDurationSec(Math.round(v))}
+              minimumTrackTintColor={Colors.primary}
+              maximumTrackTintColor={Colors.border}
+              thumbTintColor={Colors.primaryDark}
+            />
+            <Text style={styles.durationRange}>
+              {MIN_RECORD_SEC}–{MAX_RECORD_SEC} {t('sensors.vibrationDurationUnit', { defaultValue: 'sec' })}
+            </Text>
+          </View>
           <Text style={styles.hint}>
-            Hold the phone and tap Start. Countdown 3-2-1, then 10 seconds of recording. Done plays when finished.
+            {t('sensors.vibrationIdleHint', {
+              defaultValue:
+                'Hold the phone and tap Start. Countdown 3-2-1, then {{seconds}} seconds of recording. Done plays when finished.',
+              seconds: recordDurationSec,
+            })}
           </Text>
           <Button
             title={t('sensors.startMeasurement')}
@@ -247,6 +296,33 @@ const styles = StyleSheet.create({
   toggleText: { flex: 1, paddingRight: Spacing.md },
   toggleLabel: { ...Typography.label, marginBottom: 2 },
   toggleHint: { ...Typography.caption, color: Colors.textSecondary },
+  durationBlock: {
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+  },
+  durationLabel: { ...Typography.label, marginBottom: Spacing.sm },
+  durationValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.lg,
+    marginBottom: Spacing.xs,
+  },
+  durationStepBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  durationValue: { ...Typography.h3, minWidth: 72, textAlign: 'center' },
+  durationSlider: { width: '100%', height: 40 },
+  durationRange: { ...Typography.caption, color: Colors.textMuted, textAlign: 'center' },
   hint: { ...Typography.bodySmall, color: Colors.textSecondary, marginBottom: Spacing.lg, lineHeight: 20 },
   countdownBox: { alignItems: 'center', paddingVertical: Spacing.xxxl },
   countdownLabel: { ...Typography.body, color: Colors.textSecondary },

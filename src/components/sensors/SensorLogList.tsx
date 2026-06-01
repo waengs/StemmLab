@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { useSensorStore } from '../../stores/sensorStore';
 import { useTheme } from '../../context/ThemeContext';
 import { matchesSearch } from '../../utils/search';
+import { getSensorChipLabel } from '../../utils/sensorChip';
 import { parseSlowMoLogData, parseVibrationLogData } from '../../utils/slowMoLog';
 import { Spacing } from '../../theme';
 import type { SensorLog } from '../../types';
@@ -41,7 +42,9 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors'], typography:
       gap: Spacing.sm,
       marginBottom: Spacing.sm,
     },
-    headerLeft: { flex: 1 },
+    headerLeft: { flex: 1, gap: Spacing.xs },
+    logSensorName: { ...typography.label, color: colors.text },
+    logChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
     headerRight: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -118,7 +121,8 @@ export function SensorLogList({ logs, searchQuery = '' }: SensorLogListProps) {
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       const sensorName = t(`data.sensors.${log.sensorType}.name`, { defaultValue: log.sensorType });
-      return matchesSearch(`${sensorName} ${log.data}`, searchQuery);
+      const chip = getSensorChipLabel(log.sensorType, t);
+      return matchesSearch(`${sensorName} ${chip} ${log.data}`, searchQuery);
     });
   }, [logs, searchQuery, t]);
 
@@ -207,12 +211,12 @@ export function SensorLogList({ logs, searchQuery = '' }: SensorLogListProps) {
             <Card key={log.id} style={styles.logCard} variant="outlined">
               <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                  <Chip
-                    label={t(`data.sensors.${log.sensorType}.name`, { defaultValue: log.sensorType })}
-                    variant="filled"
-                    color={colors.primary}
-                    size="sm"
-                  />
+                  <Text style={styles.logSensorName}>
+                    {t(`data.sensors.${log.sensorType}.name`, { defaultValue: log.sensorType })}
+                  </Text>
+                  <View style={styles.logChips}>
+                    <Chip label={getSensorChipLabel(log.sensorType, t)} size="sm" />
+                  </View>
                 </View>
                 <View style={styles.headerRight}>
                   <Text style={styles.date} numberOfLines={2}>

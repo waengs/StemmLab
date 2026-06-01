@@ -100,7 +100,7 @@
     "savedTitle": "Tersimpan!",
     "savedMsg": "Hasil Anda telah dicatat.",
     "enterValue": "Masukkan {{label}}",
-    "searchPlaceholder": "Cari aktivitas..."
+    "searchPlaceholder": "Cari aktivitas atau jenis sensor..."
   },
   "sensors": {
     "pageTitle": "Sensor",
@@ -117,7 +117,21 @@
     "uploadFailedTitle": "Unggahan gagal",
     "uploadFailedMsg": "Video tidak dapat diunggah. Coba lagi.",
     "savedLocallyHint": "Video disimpan di perangkat ini. Unggah cloud akan aktif setelah Cloudinary dikonfigurasi.",
-    "noVideoInLog": "Tidak ada video tersimpan pada catatan ini."
+    "noVideoInLog": "Tidak ada video tersimpan pada catatan ini.",
+    "noResultTitle": "Tidak ada hasil",
+    "noResultMsg": "Selesaikan pengukuran sebelum menyimpan.",
+    "reactionTooEarlyTitle": "Terlalu cepat!",
+    "reactionTooEarlyMsg": "Tunggu layar berubah hijau sebelum mengetuk.",
+    "reactionIdleHint": "Ketuk Mulai, tunggu hijau, lalu ketuk secepat mungkin.",
+    "reactionWaitHint": "Tunggu hijau…",
+    "reactionGoHint": "KETUK SEKARANG!",
+    "reactionDoneHint": "Waktu reaksi: {{ms}} ms",
+    "reactionResult": "{{ms}} ms",
+    "reactionTryAgain": "Coba lagi",
+    "vibrationDurationLabel": "Durasi rekaman",
+    "vibrationDurationSeconds": "{{count}} dtk",
+    "vibrationDurationUnit": "dtk",
+    "vibrationIdleHint": "Pegang ponsel lalu ketuk Mulai. Hitung mundur 3-2-1, lalu rekam {{seconds}} detik. Bunyi selesai saat selesai."
   },
   "leaderboard": {
     "pageTitle": "Papan Peringkat",
@@ -190,6 +204,9 @@
       "parachute-drop": {
         "name": "Tantangan Terjun Payung",
         "desc": "Rancang dan uji parasut untuk meminimalkan gaya benturan",
+        "chips": {
+          "slow-mo": "Kamera"
+        },
         "fields": {
           "gForce": "Gaya G Diukur",
           "dropHeight": "Tinggi Jatuh (cm)",
@@ -199,6 +216,10 @@
       "sound-pollution": {
         "name": "Pemburu Polusi Suara",
         "desc": "Ukur dan petakan tingkat suara di berbagai lingkungan",
+        "chips": {
+          "sound-meter": "Mikrofon",
+          "location": "GPS"
+        },
         "fields": {
           "maxDecibels": "Tingkat Suara Maksimal (dB)",
           "avgDecibels": "Tingkat Suara Rata-rata (dB)",
@@ -208,6 +229,9 @@
       "hand-fan": {
         "name": "Tantangan Kipas Tangan",
         "desc": "Buat kipas bertenaga tangan yang efisien",
+        "chips": {
+          "slow-mo": "Kamera"
+        },
         "fields": {
           "windSpeed": "Kecepatan Angin (m/s)",
           "fanSize": "Diameter Kipas (cm)"
@@ -216,6 +240,9 @@
       "earthquake": {
         "name": "Struktur Tahan Gempa",
         "desc": "Rancang struktur yang tahan terhadap simulasi gempa bumi",
+        "chips": {
+          "phone-vibration": "Motor getar"
+        },
         "fields": {
           "vibrationLevel": "Getaran Maksimal (Hz)",
           "structureHeight": "Tinggi Struktur (cm)",
@@ -234,6 +261,9 @@
         "predictVibration": "Prediksi hasil Sensor Getaran Ponsel (cm)",
         "sensorTitle": "Sensor Getaran + Kecepatan",
         "resultsTitle": "Hasil",
+        "chips": {
+          "vibration": "Akselerometer"
+        },
         "tabs": {
           "setup": "Persiapan",
           "predictions": "Prediksi",
@@ -250,6 +280,9 @@
       "reaction-board": {
         "name": "Tantangan Papan Reaksi",
         "desc": "Ukur waktu dan akurasi reaksi",
+        "chips": {
+          "reaction-timer": "Layar sentuh"
+        },
         "fields": {
           "reactionTime": "Waktu Reaksi (md)",
           "accuracy": "Akurasi (%)"
@@ -270,6 +303,9 @@
         "afterJog": "Setelah joging",
         "afterStarJump": "Setelah star jump",
         "resultsTitle": "Hasil",
+        "chips": {
+          "vibration": "Akselerometer"
+        },
         "tabs": {
           "setup": "Persiapan",
           "predictions": "Prediksi",
@@ -285,27 +321,28 @@
     "sensors": {
       "slow-mo": {
         "name": "Video Gerak Lambat",
-        "desc": "Rekam video berkecepatan tinggi untuk analisis detail"
-      },
-      "g-force": {
-        "name": "Pengukur Gaya G",
-        "desc": "Ukur gaya percepatan"
+        "desc": "Rekam video berkecepatan tinggi untuk analisis detail",
+        "chip": "Kamera"
       },
       "sound-meter": {
         "name": "Pengukur Suara Langsung",
-        "desc": "Pengukuran desibel waktu nyata"
+        "desc": "Pengukuran desibel waktu nyata",
+        "chip": "Mikrofon"
       },
       "location": {
         "name": "Label Lokasi",
-        "desc": "Pelacakan lokasi GPS"
+        "desc": "Pelacakan lokasi GPS",
+        "chip": "GPS"
       },
       "vibration": {
         "name": "Sensor Getaran",
-        "desc": "Rekam 10 detik data akselerometer dengan umpan balik opsional"
+        "desc": "Rekam data akselerometer 5–60 detik dengan umpan balik opsional",
+        "chip": "Akselerometer"
       },
-      "movement-detector": {
-        "name": "Detektor Gerakan",
-        "desc": "Lacak gerakan dan kecepatan"
+      "reaction-timer": {
+        "name": "Tes Reaksi",
+        "desc": "Ukur waktu reaksi terhadap isyarat visual",
+        "chip": "Layar sentuh"
       }
     }
   }

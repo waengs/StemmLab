@@ -13,10 +13,13 @@ import { Input } from '../ui/Input';
 import { WebView } from 'react-native-webview';
 import { TrialVideoPlayer } from './TrialVideoPlayer';
 import { VibrationSensorPanel } from './VibrationSensorPanel';
+import { ReactionTestPanel } from './ReactionTestPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 import { SENSORS } from '../../types';
 import { isCloudinaryConfigured } from '../../services/cloudinary';
+import { getSensorChipLabel } from '../../utils/sensorChip';
+import { Chip } from '../ui/Chip';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -79,7 +82,8 @@ export function SensorModal({
           flex: 1,
         },
         title: { ...typography.h2 },
-        desc: { ...typography.body, color: colors.textSecondary, marginBottom: Spacing.xl },
+        desc: { ...typography.body, color: colors.textSecondary, marginBottom: Spacing.sm },
+        chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.xl },
         measurement: {
           backgroundColor: colors.primary,
           borderRadius: BorderRadius.lg,
@@ -119,6 +123,9 @@ export function SensorModal({
               <Text style={styles.desc}>
                 {t(`data.sensors.${sensor.id}.desc`, { defaultValue: sensor.description })}
               </Text>
+              <View style={styles.chipRow}>
+                <Chip label={getSensorChipLabel(sensor.id, t)} size="sm" />
+              </View>
 
               {sensor.id === 'slow-mo' && !isCloudinaryConfigured() && (
                 <Text style={styles.localHint}>
@@ -130,6 +137,13 @@ export function SensorModal({
 
               {sensor.id === 'vibration' ? (
                 <VibrationSensorPanel
+                  notes={notes}
+                  onNotesChange={onNotesChange}
+                  onResultReady={onResultReady}
+                  onSave={onSave}
+                />
+              ) : sensor.id === 'reaction-timer' ? (
+                <ReactionTestPanel
                   notes={notes}
                   onNotesChange={onNotesChange}
                   onResultReady={onResultReady}

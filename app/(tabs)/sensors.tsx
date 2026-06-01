@@ -34,7 +34,11 @@ export default function Sensors() {
   const handleSensorClick = (sensorId: string) => {
     setSelectedSensor(sensorId);
     setNotes('');
-    simulateSensorData(sensorId);
+    setSensorValue('');
+    setIsRecording(false);
+    if (sensorId === 'slow-mo') {
+      void simulateSensorData(sensorId);
+    }
   };
 
   const handleResultReady = (value: string) => {
@@ -71,14 +75,8 @@ export default function Sensors() {
     let value = '';
 
     switch (sensorToRun) {
-      case 'g-force':
-        value = (Math.random() * 5 + 1).toFixed(2) + ' g';
-        break;
       case 'sound-meter':
         value = (Math.random() * 40 + 40).toFixed(1) + ' dB';
-        break;
-      case 'movement-detector':
-        value = (Math.random() * 10 + 1).toFixed(2) + ' m/s';
         break;
       case 'location':
         try {
@@ -149,9 +147,12 @@ export default function Sensors() {
       return;
     }
 
-    if (selectedSensor === 'vibration') {
+    if (selectedSensor === 'vibration' || selectedSensor === 'reaction-timer') {
       if (!sensorValue) {
-        Alert.alert('No recording', 'Complete a vibration recording before saving.');
+        Alert.alert(
+          t('sensors.noResultTitle', { defaultValue: 'No result' }),
+          t('sensors.noResultMsg', { defaultValue: 'Complete a measurement before saving.' })
+        );
         return;
       }
       await saveLog(notes.trim() ? `${sensorValue}\nNotes: ${notes}` : sensorValue);

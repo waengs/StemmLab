@@ -4,37 +4,31 @@ import { useTranslation } from 'react-i18next';
 import { Screen, PageTitle, ActivityCategorySection, SearchBar } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { useTheme } from '../../../src/context/ThemeContext';
-import { matchesSearch } from '../../../src/utils/search';
+import { activityMatchesSearch } from '../../../src/utils/activitySearch';
 
 export default function Activities() {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filterActivity = (id: string, name: string, description: string, category: string) => {
-    const translatedName = t(`data.activities.${id}.name`, { defaultValue: name });
-    const translatedDesc = t(`data.activities.${id}.desc`, { defaultValue: description });
-    const translatedCategory = t(`data.categories.${category}`, { defaultValue: category });
-    return matchesSearch(`${translatedName} ${translatedDesc} ${translatedCategory}`, searchQuery);
-  };
+  const matchesFilter = (activity: (typeof ACTIVITIES)[keyof typeof ACTIVITIES]) =>
+    activityMatchesSearch(
+      activity.id,
+      activity.name,
+      activity.description,
+      activity.category,
+      activity.sensors,
+      searchQuery,
+      t
+    );
 
   const engineeringActivities = useMemo(
-    () =>
-      Object.values(ACTIVITIES).filter(
-        (a) =>
-          a.category === 'Engineering' &&
-          filterActivity(a.id, a.name, a.description, a.category)
-      ),
+    () => Object.values(ACTIVITIES).filter((a) => a.category === 'Engineering' && matchesFilter(a)),
     [searchQuery, t]
   );
 
   const healthActivities = useMemo(
-    () =>
-      Object.values(ACTIVITIES).filter(
-        (a) =>
-          a.category === 'Health/Medical' &&
-          filterActivity(a.id, a.name, a.description, a.category)
-      ),
+    () => Object.values(ACTIVITIES).filter((a) => a.category === 'Health/Medical' && matchesFilter(a)),
     [searchQuery, t]
   );
 
