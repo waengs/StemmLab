@@ -14,6 +14,7 @@ import { WebView } from 'react-native-webview';
 import { TrialVideoPlayer } from './TrialVideoPlayer';
 import { VibrationSensorPanel } from './VibrationSensorPanel';
 import { ReactionTestPanel } from './ReactionTestPanel';
+import { SoundMeterPanel } from './SoundMeterPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 import { SENSORS } from '../../types';
@@ -135,7 +136,14 @@ export function SensorModal({
                 </Text>
               )}
 
-              {sensor.id === 'vibration' ? (
+              {sensor.id === 'sound-meter' ? (
+                <SoundMeterPanel
+                  notes={notes}
+                  onNotesChange={onNotesChange}
+                  onResultReady={onResultReady}
+                  onSave={onSave}
+                />
+              ) : sensor.id === 'vibration' ? (
                 <VibrationSensorPanel
                   notes={notes}
                   onNotesChange={onNotesChange}

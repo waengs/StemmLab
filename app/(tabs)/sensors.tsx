@@ -83,9 +83,6 @@ export default function Sensors() {
     let value = '';
 
     switch (sensorToRun) {
-      case 'sound-meter':
-        value = (Math.random() * 40 + 40).toFixed(1) + ' dB';
-        break;
       case 'location':
         try {
           const loc = await Location.getCurrentPositionAsync({});
@@ -168,7 +165,7 @@ export default function Sensors() {
       return;
     }
 
-    if (selectedSensor === 'vibration' || selectedSensor === 'reaction-timer') {
+    if (selectedSensor === 'vibration' || selectedSensor === 'reaction-timer' || selectedSensor === 'sound-meter') {
       if (!sensorValue) {
         Alert.alert(
           t('sensors.noResultTitle', { defaultValue: 'No result' }),

@@ -287,6 +287,39 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
               <Image source={require('../../../assets/images/activity4illustration.jpeg')} style={styles.illustration} resizeMode="contain" />
             </Card>
 
+            <Button 
+              title={t('common.next', { defaultValue: 'Next' })} 
+              onPress={() => setActiveTab('predictions')} 
+              disabled={!allEquipmentChecked}
+            />
+          </View>
+        )}
+
+        {/* PREDICTIONS TAB */}
+        {activeTab === 'predictions' && (
+          <View>
+            <Card style={styles.pageCard}>
+              <Text style={styles.sectionTitle}>Make Your Predictions</Text>
+              <Input
+                label="Predict which fold design makes the phone move the least:"
+                value={data.predictedBestDesign}
+                onChangeText={(v) => updateData({ predictedBestDesign: v })}
+                placeholder="e.g. 10 folds with 4 pillars"
+                editable={!isLocked}
+                onLightSurface
+              />
+            </Card>
+
+            <View style={styles.wizardNavBoth}>
+              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('setup')} />
+              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('experiment')} />
+            </View>
+          </View>
+        )}
+
+        {/* EXPERIMENT TAB */}
+        {activeTab === 'experiment' && (
+          <View>
             <Card style={styles.pageCard}>
               <View style={styles.vibrationControl}>
                 <View style={styles.vibrationControlHeader}>
@@ -342,45 +375,9 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
               </View>
             </Card>
 
-            <Button 
-              title={t('common.next', { defaultValue: 'Next' })} 
-              onPress={() => setActiveTab('predictions')} 
-              disabled={!allEquipmentChecked}
-            />
-          </View>
-        )}
-
-        {/* PREDICTIONS TAB */}
-        {activeTab === 'predictions' && (
-          <View>
-            <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>Make Your Predictions</Text>
-              <Input
-                label="Predict which fold design makes the phone move the least:"
-                value={data.predictedBestDesign}
-                onChangeText={(v) => updateData({ predictedBestDesign: v })}
-                placeholder="e.g. 10 folds with 4 pillars"
-                editable={!isLocked}
-                onLightSurface
-              />
-            </Card>
-
-            <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('setup')} />
-              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('experiment')} />
-            </View>
-          </View>
-        )}
-
-        {/* EXPERIMENT TAB */}
-        {activeTab === 'experiment' && (
-          <View>
             <Card style={styles.pageCard}>
               <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md}}>
                 <Text style={styles.sectionTitle}>Record Trials</Text>
-                <TouchableOpacity onPress={toggleVibration} style={[styles.miniVibrateBtn, isVibrating && styles.miniVibrateBtnActive]}>
-                  <Ionicons name="pulse" size={20} color={isVibrating ? Colors.white : Colors.primary} />
-                </TouchableOpacity>
               </View>
               
               {data.trials.map((trial, index) => (

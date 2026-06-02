@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { SoundMeterPanel } from '../sensors/SoundMeterPanel';
 import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
 import { useRequireAuth } from '../../stores';
 
@@ -136,6 +137,9 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
   // Multi-action modal state
   const [modalLocationLabel, setModalLocationLabel] = useState('');
   const [modalActions, setModalActions] = useState<any[]>([]);
+  const [isLocating, setIsLocating] = useState(false);
+  const [measuringActionIndex, setMeasuringActionIndex] = useState<number | null>(null);
+  const tempDb = useRef<string>('');
 
   const [locationLoaded, setLocationLoaded] = useState(false);
   
@@ -348,15 +352,20 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                       keyboardType="numeric"
                       placeholder="e.g. 50"
                     />
+                    <Button 
+                      title="Measure" 
+                      size="sm" 
+                      icon={<Ionicons name="mic" size={16} color={Colors.primary} />} 
+                      variant="outlined"
+                      style={{ marginTop: Spacing.xs }}
+                      onPress={() => setMeasuringActionIndex(index)} 
+                    />
                   </View>
                   <View style={{flex: 1}}>
                     <Select
                       label="Were you right?"
                       value={actionDraft.wereYouRight}
-                      options={[
-                        { label: 'Yes', value: 'Yes' },
-                        { label: 'No', value: 'No' }
-                      ]}
+                      options={['Yes', 'No']}
                       onSelect={(v) => {
                         const newActions = [...modalActions];
                         newActions[index].wereYouRight = v;
@@ -383,6 +392,31 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
             </View>
           </ScrollView>
         </View>
+        </View>
+      </RNModal>
+
+      <RNModal visible={measuringActionIndex !== null} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.markerModalContent}>
+            <Text style={styles.sectionTitle}>Measure Sound</Text>
+            <SoundMeterPanel
+              notes=""
+              onNotesChange={() => {}}
+              onResultReady={(res) => {
+                tempDb.current = res.replace(' dB', '');
+              }}
+              onSave={() => {
+                if (measuringActionIndex !== null && tempDb.current) {
+                  const newActions = [...modalActions];
+                  newActions[measuringActionIndex].outcomeDb = tempDb.current;
+                  setModalActions(newActions);
+                }
+                setMeasuringActionIndex(null);
+                tempDb.current = '';
+              }}
+            />
+            <Button title="Cancel" variant="ghost" onPress={() => setMeasuringActionIndex(null)} />
+          </View>
         </View>
       </RNModal>
 
@@ -564,11 +598,20 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
               </View>
               <View style={{ padding: Spacing.lg, backgroundColor: Colors.surface }}>
                 <Button 
-                  title="Record at Current Location"
-                  icon={<Ionicons name="location" size={20} color={Colors.white} />}
+                  title={isLocating ? "Locating..." : "Record at Current Location"}
+                  icon={!isLocating && <Ionicons name="location" size={20} color={Colors.white} />}
+                  loading={isLocating}
+                  disabled={!locationLoaded || isLocked}
                   onPress={async () => {
                     if (isLocked) return;
+                    setIsLocating(true);
                     try {
+                      let { status } = await Location.requestForegroundPermissionsAsync();
+                      if (status !== 'granted') {
+                        Alert.alert("Permission Denied", "Permission to access location was denied.");
+                        setIsLocating(false);
+                        return;
+                      }
                       let loc = await Location.getCurrentPositionAsync({});
                       setSelectedCoordinate({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
                       setModalLocationLabel('');
@@ -576,6 +619,8 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                       setShowMarkerModal(true);
                     } catch (e) {
                       Alert.alert("Location Error", "Could not fetch your exact location. Make sure GPS is enabled.");
+                    } finally {
+                      setIsLocating(false);
                     }
                   }}
                 />

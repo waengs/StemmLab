@@ -26,7 +26,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow STEMM Lab to use your location to map sound pollution data."
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }
