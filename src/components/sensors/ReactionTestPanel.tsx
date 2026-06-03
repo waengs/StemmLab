@@ -17,8 +17,11 @@ interface ReactionTestPanelProps {
 
 export function ReactionTestPanel({ notes, onNotesChange, onResultReady, onSave }: ReactionTestPanelProps) {
   const { t } = useTranslation();
+  const [phase, setPhase] = useState<1 | 2>(1);
   const [tapStatus, setTapStatus] = useState<TapStatus>('idle');
-  const [reactionMs, setReactionMs] = useState<number | null>(null);
+  const [dominantMs, setDominantMs] = useState<number | null>(null);
+  const [nonDominantMs, setNonDominantMs] = useState<number | null>(null);
+  
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef(0);
 
@@ -29,7 +32,6 @@ export function ReactionTestPanel({ notes, onNotesChange, onResultReady, onSave 
   }, []);
 
   const startTest = () => {
-    setReactionMs(null);
     setTapStatus('waiting');
     const delay = Math.floor(Math.random() * 3000) + 2000;
     timerRef.current = setTimeout(() => {
@@ -52,38 +54,45 @@ export function ReactionTestPanel({ notes, onNotesChange, onResultReady, onSave 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
+    
     if (tapStatus === 'ready') {
       const ms = Date.now() - startTimeRef.current;
-      setReactionMs(ms);
-      setTapStatus('finished');
-      const summary = t('sensors.reactionResult', { defaultValue: '{{ms}} ms', ms });
-      onResultReady(summary);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      if (phase === 1) {
+        setDominantMs(ms);
+        setTapStatus('idle');
+        setPhase(2);
+      } else {
+        setNonDominantMs(ms);
+        setTapStatus('finished');
+        
+        // Calculate average and send result
+        const dom = dominantMs || ms;
+        const avg = Math.round((dom + ms) / 2);
+        const summary = `Dominant: ${dom}ms | Non-Dominant: ${ms}ms\nAverage Reaction: ${avg}ms`;
+        onResultReady(summary);
+      }
     }
   };
 
   const reset = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    setPhase(1);
     setTapStatus('idle');
-    setReactionMs(null);
+    setDominantMs(null);
+    setNonDominantMs(null);
     onResultReady('');
   };
 
   return (
     <View>
       <Text style={styles.instructions}>
-        {tapStatus === 'idle' &&
-          t('sensors.reactionIdleHint', {
-            defaultValue: 'Tap Start, then wait for green and tap as fast as you can.',
-          })}
-        {tapStatus === 'waiting' &&
-          t('sensors.reactionWaitHint', { defaultValue: 'Wait for green…' })}
-        {tapStatus === 'ready' && t('sensors.reactionGoHint', { defaultValue: 'TAP NOW!' })}
-        {tapStatus === 'finished' &&
-          t('sensors.reactionDoneHint', {
-            defaultValue: 'Reaction time: {{ms}} ms',
-            ms: reactionMs ?? 0,
-          })}
+        {tapStatus === 'idle' && phase === 1 && 'Phase 1: Dominant Hand. Tap Start, wait for green, and tap as fast as you can!'}
+        {tapStatus === 'idle' && phase === 2 && 'Phase 2: Non-Dominant Hand. Tap Start and repeat the test!'}
+        {tapStatus === 'waiting' && 'Wait for green…'}
+        {tapStatus === 'ready' && 'TAP NOW!'}
+        {tapStatus === 'finished' && `Dominant: ${dominantMs}ms | Non-Dominant: ${nonDominantMs}ms\nAverage: ${Math.round(((dominantMs || 0) + (nonDominantMs || 0)) / 2)}ms`}
       </Text>
 
       <Pressable
@@ -96,14 +105,14 @@ export function ReactionTestPanel({ notes, onNotesChange, onResultReady, onSave 
       >
         {tapStatus === 'idle' && (
           <Button
-            title={t('sensors.startMeasurement')}
+            title={phase === 1 ? "Start Dominant Hand" : "Start Non-Dominant Hand"}
             onPress={startTest}
             size="lg"
           />
         )}
         {tapStatus === 'finished' && (
           <Button
-            title={t('sensors.reactionTryAgain', { defaultValue: 'Try again' })}
+            title="Try again"
             onPress={reset}
             size="lg"
             variant="outlined"
