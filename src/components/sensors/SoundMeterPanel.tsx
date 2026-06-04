@@ -53,8 +53,8 @@ export function SoundMeterPanel({ notes, onNotesChange, onResultReady, onSave }:
   return (
     <View style={styles.container}>
       {!permissionGranted ? (
-        <Button 
-          title="Grant Microphone Permission" 
+        <Button
+          title={t('sensors.soundGrantMic')}
           onPress={startMetering}
         />
       ) : (
@@ -64,7 +64,11 @@ export function SoundMeterPanel({ notes, onNotesChange, onResultReady, onSave }:
               {hasCaptured ? maxDb.toFixed(1) : currentDbStr} <Text style={styles.dbLabel}>dB</Text>
             </Text>
             <Text style={styles.meterStatus}>
-              {hasCaptured ? 'Captured Peak' : (isRecording ? 'Measuring Live...' : 'Ready')}
+              {hasCaptured
+                ? t('sensors.soundCapturedPeak')
+                : isRecording
+                  ? t('sensors.soundMeasuringLive')
+                  : t('sensors.soundReady')}
             </Text>
             
             {/* Simple visual bar */}
@@ -82,21 +86,30 @@ export function SoundMeterPanel({ notes, onNotesChange, onResultReady, onSave }:
           </View>
 
           {!isRecording && !hasCaptured && (
-            <Button title="Start Measuring" onPress={handleStart} icon={<Ionicons name="mic" size={20} color={colors.white} />} />
+            <Button
+              title={t('sensors.soundStartMeasuring')}
+              onPress={handleStart}
+              icon={<Ionicons name="mic" size={20} color={colors.white} />}
+            />
           )}
 
           {isRecording && (
-            <Button 
-              title="Stop & Capture Peak" 
-              onPress={handleCapture} 
+            <Button
+              title={t('sensors.soundStopCapture')}
+              onPress={handleCapture}
               variant="outlined"
-              icon={<Ionicons name="stop" size={20} color={colors.primary} />} 
+              icon={<Ionicons name="stop" size={20} color={colors.primary} />}
             />
           )}
 
           {hasCaptured && (
             <View style={styles.saveSection}>
-              <Button title="Measure Again" onPress={handleStart} variant="outlined" style={{ marginBottom: Spacing.md }} />
+              <Button
+                title={t('sensors.soundMeasureAgain')}
+                onPress={handleStart}
+                variant="outlined"
+                style={{ marginBottom: Spacing.md }}
+              />
               <Input
                 label={t('sensors.notesLabel', { defaultValue: 'Notes (optional)' })}
                 placeholder={t('sensors.notesPlaceholder', { defaultValue: 'What did you measure?' })}

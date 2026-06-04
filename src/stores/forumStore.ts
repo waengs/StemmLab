@@ -35,15 +35,11 @@ export const useForumStore = create<ForumState>((set, get) => ({
   pendingSensorShare: null,
 
   fetchPosts: async () => {
-    const { getForumPosts, getForumDraft } = await import('../utils/storage');
+    const { getForumPosts } = await import('../utils/storage');
     const posts = await getForumPosts();
-    const draft = await getForumDraft('main_draft');
-    set({ 
+    set({
       posts: posts.sort((a, b) => b.timestamp - a.timestamp),
       isHydrated: true,
-      draftTitle: draft?.topic_title ?? '',
-      draftContent: draft?.content ?? '',
-      draftCategoryId: draft?.category_id ?? 'general',
     });
   },
 
@@ -81,6 +77,7 @@ export const useForumStore = create<ForumState>((set, get) => ({
       draftContent: share.content,
       draftCategoryId: share.categoryId,
     });
+    void get().saveDraft(share.title, share.content, share.categoryId);
     return share;
   },
 

@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { recordBreathing, isBreathingSensorAvailable, BREATH_RECORD_SEC } from '../../utils/breathingSensor';
 import {
   playCountdownBeep,
@@ -61,6 +64,13 @@ function getFirstIncompleteIndex(trials: BreathingTrial[]): number {
 }
 
 function LiveBreathMeter({ value }: { value: string | null }) {
+  const meterStyles = useThemedStyles(({ colors, typography }) => ({
+    wrap: { width: '100%', marginTop: Spacing.md },
+    label: { ...typography.bodySmall, fontWeight: '600', marginBottom: Spacing.xs, textAlign: 'center' },
+    track: { height: 10, backgroundColor: colors.border, borderRadius: BorderRadius.full, overflow: 'hidden' },
+    fill: { height: '100%', backgroundColor: colors.primary },
+  }));
+
   if (value === null) return null;
   const fill = Math.min(100, (parseFloat(value) / 8) * 100);
 
@@ -74,7 +84,52 @@ function LiveBreathMeter({ value }: { value: string | null }) {
   );
 }
 
-export function BreathingPaceExperiment({ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
+function useBreathingPaceExperimentStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  card: { padding: Spacing.lg, marginBottom: Spacing.md },
+  phaseTitle: { ...typography.h3, color: colors.primary, marginBottom: Spacing.xs },
+  progressText: { ...typography.caption, color: colors.textSecondary, marginBottom: Spacing.md },
+  progressList: { gap: Spacing.xs, marginBottom: Spacing.lg },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  progressLabel: { ...typography.bodySmall },
+  stepBox: { gap: Spacing.md },
+  stepText: { ...typography.body, color: colors.textSecondary, lineHeight: 22 },
+  exerciseTitle: { ...typography.h3 },
+  exerciseTimer: { ...typography.h2, color: colors.primary, textAlign: 'center' },
+  countdownBox: { alignItems: 'center', paddingVertical: Spacing.xl },
+  countdownLabel: { ...typography.body, color: colors.textSecondary },
+  countdownNumber: { fontSize: 64, fontWeight: '800', color: colors.primary, marginTop: Spacing.sm },
+  recordingBox: { alignItems: 'center', padding: Spacing.lg, backgroundColor: colors.primary + '08', borderRadius: BorderRadius.md },
+  recordingTitle: { ...typography.h3, marginTop: Spacing.sm },
+  recordingHint: { ...typography.bodySmall, color: colors.textSecondary, marginTop: Spacing.xs, marginBottom: Spacing.sm },
+  counterRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg, marginTop: Spacing.lg },
+  counterBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.textSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterBtnPrimary: { backgroundColor: colors.primary },
+  counterDisplay: { alignItems: 'center', minWidth: 100 },
+  counterNumber: { fontSize: 36, fontWeight: '800', color: colors.primary },
+  counterLabel: { ...typography.caption, color: colors.textSecondary },
+  reviewBox: { gap: Spacing.sm },
+  reviewTitle: { ...typography.h3, color: colors.secondary },
+  reviewLine: { ...typography.body, fontWeight: '700' },
+  reviewSub: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: Spacing.sm },
+  reviewActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.sm },
+  doneTitle: { ...typography.h3, marginBottom: Spacing.md, textAlign: 'center' },
+  }));
+}
+
+export function BreathingPaceExperiment({
+trials, disabled, onUpdateTrial, onAllComplete }: Props) {
+  const { t } = useTranslation();
+  const styles = useBreathingPaceExperimentStyles();
+  const { colors } = useTheme();
+
   const initialIndex = Math.max(0, getFirstIncompleteIndex(trials));
   const [conditionIndex, setConditionIndex] = useState(initialIndex);
   const [step, setStep] = useState<Step>(() => {
@@ -236,7 +291,7 @@ export function BreathingPaceExperiment({ trials, disabled, onUpdateTrial, onAll
             <Ionicons
               name={isRecorded(condition.id) ? 'checkmark-circle' : condition.id === currentCondition.id ? 'ellipse' : 'ellipse-outline'}
               size={18}
-              color={isRecorded(condition.id) ? Colors.secondary : Colors.primary}
+              color={isRecorded(condition.id) ? colors.secondary : colors.primary}
             />
             <Text style={styles.progressLabel}>{condition.label}</Text>
           </View>
@@ -283,7 +338,7 @@ export function BreathingPaceExperiment({ trials, disabled, onUpdateTrial, onAll
             Lie on your back. Place the phone gently on your chest. Tap + each time you breathe in during the 1-minute
             recording.
           </Text>
-          <Button title="Start recording" onPress={runRecording} size="lg" disabled={disabled} icon={<Ionicons name="mic" size={18} color={Colors.white} />} />
+          <Button title="Start recording" onPress={runRecording} size="lg" disabled={disabled} icon={<Ionicons name="mic" size={18} color={colors.white} />} />
         </View>
       )}
 
@@ -296,7 +351,7 @@ export function BreathingPaceExperiment({ trials, disabled, onUpdateTrial, onAll
 
       {step === 'recording' && (
         <View style={styles.recordingBox}>
-          <Ionicons name="heart" size={24} color={Colors.primary} />
+          <Ionicons name="heart" size={24} color={colors.primary} />
           <Text style={styles.recordingTitle}>Recording… {recordRemaining}s</Text>
           <Text style={styles.recordingHint}>Count each breath and tap + below</Text>
           <LiveBreathMeter value={liveReading} />
@@ -305,14 +360,14 @@ export function BreathingPaceExperiment({ trials, disabled, onUpdateTrial, onAll
               style={styles.counterBtn}
               onPress={() => setManualBreathCount((count) => Math.max(0, count - 1))}
             >
-              <Ionicons name="remove" size={28} color={Colors.white} />
+              <Ionicons name="remove" size={28} color={colors.white} />
             </TouchableOpacity>
             <View style={styles.counterDisplay}>
               <Text style={styles.counterNumber}>{manualBreathCount}</Text>
               <Text style={styles.counterLabel}>breaths counted</Text>
             </View>
             <TouchableOpacity style={[styles.counterBtn, styles.counterBtnPrimary]} onPress={() => setManualBreathCount((count) => count + 1)}>
-              <Ionicons name="add" size={28} color={Colors.white} />
+              <Ionicons name="add" size={28} color={colors.white} />
             </TouchableOpacity>
           </View>
         </View>
@@ -332,7 +387,7 @@ export function BreathingPaceExperiment({ trials, disabled, onUpdateTrial, onAll
           />
           <View style={styles.reviewActions}>
             <Button title="Retry" onPress={() => setStep('prompt')} variant="outlined" size="sm" />
-            <Button title="Next" onPress={handleConfirmReview} size="sm" />
+            <Button title={t('common.next')} onPress={handleConfirmReview} size="sm" />
           </View>
         </View>
       )}
@@ -340,47 +395,3 @@ export function BreathingPaceExperiment({ trials, disabled, onUpdateTrial, onAll
   );
 }
 
-const meterStyles = StyleSheet.create({
-  wrap: { width: '100%', marginTop: Spacing.md },
-  label: { ...Typography.bodySmall, fontWeight: '600', marginBottom: Spacing.xs, textAlign: 'center' },
-  track: { height: 10, backgroundColor: Colors.border, borderRadius: BorderRadius.full, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: Colors.primary },
-});
-
-const styles = StyleSheet.create({
-  card: { padding: Spacing.lg, marginBottom: Spacing.md },
-  phaseTitle: { ...Typography.h3, color: Colors.primary, marginBottom: Spacing.xs },
-  progressText: { ...Typography.caption, color: Colors.textSecondary, marginBottom: Spacing.md },
-  progressList: { gap: Spacing.xs, marginBottom: Spacing.lg },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  progressLabel: { ...Typography.bodySmall },
-  stepBox: { gap: Spacing.md },
-  stepText: { ...Typography.body, color: Colors.textSecondary, lineHeight: 22 },
-  exerciseTitle: { ...Typography.h3 },
-  exerciseTimer: { ...Typography.h2, color: Colors.primary, textAlign: 'center' },
-  countdownBox: { alignItems: 'center', paddingVertical: Spacing.xl },
-  countdownLabel: { ...Typography.body, color: Colors.textSecondary },
-  countdownNumber: { fontSize: 64, fontWeight: '800', color: Colors.primary, marginTop: Spacing.sm },
-  recordingBox: { alignItems: 'center', padding: Spacing.lg, backgroundColor: Colors.primary + '08', borderRadius: BorderRadius.md },
-  recordingTitle: { ...Typography.h3, marginTop: Spacing.sm },
-  recordingHint: { ...Typography.bodySmall, color: Colors.textSecondary, marginTop: Spacing.xs, marginBottom: Spacing.sm },
-  counterRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg, marginTop: Spacing.lg },
-  counterBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.textSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  counterBtnPrimary: { backgroundColor: Colors.primary },
-  counterDisplay: { alignItems: 'center', minWidth: 100 },
-  counterNumber: { fontSize: 36, fontWeight: '800', color: Colors.primary },
-  counterLabel: { ...Typography.caption, color: Colors.textSecondary },
-  reviewBox: { gap: Spacing.sm },
-  reviewTitle: { ...Typography.h3, color: Colors.secondary },
-  reviewLine: { ...Typography.body, fontWeight: '700' },
-  reviewSub: { ...Typography.bodySmall, color: Colors.textSecondary, marginBottom: Spacing.sm },
-  reviewActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.sm },
-  doneTitle: { ...Typography.h3, marginBottom: Spacing.md, textAlign: 'center' },
-});

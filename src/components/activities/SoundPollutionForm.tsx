@@ -1,32 +1,37 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { SoundMeterPanel } from '../sensors/SoundMeterPanel';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { useRequireAuth } from '../../stores';
 
 export interface SoundPollutionTrial {
   id: string;
   locationLabel?: string;
   action: string;
-  prediction: string;
   outcomeDb: string;
-  wereYouRight: string;
-  coordinates?: { latitude: number, longitude: number };
+  coordinates?: { latitude: number; longitude: number };
+  /** Legacy fields from older saves — no longer collected in the UI. */
+  prediction?: string;
+  wereYouRight?: string;
 }
 
 export interface SoundPollutionData {
   predictedLoudestAction: string;
   trials: SoundPollutionTrial[];
   surprises: string;
-  needEarMuffs: string;
+  /** @deprecated Removed from UI; may exist on old saves. */
+  needEarMuffs?: string;
 }
 
 interface Props {
@@ -36,6 +41,13 @@ interface Props {
 }
 
 const DEFAULT_TIME = 3600;
+const MIN_SOUND_TRIALS = 2;
+
+type LocationActionDraft = {
+  id: string;
+  action: string;
+  outcomeDb: string;
+};
 
 const generateLeafletMap = (lat: number, lng: number, markers: any[]) => `
 <!DOCTYPE html>
@@ -114,7 +126,163 @@ const generateLeafletMap = (lat: number, lng: number, markers: any[]) => `
 </html>
 `;
 
-export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
+function useSoundPollutionFormStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxxl,
+  },
+  pageCard: {
+    marginBottom: Spacing.md,
+    padding: Spacing.xl,
+  },
+  sectionTitle: {
+    ...typography.h2,
+    marginBottom: Spacing.md,
+  },
+  illustration: {
+    width: '100%',
+    height: 200,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  tabContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  tabScroll: {
+    paddingHorizontal: Spacing.md,
+  },
+  tab: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  stickyTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  timerTitle: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  timerDisplay: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  timerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    gap: Spacing.md,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  checklistText: {
+    ...typography.body,
+    flex: 1,
+  },
+  instructionText: {
+    ...typography.body,
+    marginBottom: Spacing.sm,
+  },
+  wizardNavBoth: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  markerModalContent: {
+    backgroundColor: colors.surface,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+  },
+  modalTitle: {
+    ...typography.h2,
+    color: colors.text,
+    marginBottom: Spacing.lg,
+  },
+  modalText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  trialListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  }));
+}
+
+export function SoundPollutionForm({
+  value,
+  onChange,
+  onSubmit,
+}: Props) {
+  const styles = useSoundPollutionFormStyles();
+  const { colors } = useTheme();
+
   const { t } = useTranslation();
   const { team } = useRequireAuth();
   
@@ -136,16 +304,19 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
   
   // Multi-action modal state
   const [modalLocationLabel, setModalLocationLabel] = useState('');
-  const [modalActions, setModalActions] = useState<any[]>([]);
+  const [modalActions, setModalActions] = useState<LocationActionDraft[]>([]);
   const [isLocating, setIsLocating] = useState(false);
   const [measuringActionIndex, setMeasuringActionIndex] = useState<number | null>(null);
   const tempDb = useRef<string>('');
 
   const [locationLoaded, setLocationLoaded] = useState(false);
   
-  const equipmentList = ['Mobile phone with STEMM Lab app (or external sound meter)'];
+  const equipmentList = useMemo(
+    () => [t('data.activities.sound-pollution.equipmentPhone')],
+    [t]
+  );
   const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-  const allEquipmentChecked = equipmentList.every(item => checkedEquipment[item]);
+  const allEquipmentChecked = equipmentList.every((item) => checkedEquipment[item]);
 
   useEffect(() => {
     (async () => {
@@ -197,7 +368,6 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
   const getInitialData = (): SoundPollutionData => ({
     predictedLoudestAction: '',
     surprises: '',
-    needEarMuffs: '',
     trials: []
   });
 
@@ -211,21 +381,25 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
   const updateData = (updates: Partial<SoundPollutionData>) => onChange({ ...data, ...updates });
 
   const isFormValid = () => {
-    if (!data.predictedLoudestAction) return false;
-    if (data.trials.length === 0) return false;
-    for (const t of data.trials) {
-      if (!t.action || !t.prediction || !t.outcomeDb || !t.wereYouRight) return false;
+    if (!data.predictedLoudestAction?.trim()) return false;
+    if (data.trials.length < MIN_SOUND_TRIALS) return false;
+    for (const trial of data.trials) {
+      if (!trial.action?.trim() || !trial.outcomeDb?.trim()) return false;
     }
-    if (!data.surprises || !data.needEarMuffs) return false;
+    if (!data.surprises?.trim()) return false;
     return true;
+  };
+
+  const getIncompleteMessage = () => {
+    if (data.trials.length < MIN_SOUND_TRIALS) {
+      return t('data.activities.sound-pollution.minTrialsMsg');
+    }
+    return t('activities.incompleteMapMsg');
   };
 
   const handleComplete = () => {
     if (!isFormValid()) {
-      Alert.alert(
-        t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }), 
-        t('activities.incompleteMsg', { defaultValue: 'Please fill out all fields and record at least 1 trial on the map.' })
-      );
+      Alert.alert(t('activities.incompleteTitle'), getIncompleteMessage());
       return;
     }
     setIsTimerRunning(false);
@@ -245,11 +419,11 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
 
   const saveLocationSession = () => {
     if (modalActions.length === 0) {
-      Alert.alert("Empty", "Please add at least one action.");
+      Alert.alert(t('activities.emptyActionsTitle'), t('activities.emptyActionsMsg'));
       return;
     }
     if (modalActions.some(a => !a.action || !a.outcomeDb)) {
-      Alert.alert("Missing Info", "All actions must have a description and dB outcome.");
+      Alert.alert(t('activities.missingInfoTitle'), t('activities.missingInfoMsg'));
       return;
     }
 
@@ -262,13 +436,11 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
     );
 
     // Create new trials from the modal session
-    const newTrials: SoundPollutionTrial[] = modalActions.map(a => ({
-      id: a.id.startsWith('temp_') ? Date.now().toString() + Math.random() : a.id,
-      locationLabel: modalLocationLabel || 'Unknown Location',
+    const newTrials: SoundPollutionTrial[] = modalActions.map((a) => ({
+      id: a.id.startsWith('temp_') ? `${Date.now()}${Math.random()}` : a.id,
+      locationLabel: modalLocationLabel || t('activities.unknownLocation'),
       action: a.action || '',
-      prediction: a.prediction || '',
       outcomeDb: a.outcomeDb || '',
-      wereYouRight: a.wereYouRight || '',
       coordinates: selectedCoordinate!,
     }));
 
@@ -294,23 +466,27 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
           <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
-            <Text style={styles.modalTitle}>Record Location Data</Text>
+            <Text style={styles.modalTitle}>{t('activities.recordLocationData')}</Text>
             
             <Input
-              label="Location Label"
+              label={t('activities.locationLabel')}
               value={modalLocationLabel}
               onChangeText={setModalLocationLabel}
-              placeholder="e.g. Library, Cafeteria"
+              placeholder={t('activities.locationPlaceholder')}
             />
 
-            <Text style={[styles.sectionTitle, { marginTop: Spacing.md, marginBottom: Spacing.sm }]}>Actions at this Location</Text>
+            <Text style={[styles.sectionTitle, { marginTop: Spacing.md, marginBottom: Spacing.sm }]}>
+              {t('activities.actionsAtLocation')}
+            </Text>
             
             {modalActions.map((actionDraft, index) => (
-              <View key={actionDraft.id} style={{ backgroundColor: Colors.background, padding: Spacing.md, borderRadius: 8, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.borderLight }}>
+              <View key={actionDraft.id} style={{ backgroundColor: colors.background, padding: Spacing.md, borderRadius: 8, marginBottom: Spacing.md, borderWidth: 1, borderColor: colors.borderLight }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
-                  <Text style={{ fontWeight: '700', color: Colors.text }}>Action {index + 1}</Text>
+                  <Text style={{ fontWeight: '700', color: colors.text }}>
+                    {t('activities.actionNumber', { n: index + 1 })}
+                  </Text>
                   <Button 
-                    title="Remove (-)" 
+                    title={t('activities.removeAction')}
                     variant="danger" 
                     size="sm" 
                     onPress={() => setModalActions(modalActions.filter(a => a.id !== actionDraft.id))}
@@ -318,77 +494,50 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                 </View>
 
                 <Input
-                  label="Action Description"
+                  label={t('activities.actionDescription')}
                   value={actionDraft.action}
                   onChangeText={(v) => {
                     const newActions = [...modalActions];
                     newActions[index].action = v;
                     setModalActions(newActions);
                   }}
-                  placeholder="e.g. Dropping a book"
+                  placeholder={t('activities.actionPlaceholder')}
                 />
 
                 <Input
-                  label="Prediction (louder or softer than...)"
-                  value={actionDraft.prediction}
+                  label={t('activities.actualDb')}
+                  value={actionDraft.outcomeDb}
                   onChangeText={(v) => {
                     const newActions = [...modalActions];
-                    newActions[index].prediction = v;
+                    newActions[index].outcomeDb = v;
                     setModalActions(newActions);
                   }}
-                  placeholder="e.g. Softer than a vacuum"
+                  keyboardType="numeric"
+                  placeholder={t('activities.actualDbPlaceholder')}
                 />
-
-                <View style={{flexDirection: 'row', gap: Spacing.md}}>
-                  <View style={{flex: 1}}>
-                    <Input
-                      label="Actual (dB)"
-                      value={actionDraft.outcomeDb}
-                      onChangeText={(v) => {
-                        const newActions = [...modalActions];
-                        newActions[index].outcomeDb = v;
-                        setModalActions(newActions);
-                      }}
-                      keyboardType="numeric"
-                      placeholder="e.g. 50"
-                    />
-                    <Button 
-                      title="Measure" 
-                      size="sm" 
-                      icon={<Ionicons name="mic" size={16} color={Colors.primary} />} 
-                      variant="outlined"
-                      style={{ marginTop: Spacing.xs }}
-                      onPress={() => setMeasuringActionIndex(index)} 
-                    />
-                  </View>
-                  <View style={{flex: 1}}>
-                    <Select
-                      label="Were you right?"
-                      value={actionDraft.wereYouRight}
-                      options={['Yes', 'No']}
-                      onSelect={(v) => {
-                        const newActions = [...modalActions];
-                        newActions[index].wereYouRight = v;
-                        setModalActions(newActions);
-                      }}
-                    />
-                  </View>
-                </View>
+                <Button
+                  title={t('activities.measure')}
+                  size="sm"
+                  icon={<Ionicons name="mic" size={16} color={colors.primary} />}
+                  variant="outlined"
+                  style={{ marginTop: Spacing.xs }}
+                  onPress={() => setMeasuringActionIndex(index)}
+                />
               </View>
             ))}
 
             <Button 
-              title="+ Add Another Action Here" 
+              title={t('activities.addAnotherAction')}
               variant="outlined" 
               onPress={() => {
-                setModalActions([...modalActions, { id: 'temp_' + Date.now(), action: '', prediction: '', outcomeDb: '', wereYouRight: '' }]);
+                setModalActions([...modalActions, { id: `temp_${Date.now()}`, action: '', outcomeDb: '' }]);
               }}
               style={{ marginBottom: Spacing.lg }}
             />
             
             <View style={{flexDirection: 'column', gap: Spacing.md, marginTop: Spacing.md}}>
-              <Button title="Save All to Location" onPress={saveLocationSession} />
-              <Button title="Cancel" variant="ghost" onPress={() => setShowMarkerModal(false)} />
+              <Button title={t('activities.saveAllToLocation')} onPress={saveLocationSession} />
+              <Button title={t('common.cancel')} variant="ghost" onPress={() => setShowMarkerModal(false)} />
             </View>
           </ScrollView>
         </View>
@@ -398,7 +547,7 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
       <RNModal visible={measuringActionIndex !== null} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.markerModalContent}>
-            <Text style={styles.sectionTitle}>Measure Sound</Text>
+            <Text style={styles.sectionTitle}>{t('activities.measureSound')}</Text>
             <SoundMeterPanel
               notes=""
               onNotesChange={() => {}}
@@ -415,7 +564,7 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                 tempDb.current = '';
               }}
             />
-            <Button title="Cancel" variant="ghost" onPress={() => setMeasuringActionIndex(null)} />
+            <Button title={t('common.cancel')} variant="ghost" onPress={() => setMeasuringActionIndex(null)} />
           </View>
         </View>
       </RNModal>
@@ -429,7 +578,7 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
               onPress={() => {
                 if (!isTimerRunning && tab !== 'setup') {
-                  Alert.alert("Timer Required", "Please start the timer to navigate to other sections.");
+                  Alert.alert(t('activities.timerRequiredTitle'), t('activities.timerRequiredMsg'));
                   return;
                 }
                 setActiveTab(tab as any);
@@ -450,21 +599,17 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
           <View style={styles.stickyTimer}>
             <View style={{flex: 1}}>
               <Text style={styles.timerTitle}>{t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' })}</Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: Colors.danger}]}>{formatTime(timeLeft)}</Text>
+              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: colors.danger}]}>{formatTime(timeLeft)}</Text>
             </View>
             <View style={styles.timerButtons}>
               <Button 
                 title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })} 
                 onPress={() => {
                   if (isTimerRunning) {
-                    Alert.alert(
-                      "Pause Timer",
-                      "Don't pause the timer unless you need to. Value integrity!",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Pause", onPress: () => setIsTimerRunning(false) }
-                      ]
-                    );
+                    Alert.alert(t('activities.pauseTimerTitle'), t('activities.pauseTimerMsg'), [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      { text: t('activities.timerPause'), onPress: () => setIsTimerRunning(false) },
+                    ]);
                   } else {
                     setIsTimerRunning(true);
                   }
@@ -476,9 +621,9 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
               <Button 
                 title={t('common.reset', { defaultValue: 'Reset' })} 
                 onPress={() => {
-                  Alert.alert("Reset Timer & Data", "Are you sure you want to start over? This wipes all data.", [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Start Over", style: "destructive", onPress: handleStartOver }
+                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
                   ]);
                 }} 
                 variant="outlined"
@@ -506,7 +651,7 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                   disabled={isLocked}
                 >
                   <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
                   </View>
                   <Text style={styles.checklistText}>{item}</Text>
                 </TouchableOpacity>
@@ -514,11 +659,12 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-              <Text style={styles.instructionText}>1. Measure noise from different actions (e.g., dropping objects, talking, walking, stamping feet).</Text>
-              <Text style={styles.instructionText}>2. Record sound levels (in decibels) and locations for each action.</Text>
-              <Text style={styles.instructionText}>3. Map out the loud and quiet zones in your area.</Text>
-              
+              <ActivityInstructionsList
+                activityId="sound-pollution"
+                textStyle={styles.instructionText}
+                titleStyle={styles.sectionTitle}
+              />
+
               <Image source={require('../../../assets/images/activity2illustration.jpeg')} style={styles.illustration} resizeMode="contain" />
             </Card>
 
@@ -534,12 +680,12 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
         {activeTab === 'predictions' && (
           <View>
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>Make Your Predictions</Text>
+              <Text style={styles.sectionTitle}>{t('activities.predictionsTitle')}</Text>
               <Input
-                label="Predict which action will create the loudest sound:"
+                label={t('data.activities.sound-pollution.predictLoudestLabel')}
                 value={data.predictedLoudestAction}
                 onChangeText={(v) => updateData({ predictedLoudestAction: v })}
-                placeholder="e.g. Dropping a book"
+                placeholder={t('data.activities.sound-pollution.predictLoudestPlaceholder')}
                 editable={!isLocked}
                 onLightSurface
               />
@@ -557,10 +703,16 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
           <View>
             <Card style={[styles.pageCard, { padding: 0, overflow: 'hidden' }]}>
               <View style={{ padding: Spacing.md }}>
-                <Text style={styles.sectionTitle}>Record Trials on Map</Text>
-                <Text style={styles.instructionText}>Tap anywhere on the map to log a sound reading.</Text>
+                <Text style={styles.sectionTitle}>{t('activities.trialsMapTitle')}</Text>
+                <Text style={styles.instructionText}>{actT('shared.mapTapHint')}</Text>
+                <Text style={[styles.instructionText, { marginTop: Spacing.sm, fontWeight: '600' }]}>
+                  {t('data.activities.sound-pollution.minTrialsHint', {
+                    count: MIN_SOUND_TRIALS,
+                    current: data.trials.length,
+                  })}
+                </Text>
               </View>
-              <View style={{ width: '100%', height: 350, backgroundColor: Colors.borderLight }}>
+              <View style={{ width: '100%', height: 350, backgroundColor: colors.borderLight }}>
                 {locationLoaded ? (
                   <WebView
                     source={{ 
@@ -579,7 +731,7 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                         if (msg.type === 'mapClick' && !isLocked) {
                           setSelectedCoordinate({ latitude: msg.lat, longitude: msg.lng });
                           setModalLocationLabel('');
-                          setModalActions([{ id: 'temp_' + Date.now(), action: '', prediction: '', outcomeDb: '', wereYouRight: '' }]);
+                          setModalActions([{ id: `temp_${Date.now()}`, action: '', outcomeDb: '' }]);
                           setShowMarkerModal(true);
                         } else if (msg.type === 'mapClickExisting' && !isLocked) {
                           // Allow editing/adding actions to an existing grouped pin
@@ -593,13 +745,17 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                     }}
                   />
                 ) : (
-                  <Text style={{color: Colors.textSecondary}}>Loading Map...</Text>
+                  <Text style={{color: colors.textSecondary}}>{t('activities.loadingMap')}</Text>
                 )}
               </View>
-              <View style={{ padding: Spacing.lg, backgroundColor: Colors.surface }}>
+              <View style={{ padding: Spacing.lg, backgroundColor: colors.surface }}>
                 <Button 
-                  title={isLocating ? "Locating..." : "Record at Current Location"}
-                  icon={!isLocating && <Ionicons name="location" size={20} color={Colors.white} />}
+                  title={
+                    isLocating
+                      ? t('data.activities.sound-pollution.locating')
+                      : t('data.activities.sound-pollution.recordAtLocation')
+                  }
+                  icon={!isLocating && <Ionicons name="location" size={20} color={colors.white} />}
                   loading={isLocating}
                   disabled={!locationLoaded || isLocked}
                   onPress={async () => {
@@ -608,17 +764,17 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                     try {
                       let { status } = await Location.requestForegroundPermissionsAsync();
                       if (status !== 'granted') {
-                        Alert.alert("Permission Denied", "Permission to access location was denied.");
+                        Alert.alert(t('activities.permissionDeniedTitle'), t('activities.permissionDeniedMsg'));
                         setIsLocating(false);
                         return;
                       }
                       let loc = await Location.getCurrentPositionAsync({});
                       setSelectedCoordinate({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
                       setModalLocationLabel('');
-                      setModalActions([{ id: 'temp_' + Date.now(), action: '', prediction: '', outcomeDb: '', wereYouRight: '' }]);
+                      setModalActions([{ id: `temp_${Date.now()}`, action: '', outcomeDb: '' }]);
                       setShowMarkerModal(true);
                     } catch (e) {
-                      Alert.alert("Location Error", "Could not fetch your exact location. Make sure GPS is enabled.");
+                      Alert.alert(t('activities.locationErrorTitle'), t('activities.locationErrorMsg'));
                     } finally {
                       setIsLocating(false);
                     }
@@ -628,26 +784,30 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
 
               {/* Recorded Locations List */}
               {data.trials.length > 0 && (
-                <View style={{ padding: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.borderLight }}>
-                  <Text style={[styles.sectionTitle, { fontSize: 18, marginBottom: Spacing.sm }]}>Recorded Locations</Text>
+                <View style={{ padding: Spacing.md, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
+                  <Text style={[styles.sectionTitle, { fontSize: 18, marginBottom: Spacing.sm }]}>
+                    {t('activities.recordedLocations')}
+                  </Text>
                   {Object.values(data.trials.reduce((acc, trial) => {
                     if (!trial.coordinates) return acc;
                     const key = `${trial.coordinates.latitude},${trial.coordinates.longitude}`;
-                    if (!acc[key]) acc[key] = { label: trial.locationLabel || 'Unknown', coords: trial.coordinates, actions: [] };
+                    if (!acc[key]) acc[key] = { label: trial.locationLabel || t('activities.unknownLocation'), coords: trial.coordinates, actions: [] };
                     acc[key].actions.push(trial);
                     return acc;
                   }, {} as Record<string, {label: string, coords: any, actions: SoundPollutionTrial[]}>)).map((group, idx) => (
                     <View key={idx} style={styles.trialListItem}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontWeight: '700', color: Colors.text, fontSize: 16 }}>{group.label}</Text>
-                        <Text style={{ color: Colors.textSecondary, fontSize: 13, marginBottom: 4 }}>{group.actions.length} actions recorded here</Text>
+                        <Text style={{ fontWeight: '700', color: colors.text, fontSize: 16 }}>{group.label}</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>
+                          {t('activities.actionsRecordedHere', { count: group.actions.length })}
+                        </Text>
                         {group.actions.map((a, i) => (
-                          <Text key={a.id} style={{ color: Colors.text, fontSize: 13 }}>• {a.action} ({a.outcomeDb} dB)</Text>
+                          <Text key={a.id} style={{ color: colors.text, fontSize: 13 }}>• {a.action} ({a.outcomeDb} dB)</Text>
                         ))}
                       </View>
                       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                         <Button 
-                          title="Edit" 
+                          title={t('activities.edit')} 
                           variant="outlined" 
                           size="sm" 
                           onPress={() => {
@@ -659,14 +819,14 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
                           }}
                         />
                         <Button 
-                          title="Del" 
+                          title={t('activities.del')} 
                           variant="danger" 
                           size="sm" 
                           onPress={() => {
                             if (isLocked) return;
-                            Alert.alert("Delete Location", "Remove this location and all its actions?", [
-                              { text: "Cancel", style: "cancel" },
-                              { text: "Delete", style: "destructive", onPress: () => {
+                            Alert.alert(t('activities.deleteLocationTitle'), t('activities.deleteLocationMsg'), [
+                              { text: t('common.cancel'), style: 'cancel' },
+                              { text: t('common.delete'), style: 'destructive', onPress: () => {
                                 updateData({ trials: data.trials.filter(t => !(t.coordinates && t.coordinates.latitude === group.coords.latitude && t.coordinates.longitude === group.coords.longitude)) });
                               }}
                             ])
@@ -680,22 +840,15 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>Reflection</Text>
+              <Text style={styles.sectionTitle}>{actT('shared.reflectionTitle')}</Text>
               <Input
-                label="Any surprises?"
+                label={t('data.activities.sound-pollution.surprisesLabel')}
                 value={data.surprises}
                 onChangeText={(v) => updateData({ surprises: v })}
                 multiline
                 numberOfLines={3}
                 editable={!isLocked}
                 onLightSurface
-              />
-              <Select
-                label="Should we wear ear muffs in your classroom?"
-                value={data.needEarMuffs}
-                options={['Yes, definitely', 'Maybe sometimes', 'No, it is safe']}
-                onValueChange={(v) => updateData({ needEarMuffs: v })}
-                disabled={isLocked}
               />
             </Card>
 
@@ -710,149 +863,4 @@ export function SoundPollutionForm({ value, onChange, onSubmit }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxxl,
-  },
-  pageCard: {
-    marginBottom: Spacing.md,
-    padding: Spacing.xl,
-  },
-  sectionTitle: {
-    ...Typography.h2,
-    marginBottom: Spacing.md,
-  },
-  illustration: {
-    width: '100%',
-    height: 200,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-  },
-  tabContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  tabScroll: {
-    paddingHorizontal: Spacing.md,
-  },
-  tab: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: Colors.primary,
-  },
-  tabText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  stickyTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  timerTitle: {
-    ...Typography.caption,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    marginBottom: 2,
-  },
-  timerDisplay: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.primary,
-    fontVariant: ['tabular-nums'],
-  },
-  timerButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    gap: Spacing.md,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.primary,
-  },
-  checklistText: {
-    ...Typography.body,
-    flex: 1,
-  },
-  instructionText: {
-    ...Typography.body,
-    marginBottom: Spacing.sm,
-  },
-  wizardNavBoth: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: Spacing.xl,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  markerModalContent: {
-    backgroundColor: Colors.white,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-  },
-  modalTitle: {
-    ...Typography.h2,
-    color: Colors.text,
-    marginBottom: Spacing.lg,
-  },
-  modalText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  trialListItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  }
-});
+

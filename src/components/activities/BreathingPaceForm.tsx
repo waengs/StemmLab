@@ -10,12 +10,15 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ActivityInstructionsList } from './ActivityInstructionsList';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { BreathingPaceExperiment } from './BreathingPaceExperiment';
 
 export type BreathingConditionId = 'atRest' | 'afterJog' | 'afterStarJump';
@@ -74,7 +77,95 @@ function getInitialData(): BreathingPaceData {
   };
 }
 
-export function BreathingPaceForm({ value, onChange, onSubmit }: Props) {
+function useBreathingPaceFormStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  container: { flex: 1 },
+  scrollContent: { padding: Spacing.md, paddingBottom: Spacing.xxxl },
+  pageCard: { marginBottom: Spacing.md, padding: Spacing.xl },
+  sectionTitle: { ...typography.h2, marginBottom: Spacing.md },
+  subSectionTitle: { ...typography.h3, marginTop: Spacing.lg, marginBottom: Spacing.sm },
+  tabContainer: { borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface },
+  tabScroll: { paddingHorizontal: Spacing.md },
+  tab: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  activeTab: { borderBottomColor: colors.primary },
+  tabText: { ...typography.body, color: colors.textSecondary, fontWeight: '500' },
+  activeTabText: { color: colors.primary, fontWeight: '700' },
+  stickyTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  timerTitle: { ...typography.caption, fontWeight: '700', color: colors.textSecondary, marginBottom: 2 },
+  timerDisplay: { fontSize: 24, fontWeight: '700', color: colors.primary, fontVariant: ['tabular-nums'] },
+  timerButtons: { flexDirection: 'row', gap: Spacing.sm },
+  checklistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.md },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: { backgroundColor: colors.primary },
+  checklistText: { ...typography.body, flex: 1 },
+  instructionText: { ...typography.body, marginBottom: Spacing.sm },
+  illustration: { width: '100%', height: 200, marginTop: Spacing.md, borderRadius: BorderRadius.md },
+  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
+  tableRowHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    padding: Spacing.sm,
+    borderTopLeftRadius: BorderRadius.sm,
+    borderTopRightRadius: BorderRadius.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableCell: { ...typography.bodySmall },
+  predictionCheck: {
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.sm,
+  },
+  predictionCheckTitle: { ...typography.label, marginBottom: Spacing.xs },
+  predictionCheckText: { ...typography.bodySmall, marginBottom: 2 },
+  predictionResultText: { ...typography.bodySmall, fontWeight: '700', marginTop: Spacing.xs, color: colors.primary },
+  detailBlock: { marginTop: Spacing.md, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
+  detailTitle: { ...typography.label, marginBottom: Spacing.xs },
+  detailText: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: Spacing.sm, lineHeight: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: Spacing.xl },
+  modalContent: { backgroundColor: colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.xl },
+  modalTitle: { ...typography.h2, marginBottom: Spacing.sm },
+  modalText: { ...typography.body, marginBottom: Spacing.lg, color: colors.textSecondary },
+  }));
+}
+
+export function BreathingPaceForm({
+  value,
+  onChange,
+  onSubmit,
+}: Props) {
+  const styles = useBreathingPaceFormStyles();
+  const { colors } = useTheme();
+
   const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment' | 'results'>('setup');
@@ -205,7 +296,7 @@ export function BreathingPaceForm({ value, onChange, onSubmit }: Props) {
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
               onPress={() => {
                 if (!isTimerRunning) {
-                  Alert.alert('Timer Required', 'Please start the timer to navigate to other sections.');
+                  Alert.alert(t('activities.timerRequiredTitle'), t('activities.timerRequiredMsg'));
                   return;
                 }
                 setActiveTab(tab);
@@ -229,14 +320,17 @@ export function BreathingPaceForm({ value, onChange, onSubmit }: Props) {
               <Text style={styles.timerTitle}>
                 {t('data.activities.breathing-pace.timerTitle', { defaultValue: 'Activity Timer (30 min)' })}
               </Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: Colors.danger }]}>{formatTime(timeLeft)}</Text>
+              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: colors.danger }]}>{formatTime(timeLeft)}</Text>
             </View>
             <View style={styles.timerButtons}>
               <Button
                 title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })}
                 onPress={() => {
                   if (isTimerRunning) {
-                    Alert.alert('Pause Timer', "Don't pause the timer unless you need to. Value integrity!", [
+                    Alert.alert(
+                      t('data.activities.parachute-drop.timerPauseTitle'),
+                      t('data.activities.parachute-drop.timerPauseWarning'),
+                      [
                       { text: 'Cancel', style: 'cancel' },
                       { text: 'Pause', onPress: () => setIsTimerRunning(false) },
                     ]);
@@ -251,7 +345,7 @@ export function BreathingPaceForm({ value, onChange, onSubmit }: Props) {
               <Button
                 title={t('common.reset', { defaultValue: 'Reset' })}
                 onPress={() => {
-                  Alert.alert('Reset Timer & Data', 'Are you sure you want to start over? This wipes all data.', [
+                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'Start Over', style: 'destructive', onPress: handleStartOver },
                   ]);
@@ -280,7 +374,7 @@ export function BreathingPaceForm({ value, onChange, onSubmit }: Props) {
                   disabled={isLocked}
                 >
                   <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
                   </View>
                   <Text style={styles.checklistText}>{item}</Text>
                 </TouchableOpacity>
@@ -288,12 +382,11 @@ export function BreathingPaceForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-              <Text style={styles.instructionText}>1. Place the phone gently on your chest.</Text>
-              <Text style={styles.instructionText}>2. Record breathing at rest for 1 minute. Count each breath.</Text>
-              <Text style={styles.instructionText}>3. Jog on the spot for 1 minute, then record breathing again.</Text>
-              <Text style={styles.instructionText}>4. Do 100 star jumps, then record breathing again.</Text>
-              <Text style={styles.instructionText}>5. Compare breaths per minute and chest movement. Complete the quiz.</Text>
+              <ActivityInstructionsList
+                activityId="breathing-pace"
+                textStyle={styles.instructionText}
+                titleStyle={styles.sectionTitle}
+              />
               <Image
                 source={require('../../../assets/images/activity7illustration.jpeg')}
                 style={styles.illustration}
@@ -433,81 +526,4 @@ export function BreathingPaceForm({ value, onChange, onSubmit }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { padding: Spacing.md, paddingBottom: Spacing.xxxl },
-  pageCard: { marginBottom: Spacing.md, padding: Spacing.xl },
-  sectionTitle: { ...Typography.h2, marginBottom: Spacing.md },
-  subSectionTitle: { ...Typography.h3, marginTop: Spacing.lg, marginBottom: Spacing.sm },
-  tabContainer: { borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface },
-  tabScroll: { paddingHorizontal: Spacing.md },
-  tab: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  activeTab: { borderBottomColor: Colors.primary },
-  tabText: { ...Typography.body, color: Colors.textSecondary, fontWeight: '500' },
-  activeTabText: { color: Colors.primary, fontWeight: '700' },
-  stickyTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  timerTitle: { ...Typography.caption, fontWeight: '700', color: Colors.textSecondary, marginBottom: 2 },
-  timerDisplay: { fontSize: 24, fontWeight: '700', color: Colors.primary, fontVariant: ['tabular-nums'] },
-  timerButtons: { flexDirection: 'row', gap: Spacing.sm },
-  checklistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.md },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: { backgroundColor: Colors.primary },
-  checklistText: { ...Typography.body, flex: 1 },
-  instructionText: { ...Typography.body, marginBottom: Spacing.sm },
-  illustration: { width: '100%', height: 200, marginTop: Spacing.md, borderRadius: BorderRadius.md },
-  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
-  tableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background,
-    padding: Spacing.sm,
-    borderTopLeftRadius: BorderRadius.sm,
-    borderTopRightRadius: BorderRadius.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableCell: { ...Typography.bodySmall },
-  predictionCheck: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.sm,
-  },
-  predictionCheckTitle: { ...Typography.label, marginBottom: Spacing.xs },
-  predictionCheckText: { ...Typography.bodySmall, marginBottom: 2 },
-  predictionResultText: { ...Typography.bodySmall, fontWeight: '700', marginTop: Spacing.xs, color: Colors.primary },
-  detailBlock: { marginTop: Spacing.md, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.border },
-  detailTitle: { ...Typography.label, marginBottom: Spacing.xs },
-  detailText: { ...Typography.bodySmall, color: Colors.textSecondary, marginBottom: Spacing.sm, lineHeight: 20 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: Spacing.xl },
-  modalContent: { backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.xl },
-  modalTitle: { ...Typography.h2, marginBottom: Spacing.sm },
-  modalText: { ...Typography.body, marginBottom: Spacing.lg, color: Colors.textSecondary },
-});
+

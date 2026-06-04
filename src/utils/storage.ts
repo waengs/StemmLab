@@ -161,10 +161,22 @@ export async function saveForumPost(post: ForumPost): Promise<void> {
 }
 
 export async function updateForumPost(post: ForumPost): Promise<void> {
+  const previous = await forumRepo.getAllForumPosts();
+  const prior = previous.find((p) => p.id === post.id);
+  const priorReplyCount = prior?.replies.length ?? 0;
+
   await forumRepo.upsertForumPost(post);
   await queueForumPostSync(post);
   const latestReply = post.replies[post.replies.length - 1];
-  if (latestReply) await queueForumReplySync(post.id, latestReply);
+  if (latestReply && post.replies.length > priorReplyCount) {
+    await queueForumReplySync(post.id, latestReply);
+    const { getFirebaseAuth } = await import('../config/firebase');
+    const actorUid = getFirebaseAuth().currentUser?.uid;
+    if (actorUid) {
+      const { notifyForumReply } = await import('../services/notifications/notificationService');
+      await notifyForumReply(post, latestReply, actorUid);
+    }
+  }
   await syncWhenOnline();
 }
 

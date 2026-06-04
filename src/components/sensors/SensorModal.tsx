@@ -10,11 +10,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { WebView } from 'react-native-webview';
 import { TrialVideoPlayer } from './TrialVideoPlayer';
 import { VibrationSensorPanel } from './VibrationSensorPanel';
 import { ReactionTestPanel } from './ReactionTestPanel';
 import { SoundMeterPanel } from './SoundMeterPanel';
+import { BatterySensorPanel } from './BatterySensorPanel';
+import { LocationSensorPanel } from './LocationSensorPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 import { SENSORS } from '../../types';
@@ -136,7 +137,14 @@ export function SensorModal({
                 </Text>
               )}
 
-              {sensor.id === 'sound-meter' ? (
+              {sensor.id === 'battery' ? (
+                <BatterySensorPanel
+                  notes={notes}
+                  onNotesChange={onNotesChange}
+                  onResultReady={onResultReady}
+                  onSave={onSave}
+                />
+              ) : sensor.id === 'sound-meter' ? (
                 <SoundMeterPanel
                   notes={notes}
                   onNotesChange={onNotesChange}
@@ -157,6 +165,13 @@ export function SensorModal({
                   onResultReady={onResultReady}
                   onSave={onSave}
                 />
+              ) : sensor.id === 'location' ? (
+                <LocationSensorPanel
+                  notes={notes}
+                  onNotesChange={onNotesChange}
+                  onResultReady={onResultReady}
+                  onSave={onSave}
+                />
               ) : !isRecording ? (
                 <Button
                   title={t('sensors.startMeasurement')}
@@ -167,60 +182,15 @@ export function SensorModal({
                 />
               ) : (
                 <View>
-                  {sensorValue === 'LOADING...' && sensor.id === 'location' ? (
-                    <View style={{ width: '100%', height: 250, borderRadius: BorderRadius.lg, backgroundColor: '#E2E8F0', justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.lg }}>
-                      <Ionicons name="navigate-outline" size={32} color={colors.textMuted} style={{marginBottom: Spacing.sm}} />
-                      <Text style={{color: colors.textSecondary, fontWeight: '600'}}>Acquiring GPS Signal...</Text>
-                      <Text style={{color: colors.textMuted, fontSize: 12, marginTop: 4}}>This may take a moment</Text>
-                    </View>
-                  ) : sensorValue === 'LOADING...' ? (
+                  {sensorValue === 'LOADING...' ? (
                     <View style={[styles.measurement, { backgroundColor: '#E2E8F0' }]}>
-                      <Text style={[styles.measurementValue, { color: colors.textSecondary, fontSize: 18 }]}>Initializing sensor...</Text>
+                      <Text style={[styles.measurementValue, { color: colors.textSecondary, fontSize: 18 }]}>
+                        {t('sensors.initializingSensor')}
+                      </Text>
                     </View>
                   ) : sensor.id === 'slow-mo' ? (
                     <View style={{ marginBottom: Spacing.lg }}>
                       <TrialVideoPlayer videoUri={sensorValue} />
-                    </View>
-                  ) : sensor.id === 'location' && sensorValue.includes(',') ? (
-                    <View style={{ width: '100%', height: 250, borderRadius: BorderRadius.lg, overflow: 'hidden', marginBottom: Spacing.lg, backgroundColor: '#E2E8F0' }}>
-                      <WebView 
-                        source={{ 
-                          html: `
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                              <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                              <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-                              <style>
-                                body, html { margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden; }
-                                #map { height: 100vh; width: 100vw; background-color: #eee; }
-                              </style>
-                            </head>
-                            <body>
-                              <div id="map"></div>
-                              <script>
-                                var map = L.map('map').setView([${sensorValue}], 18);
-                                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                                  maxZoom: 19,
-                                  attribution: '© CARTO'
-                                }).addTo(map);
-
-                                L.circleMarker([${sensorValue}], {
-                                  color: '#3388ff', fillColor: '#3388ff', fillOpacity: 0.5, radius: 8
-                                }).addTo(map).bindPopup("Your Location");
-                              </script>
-                            </body>
-                            </html>
-                          `,
-                          baseUrl: 'https://openstreetmap.org'
-                        }}
-                        style={{ flex: 1, backgroundColor: 'transparent' }}
-                        userAgent="StemmLabApp/1.0"
-                        originWhitelist={['*']}
-                        javaScriptEnabled={true}
-                        domStorageEnabled={true}
-                      />
                     </View>
                   ) : (
                     <View style={styles.measurement}>

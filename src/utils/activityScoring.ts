@@ -137,21 +137,21 @@ export function scoreHumanPerformance(data: Record<string, unknown>): number {
       score -= (totalDiff / validTrials) * 2;
     }
 
-    const hardest = trials.reduce(
-      (best: { label?: string; vibrationAvg?: string } | null, trial: { label?: string; vibrationAvg?: string }) => {
+    const hardest = trials.reduce<{ id: string; vibrationAvg?: string } | null>(
+      (best, trial: { id?: string; label?: string; vibrationAvg?: string }) => {
         const v = parseFloat(String(trial.vibrationAvg ?? '')) || 0;
-        if (!best) return trial;
+        if (!best) return { id: String(trial.id ?? trial.label ?? ''), vibrationAvg: trial.vibrationAvg };
         const bestV = parseFloat(String(best.vibrationAvg ?? '')) || 0;
-        return v > bestV ? trial : best;
+        return v > bestV ? { id: String(trial.id ?? trial.label ?? ''), vibrationAvg: trial.vibrationAvg } : best;
       },
-      null as { label?: string; vibrationAvg?: string } | null
+      null
     );
 
-    if (hardest?.label) {
+    if (hardest?.id) {
       score = applyWrongPredictionPenalty(
         score,
         String(data.predictedHardestMovement ?? ''),
-        hardest.label
+        hardest.id
       );
     }
   }
@@ -225,14 +225,11 @@ export function calculateActivityScore(result: ActivityResult): number {
         let maxDb = -1;
         let actualLoudestAction = '';
 
-        (data.trials as { action?: string; outcomeDb?: string; wereYouRight?: string }[]).forEach((trial) => {
+        (data.trials as { action?: string; outcomeDb?: string }[]).forEach((trial) => {
           const db = parseFloat(String(trial.outcomeDb ?? '')) || 0;
           if (db > maxDb) {
             maxDb = db;
             actualLoudestAction = String(trial.action ?? '');
-          }
-          if (trial.wereYouRight === 'Yes') {
-            score += 5;
           }
         });
 

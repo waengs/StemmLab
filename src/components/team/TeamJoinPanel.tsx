@@ -19,7 +19,9 @@ import {
   filterTeamListings,
   fetchTeamMembers,
 } from '../../utils/storage';
-import { BorderRadius, Spacing, lightColors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { BorderRadius, Spacing } from '../../theme';
 import type { TeamListing, TeamMemberSummary } from '../../types';
 
 interface TeamJoinPanelProps {
@@ -30,6 +32,62 @@ interface TeamJoinPanelProps {
 
 export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ colors: c }) => ({
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: c.text,
+      marginBottom: Spacing.xs,
+    },
+    searchField: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.background,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: BorderRadius.md,
+      paddingHorizontal: Spacing.md,
+      gap: Spacing.sm,
+      marginBottom: Spacing.md,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: c.text,
+      paddingVertical: Platform.OS === 'ios' ? Spacing.md : Spacing.sm,
+    },
+    teamRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    teamRowBody: { flex: 1 },
+    teamName: { fontSize: 15, fontWeight: '600', color: c.text },
+    teamMeta: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+    empty: { fontSize: 14, color: c.textMuted, textAlign: 'center', padding: Spacing.lg },
+    backRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.xs,
+      marginBottom: Spacing.md,
+    },
+    backText: { fontSize: 14, fontWeight: '600', color: c.primary },
+    selectedCard: {
+      backgroundColor: c.background,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    selectedName: { fontSize: 17, fontWeight: '700', color: c.text },
+    selectedMeta: { fontSize: 13, color: c.textMuted, marginTop: 4 },
+    hint: { fontSize: 12, color: c.textMuted, marginTop: -Spacing.sm, marginBottom: Spacing.md },
+  }));
   const [teams, setTeams] = useState<TeamListing[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [search, setSearch] = useState('');
@@ -99,7 +157,7 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
     return (
       <View>
         <Pressable style={styles.backRow} onPress={() => setSelected(null)}>
-          <Ionicons name="arrow-back" size={18} color={lightColors.primary} />
+          <Ionicons name="arrow-back" size={18} color={colors.primary} />
           <Text style={styles.backText}>{t('setup.backToTeamList')}</Text>
         </Pressable>
 
@@ -144,25 +202,25 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
     <View>
       <Text style={styles.label}>{t('setup.searchTeams')}</Text>
       <View style={styles.searchField}>
-        <Ionicons name="search" size={18} color={lightColors.textMuted} />
+        <Ionicons name="search" size={18} color={colors.textMuted} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder={t('setup.searchTeamsPlaceholder')}
-          placeholderTextColor={lightColors.textMuted}
+          placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}
           autoCapitalize="none"
         />
         {search.length > 0 && (
           <Pressable onPress={() => setSearch('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={lightColors.textMuted} />
+            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
           </Pressable>
         )}
       </View>
 
       {loadingTeams ? (
-        <ActivityIndicator color={lightColors.primary} style={{ marginVertical: Spacing.xl }} />
+        <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.xl }} />
       ) : (
         <FlatList
           data={filtered}
@@ -175,7 +233,7 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
             <Pressable
               style={styles.teamRow}
               onPress={() => handleSelect(item)}
-              android_ripple={{ color: lightColors.borderLight }}
+              android_ripple={{ color: colors.borderLight }}
             >
               <View style={styles.teamRowBody}>
                 <Text style={styles.teamName}>{item.name}</Text>
@@ -183,7 +241,7 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
                   {item.gradeLevel} • {item.discriminator}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={lightColors.textMuted} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </Pressable>
           )}
         />
@@ -192,56 +250,3 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: lightColors.text,
-    marginBottom: Spacing.xs,
-  },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: lightColors.background,
-    borderWidth: 1,
-    borderColor: lightColors.border,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: lightColors.text,
-    paddingVertical: Platform.OS === 'ios' ? Spacing.md : Spacing.sm,
-  },
-  teamRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: lightColors.border,
-  },
-  teamRowBody: { flex: 1 },
-  teamName: { fontSize: 15, fontWeight: '600', color: lightColors.text },
-  teamMeta: { fontSize: 12, color: lightColors.textMuted, marginTop: 2 },
-  empty: { fontSize: 14, color: lightColors.textMuted, textAlign: 'center', padding: Spacing.lg },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  backText: { fontSize: 14, fontWeight: '600', color: lightColors.primary },
-  selectedCard: {
-    backgroundColor: lightColors.background,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  selectedName: { fontSize: 17, fontWeight: '700', color: lightColors.text },
-  selectedMeta: { fontSize: 13, color: lightColors.textMuted, marginTop: 4 },
-  hint: { fontSize: 12, color: lightColors.textMuted, marginTop: -Spacing.sm, marginBottom: Spacing.md },
-});

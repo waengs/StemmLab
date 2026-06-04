@@ -9,11 +9,15 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { ReactionBoardExperiment } from './ReactionBoardExperiment';
 
 export interface ReactionBoardData {
@@ -42,7 +46,82 @@ function getInitialData(): ReactionBoardData {
   };
 }
 
-export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
+function useReactionBoardFormStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  container: { flex: 1 },
+  scrollContent: { padding: Spacing.md, paddingBottom: Spacing.xxxl },
+  pageCard: { marginBottom: Spacing.md, padding: Spacing.xl },
+  sectionTitle: { ...typography.h2, marginBottom: Spacing.md },
+  subSectionTitle: { ...typography.h3, marginTop: Spacing.lg, marginBottom: Spacing.sm },
+  tabContainer: { borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface },
+  tabScroll: { paddingHorizontal: Spacing.md },
+  tab: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  activeTab: { borderBottomColor: colors.primary },
+  tabText: { ...typography.body, color: colors.textSecondary, fontWeight: '500' },
+  activeTabText: { color: colors.primary, fontWeight: '700' },
+  stickyTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  timerTitle: { ...typography.caption, fontWeight: '700', color: colors.textSecondary, marginBottom: 2 },
+  timerDisplay: { fontSize: 24, fontWeight: '700', color: colors.primary, fontVariant: ['tabular-nums'] },
+  timerButtons: { flexDirection: 'row', gap: Spacing.sm },
+  checklistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.md },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: { backgroundColor: colors.primary },
+  checklistText: { ...typography.body, flex: 1 },
+  instructionText: { ...typography.body, marginBottom: Spacing.sm },
+  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
+  tableRowHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    padding: Spacing.sm,
+    borderTopLeftRadius: BorderRadius.sm,
+    borderTopRightRadius: BorderRadius.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableCell: { ...typography.bodySmall },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: Spacing.xl },
+  modalContent: { backgroundColor: colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.xl },
+  modalTitle: { ...typography.h2, marginBottom: Spacing.sm },
+  modalText: { ...typography.body, marginBottom: Spacing.lg, color: colors.textSecondary },
+  }));
+}
+
+export function ReactionBoardForm({
+  value,
+  onChange,
+  onSubmit,
+}: Props) {
+  const styles = useReactionBoardFormStyles();
+  const { colors } = useTheme();
+
   const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment' | 'results'>('setup');
@@ -108,7 +187,7 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
     if (!isFormValid()) {
       Alert.alert(
         t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }),
-        t('activities.incompleteMsg', { defaultValue: 'Please complete all phases of the experiment first.' })
+        t('data.activities.reaction-board.incompleteExperimentMsg')
       );
       return;
     }
@@ -155,7 +234,7 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
               onPress={() => {
                 if (!isTimerRunning) {
-                  Alert.alert('Timer Required', 'Please start the timer to navigate to other sections.');
+                  Alert.alert(t('activities.timerRequiredTitle'), t('activities.timerRequiredMsg'));
                   return;
                 }
                 setActiveTab(tab);
@@ -163,9 +242,7 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
               disabled={!isTimerRunning && activeTab !== tab}
             >
               <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                {t(`data.activities.reaction-board.tabs.${tab}`, {
-                  defaultValue: tab.charAt(0).toUpperCase() + tab.slice(1),
-                })}
+                {t(`data.activities.reaction-board.tabs.${tab}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -179,17 +256,21 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
               <Text style={styles.timerTitle}>
                 {t('data.activities.reaction-board.timerTitle', { defaultValue: 'Activity Timer (15 min)' })}
               </Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: Colors.danger }]}>{formatTime(timeLeft)}</Text>
+              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: colors.danger }]}>{formatTime(timeLeft)}</Text>
             </View>
             <View style={styles.timerButtons}>
               <Button
                 title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })}
                 onPress={() => {
                   if (isTimerRunning) {
-                    Alert.alert('Pause Timer', "Don't pause the timer unless you need to. Value integrity!", [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Pause', onPress: () => setIsTimerRunning(false) },
-                    ]);
+                    Alert.alert(
+                      t('activities.pauseTimerTitle'),
+                      t('activities.pauseTimerMsg'),
+                      [
+                        { text: t('common.cancel'), style: 'cancel' },
+                        { text: t('activities.timerPause'), onPress: () => setIsTimerRunning(false) },
+                      ]
+                    );
                   } else {
                     setIsTimerRunning(true);
                   }
@@ -201,9 +282,9 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
               <Button
                 title={t('common.reset', { defaultValue: 'Reset' })}
                 onPress={() => {
-                  Alert.alert('Reset Timer & Data', 'Are you sure you want to start over? This wipes all data.', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Start Over', style: 'destructive', onPress: handleStartOver },
+                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
                   ]);
                 }}
                 variant="outlined"
@@ -230,7 +311,7 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
                   disabled={isLocked}
                 >
                   <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
                   </View>
                   <Text style={styles.checklistText}>{item}</Text>
                 </TouchableOpacity>
@@ -238,10 +319,11 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-              <Text style={styles.instructionText}>1. Phase 1: Tap the screen as soon as the hidden button appears.</Text>
-              <Text style={styles.instructionText}>2. Phase 2: Repeat using your non-dominant hand.</Text>
-              <Text style={styles.instructionText}>3. Phase 3: Trace a moving shape on the screen to measure your coordination.</Text>
+              <ActivityInstructionsList
+                activityId="reaction-board"
+                textStyle={styles.instructionText}
+                titleStyle={styles.sectionTitle}
+              />
             </Card>
 
             <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('predictions')} disabled={!allEquipmentChecked} />
@@ -261,7 +343,7 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
                 onChangeText={(v) => updateData({ predictedReactionTime: v })}
                 keyboardType="numeric"
                 editable={!isLocked}
-                placeholder="e.g., 250"
+                placeholder={t('data.activities.reaction-board.predictReactionPlaceholder')}
               />
 
               <Input
@@ -270,7 +352,7 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
                 onChangeText={(v) => updateData({ predictedAccuracy: v })}
                 keyboardType="numeric"
                 editable={!isLocked}
-                placeholder="e.g., 85"
+                placeholder={t('data.activities.reaction-board.predictAccuracyPlaceholder')}
               />
             </Card>
 
@@ -311,24 +393,34 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
               </Text>
 
               <View style={styles.tableRowHeader}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>Metric</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Predicted</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Actual</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>
+                  {t('data.activities.reaction-board.resultsTable.metric')}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
+                  {t('data.activities.reaction-board.resultsTable.predicted')}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
+                  {t('data.activities.reaction-board.resultsTable.actual')}
+                </Text>
               </View>
 
               <View style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>Reaction Time</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>
+                  {t('data.activities.reaction-board.resultsTable.reactionTime')}
+                </Text>
                 <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{data.predictedReactionTime || '—'} ms</Text>
                 <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{data.reactionTime !== null ? `${data.reactionTime} ms` : '—'}</Text>
               </View>
               
               <View style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>Tracing Accuracy</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>
+                  {t('data.activities.reaction-board.resultsTable.tracingAccuracy')}
+                </Text>
                 <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{data.predictedAccuracy || '—'}%</Text>
                 <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{data.accuracy !== null ? `${data.accuracy}%` : '—'}</Text>
               </View>
 
-              <Text style={styles.subSectionTitle}>Reflection Notes</Text>
+              <Text style={styles.subSectionTitle}>{actT('shared.reflectionNotes')}</Text>
               <Input
                 label={t('common.notes', { defaultValue: 'Any surprises? Were you right?' })}
                 value={data.notes}
@@ -336,7 +428,7 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
                 multiline
                 numberOfLines={3}
                 editable={!isLocked}
-                placeholder="Write your thoughts..."
+                placeholder={t('data.activities.reaction-board.resultsTable.notesPlaceholder')}
               />
             </Card>
 
@@ -351,68 +443,4 @@ export function ReactionBoardForm({ value, onChange, onSubmit }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { padding: Spacing.md, paddingBottom: Spacing.xxxl },
-  pageCard: { marginBottom: Spacing.md, padding: Spacing.xl },
-  sectionTitle: { ...Typography.h2, marginBottom: Spacing.md },
-  subSectionTitle: { ...Typography.h3, marginTop: Spacing.lg, marginBottom: Spacing.sm },
-  tabContainer: { borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface },
-  tabScroll: { paddingHorizontal: Spacing.md },
-  tab: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  activeTab: { borderBottomColor: Colors.primary },
-  tabText: { ...Typography.body, color: Colors.textSecondary, fontWeight: '500' },
-  activeTabText: { color: Colors.primary, fontWeight: '700' },
-  stickyTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  timerTitle: { ...Typography.caption, fontWeight: '700', color: Colors.textSecondary, marginBottom: 2 },
-  timerDisplay: { fontSize: 24, fontWeight: '700', color: Colors.primary, fontVariant: ['tabular-nums'] },
-  timerButtons: { flexDirection: 'row', gap: Spacing.sm },
-  checklistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.md },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: { backgroundColor: Colors.primary },
-  checklistText: { ...Typography.body, flex: 1 },
-  instructionText: { ...Typography.body, marginBottom: Spacing.sm },
-  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
-  tableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background,
-    padding: Spacing.sm,
-    borderTopLeftRadius: BorderRadius.sm,
-    borderTopRightRadius: BorderRadius.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableCell: { ...Typography.bodySmall },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: Spacing.xl },
-  modalContent: { backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.xl },
-  modalTitle: { ...Typography.h2, marginBottom: Spacing.sm },
-  modalText: { ...Typography.body, marginBottom: Spacing.lg, color: Colors.textSecondary },
-});
+

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Alert, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import {
   Screen,
@@ -78,22 +77,6 @@ export default function Sensors() {
       return;
     }
 
-    setIsRecording(true);
-    setSensorValue('LOADING...');
-    let value = '';
-
-    switch (sensorToRun) {
-      case 'location':
-        try {
-          const loc = await Location.getCurrentPositionAsync({});
-          value = `${loc.coords.latitude},${loc.coords.longitude}`;
-        } catch (e) {
-          value = 'Location Error';
-        }
-        break;
-    }
-
-    setSensorValue(value);
   };
 
   const handleSave = async () => {
@@ -165,7 +148,13 @@ export default function Sensors() {
       return;
     }
 
-    if (selectedSensor === 'vibration' || selectedSensor === 'reaction-timer' || selectedSensor === 'sound-meter') {
+    if (
+      selectedSensor === 'battery' ||
+      selectedSensor === 'vibration' ||
+      selectedSensor === 'reaction-timer' ||
+      selectedSensor === 'sound-meter' ||
+      selectedSensor === 'location'
+    ) {
       if (!sensorValue) {
         Alert.alert(
           t('sensors.noResultTitle', { defaultValue: 'No result' }),

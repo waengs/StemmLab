@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { SensorLog } from '../types';
 import { getSensorChipLabel } from './sensorChip';
+import { getBatteryLogDisplayLines } from './batteryLog';
 import { parseSlowMoLogData, parseVibrationLogData } from './slowMoLog';
 import { matchesSearch } from './search';
 
@@ -16,6 +17,10 @@ export function getSensorLogSearchText(log: SensorLog, t: TFunction): string {
     if (notes.trim()) parts.push(notes.trim());
   } else if (log.sensorType === 'vibration') {
     const { stats, notes } = parseVibrationLogData(data);
+    parts.push(...stats);
+    if (notes.trim()) parts.push(notes.trim());
+  } else if (log.sensorType === 'battery') {
+    const { stats, notes } = getBatteryLogDisplayLines(data, t);
     parts.push(...stats);
     if (notes.trim()) parts.push(notes.trim());
   } else if (data.includes('\nNotes: ')) {

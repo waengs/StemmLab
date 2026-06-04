@@ -1,13 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Vibration, Image } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useTranslation } from 'react-i18next';
+import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
+import {
+  EARTHQUAKE_INTENSITY_KEYS,
+  EARTHQUAKE_PRESET_DESIGNS,
+  designOptionsForTrial,
+  getEarthquakeDesignLabels,
+  getVibrationPattern,
+  newExtraEarthquakeDesignId,
+  resolveEarthquakeDesign,
+  resolveEarthquakeIntensity,
+  type EarthquakeIntensityKey,
+} from '../../utils/earthquakeLabels';
 
 export interface EarthquakeTrial {
   id: string;
@@ -30,23 +45,191 @@ interface Props {
 
 const DEFAULT_TIME = 3600;
 
-const getVibrationPattern = (intensity: string) => {
-  // Pattern: [pause, vibrate, pause, vibrate, ...] in milliseconds
-  switch (intensity) {
-    case 'Low':
-      return [0, 200, 200]; // Short pulses
-    case 'Medium':
-      return [0, 500, 200]; // Medium pulses
-    case 'High':
-      return [0, 2000, 100]; // Long pulses
-    case 'Extreme':
-      return [0, 5000, 50]; // Almost continuous
-    default:
-      return [0, 500, 200];
-  }
-};
+function useEarthquakeFormStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxxl,
+  },
+  pageCard: {
+    marginBottom: Spacing.md,
+    padding: Spacing.xl,
+  },
+  sectionTitle: {
+    ...typography.h2,
+    marginBottom: Spacing.md,
+  },
+  tabContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  tabScroll: {
+    paddingHorizontal: Spacing.md,
+  },
+  tab: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  stickyTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  timerTitle: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  timerDisplay: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  timerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    gap: Spacing.md,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  checklistText: {
+    ...typography.body,
+    flex: 1,
+  },
+  instructionText: {
+    ...typography.body,
+    marginBottom: Spacing.sm,
+  },
+  wizardNavBoth: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+  },
+  trialBlock: {
+    padding: Spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  trialTitle: {
+    ...typography.h3,
+    marginBottom: Spacing.sm,
+  },
+  illustration: {
+    width: '100%',
+    height: 200,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  vibrationControl: {
+    backgroundColor: colors.primaryLight + '20',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.lg,
+  },
+  vibrationControlHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  vibrationControlTitle: {
+    ...typography.body,
+    fontWeight: '700',
+    marginLeft: Spacing.sm,
+  },
+  vibrationControlDesc: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: Spacing.md,
+  },
+  miniVibrateBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniVibrateBtnActive: {
+    backgroundColor: colors.danger,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    ...typography.h2,
+    color: colors.danger,
+    marginBottom: Spacing.sm,
+  },
+  modalText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  }));
+}
 
-export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
+export function EarthquakeForm({
+  value,
+  onChange,
+  onSubmit,
+}: Props) {
+  const styles = useEarthquakeFormStyles();
+  const { colors, typography } = useTheme();
   const { t } = useTranslation();
   
   const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment'>('setup');
@@ -55,13 +238,22 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isVibrating, setIsVibrating] = useState(false);
-  const [vibrationIntensity, setVibrationIntensity] = useState('Medium');
-  const intensities = ['Low', 'Medium', 'High', 'Extreme'];
-  
-  const equipmentList = [
-    'Cardboard, paper, scissors, sticky tape, plastic/paper cups',
-    'Mobile phone with STEMM Lab app (vibration simulation)'
-  ];
+  const [vibrationIntensity, setVibrationIntensity] = useState<EarthquakeIntensityKey>('medium');
+
+  const equipmentString = t('data.activities.earthquake.equipment');
+  const designLabels = useMemo(() => getEarthquakeDesignLabels(t), [t]);
+  const presetDesignOptionLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    for (const d of EARTHQUAKE_PRESET_DESIGNS) {
+      labels[d] = designLabels[d];
+    }
+    return labels;
+  }, [designLabels]);
+  const equipmentList = useMemo(
+    () => equipmentString.split(',').map((s) => s.trim()),
+    [equipmentString]
+  );
+  const yesNoOptions = useMemo(() => [t('common.yes'), t('common.no')], [t]);
   const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
   const allEquipmentChecked = equipmentList.every(item => checkedEquipment[item]);
 
@@ -192,7 +384,7 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
               onPress={() => {
                 if (!isTimerRunning && tab !== 'setup') {
-                  Alert.alert("Timer Required", "Please start the timer to navigate to other sections.");
+                  Alert.alert(t('activities.timerRequiredTitle'), t('activities.timerRequiredMsg'));
                   return;
                 }
                 setActiveTab(tab as any);
@@ -213,21 +405,17 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
           <View style={styles.stickyTimer}>
             <View style={{flex: 1}}>
               <Text style={styles.timerTitle}>{t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' })}</Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: Colors.danger}]}>{formatTime(timeLeft)}</Text>
+              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: colors.danger}]}>{formatTime(timeLeft)}</Text>
             </View>
             <View style={styles.timerButtons}>
               <Button 
                 title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })} 
                 onPress={() => {
                   if (isTimerRunning) {
-                    Alert.alert(
-                      "Pause Timer",
-                      "Don't pause the timer unless you need to. Value integrity!",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Pause", onPress: () => setIsTimerRunning(false) }
-                      ]
-                    );
+                    Alert.alert(t('activities.pauseTimerTitle'), t('activities.pauseTimerMsg'), [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      { text: t('activities.timerPause'), onPress: () => setIsTimerRunning(false) },
+                    ]);
                   } else {
                     setIsTimerRunning(true);
                   }
@@ -239,9 +427,9 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
               <Button 
                 title={t('common.reset', { defaultValue: 'Reset' })} 
                 onPress={() => {
-                  Alert.alert("Reset Timer & Data", "Are you sure you want to start over? This wipes all data.", [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Start Over", style: "destructive", onPress: handleStartOver }
+                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
                   ]);
                 }} 
                 variant="outlined"
@@ -269,7 +457,7 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
                   disabled={isLocked}
                 >
                   <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
                   </View>
                   <Text style={styles.checklistText}>{item}</Text>
                 </TouchableOpacity>
@@ -277,12 +465,11 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-              
-              <Text style={styles.instructionText}>1. Build an anti-vibration layer by folding paper/cardboard.</Text>
-              <Text style={styles.instructionText}>2. Place a flat cardboard platform on top.</Text>
-              <Text style={styles.instructionText}>3. Place the phone in the centre and use the Earthquake Simulator below to activate the phone's vibration motor.</Text>
-              <Text style={styles.instructionText}>4. Modify the structure to reduce phone movement (e.g. more pillars, more folds).</Text>
+              <ActivityInstructionsList
+                activityId="earthquake"
+                textStyle={styles.instructionText}
+                titleStyle={styles.sectionTitle}
+              />
 
               <Image source={require('../../../assets/images/activity4illustration.jpeg')} style={styles.illustration} resizeMode="contain" />
             </Card>
@@ -299,14 +486,14 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
         {activeTab === 'predictions' && (
           <View>
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>Make Your Predictions</Text>
-              <Input
-                label="Predict which fold design makes the phone move the least:"
+              <Text style={styles.sectionTitle}>{t('activities.predictionsTitle')}</Text>
+              <Select
+                label={t('data.activities.earthquake.predictBestDesignLabel')}
                 value={data.predictedBestDesign}
-                onChangeText={(v) => updateData({ predictedBestDesign: v })}
-                placeholder="e.g. 10 folds with 4 pillars"
-                editable={!isLocked}
-                onLightSurface
+                options={[...EARTHQUAKE_PRESET_DESIGNS]}
+                optionLabels={presetDesignOptionLabels}
+                onValueChange={(v) => updateData({ predictedBestDesign: v })}
+                disabled={isLocked}
               />
             </Card>
 
@@ -323,13 +510,17 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
             <Card style={styles.pageCard}>
               <View style={styles.vibrationControl}>
                 <View style={styles.vibrationControlHeader}>
-                  <Ionicons name="pulse" size={24} color={isVibrating ? Colors.danger : Colors.primary} />
-                  <Text style={styles.vibrationControlTitle}>Earthquake Simulator</Text>
+                  <Ionicons name="pulse" size={24} color={isVibrating ? colors.danger : colors.primary} />
+                  <Text style={styles.vibrationControlTitle}>{t('data.activities.earthquake.simulatorTitle')}</Text>
                 </View>
-                <Text style={styles.vibrationControlDesc}>Use this to vibrate the phone during your experiment.</Text>
+                <Text style={styles.vibrationControlDesc}>{t('data.activities.earthquake.simulatorDesc')}</Text>
                 
                 <View style={{ marginBottom: Spacing.md }}>
-                  <Text style={{...Typography.bodySmall, fontWeight: '700', marginBottom: Spacing.xs, color: Colors.text}}>Intensity Level: {vibrationIntensity}</Text>
+                  <Text style={{...typography.bodySmall, fontWeight: '700', marginBottom: Spacing.xs, color: colors.text}}>
+                    {t('data.activities.earthquake.intensityLevel', {
+                      level: resolveEarthquakeIntensity(vibrationIntensity, t),
+                    })}
+                  </Text>
                   
                   <View style={{ position: 'relative', marginVertical: Spacing.sm }}>
                     <Slider
@@ -337,11 +528,13 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
                       minimumValue={0}
                       maximumValue={3}
                       step={1}
-                      value={intensities.indexOf(vibrationIntensity)}
-                      onValueChange={(val) => setVibrationIntensity(intensities[val])}
-                      minimumTrackTintColor={Colors.primaryDark}
-                      maximumTrackTintColor={Colors.textSecondary}
-                      thumbTintColor={Colors.primaryDark}
+                      value={EARTHQUAKE_INTENSITY_KEYS.indexOf(vibrationIntensity)}
+                      onValueChange={(val) =>
+                        setVibrationIntensity(EARTHQUAKE_INTENSITY_KEYS[Math.round(val)] ?? 'medium')
+                      }
+                      minimumTrackTintColor={colors.primaryDark}
+                      maximumTrackTintColor={colors.textSecondary}
+                      thumbTintColor={colors.primaryDark}
                     />
                     
                     {/* Tick Marks (Dots) placed on top of slider track */}
@@ -353,7 +546,10 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
                             width: 8, 
                             height: 8, 
                             borderRadius: 4, 
-                            backgroundColor: i <= intensities.indexOf(vibrationIntensity) ? Colors.primaryDark : Colors.textSecondary 
+                            backgroundColor:
+                              i <= EARTHQUAKE_INTENSITY_KEYS.indexOf(vibrationIntensity)
+                                ? colors.primaryDark
+                                : colors.textSecondary 
                           }} 
                         />
                       ))}
@@ -361,13 +557,17 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
                   </View>
 
                   <View style={{flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.xs}}>
-                    <Text style={{...Typography.caption, color: Colors.textSecondary, width: 60, textAlign: 'left'}}>Low</Text>
-                    <Text style={{...Typography.caption, color: Colors.textSecondary, width: 60, textAlign: 'right'}}>Extreme</Text>
+                    <Text style={{...typography.caption, color: colors.textSecondary, width: 60, textAlign: 'left'}}>
+                      {t('data.activities.earthquake.intensityLow')}
+                    </Text>
+                    <Text style={{...typography.caption, color: colors.textSecondary, width: 60, textAlign: 'right'}}>
+                      {t('data.activities.earthquake.intensityExtreme')}
+                    </Text>
                   </View>
                 </View>
 
                 <Button 
-                  title={isVibrating ? "Stop Earthquake" : "Start Earthquake"} 
+                  title={isVibrating ? t('data.activities.earthquake.stopEarthquake') : t('data.activities.earthquake.startEarthquake')} 
                   onPress={toggleVibration} 
                   variant={isVibrating ? "danger" : "primary"}
                   fullWidth
@@ -377,38 +577,40 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
 
             <Card style={styles.pageCard}>
               <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md}}>
-                <Text style={styles.sectionTitle}>Record Trials</Text>
+                <Text style={styles.sectionTitle}>{t('activities.trialsTitle')}</Text>
               </View>
               
               {data.trials.map((trial, index) => (
                 <View key={trial.id} style={styles.trialBlock}>
-                  <Text style={styles.trialTitle}>Design {index + 1}</Text>
+                  <Text style={styles.trialTitle}>{t('data.activities.earthquake.designNumber', { n: index + 1 })}</Text>
                   
-                  <Input
-                    label="Design Description"
+                  <Select
+                    label={t('data.activities.earthquake.designDescription')}
                     value={trial.design}
-                    onChangeText={(v) => updateTrial(trial.id, { design: v })}
-                    placeholder="e.g. 4 folds + 4 pillars"
-                    editable={!isLocked}
-                    onLightSurface
+                    options={designOptionsForTrial(trial.design)}
+                    optionLabels={Object.fromEntries(
+                      designOptionsForTrial(trial.design).map((d) => [d, resolveEarthquakeDesign(d, t)])
+                    )}
+                    onValueChange={(v) => updateTrial(trial.id, { design: v })}
+                    disabled={isLocked}
                   />
 
                   <View style={{flexDirection: 'row', gap: Spacing.sm}}>
                     <View style={{flex: 1}}>
                       <Input
-                        label="Outcome (Movement)"
+                        label={t('data.activities.earthquake.outcomeMovement')}
                         value={trial.outcomeMovement}
                         onChangeText={(v) => updateTrial(trial.id, { outcomeMovement: v })}
-                        placeholder="e.g. +/- 1cm or 4cm"
+                        placeholder={t('data.activities.earthquake.outcomePlaceholder')}
                         editable={!isLocked}
                         onLightSurface
                       />
                     </View>
                     <View style={{flex: 1}}>
                       <Select
-                        label="Were you right?"
+                        label={t('activities.wereYouRight')}
                         value={trial.wereYouRight}
-                        options={['Yes', 'No']}
+                        options={yesNoOptions}
                         onValueChange={(v) => updateTrial(trial.id, { wereYouRight: v })}
                         disabled={isLocked}
                       />
@@ -419,21 +621,31 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
               
               {!isLocked && (
                 <Button 
-                  title="Add Design" 
+                  title={t('data.activities.earthquake.addDesign')} 
                   variant="ghost" 
                   onPress={() => {
                     const newId = (data.trials.length + 1).toString();
-                    updateData({ trials: [...data.trials, { id: newId, design: `Design ${newId}`, outcomeMovement: '', wereYouRight: '' }] });
+                    updateData({
+                      trials: [
+                        ...data.trials,
+                        {
+                          id: newId,
+                          design: newExtraEarthquakeDesignId(data.trials.length + 1),
+                          outcomeMovement: '',
+                          wereYouRight: '',
+                        },
+                      ],
+                    });
                   }} 
-                  icon={<Ionicons name="add" size={16} color={Colors.primary} />}
+                  icon={<Ionicons name="add" size={16} color={colors.primary} />}
                 />
               )}
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>Reflection</Text>
+              <Text style={styles.sectionTitle}>{actT('shared.reflectionTitle')}</Text>
               <Input
-                label="Any surprises?"
+                label={t('data.activities.earthquake.surprisesLabel')}
                 value={data.surprises}
                 onChangeText={(v) => updateData({ surprises: v })}
                 multiline
@@ -454,178 +666,4 @@ export function EarthquakeForm({ value, onChange, onSubmit }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxxl,
-  },
-  pageCard: {
-    marginBottom: Spacing.md,
-    padding: Spacing.xl,
-  },
-  sectionTitle: {
-    ...Typography.h2,
-    marginBottom: Spacing.md,
-  },
-  tabContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  tabScroll: {
-    paddingHorizontal: Spacing.md,
-  },
-  tab: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: Colors.primary,
-  },
-  tabText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  stickyTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  timerTitle: {
-    ...Typography.caption,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    marginBottom: 2,
-  },
-  timerDisplay: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.primary,
-    fontVariant: ['tabular-nums'],
-  },
-  timerButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    gap: Spacing.md,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.primary,
-  },
-  checklistText: {
-    ...Typography.body,
-    flex: 1,
-  },
-  instructionText: {
-    ...Typography.body,
-    marginBottom: Spacing.sm,
-  },
-  wizardNavBoth: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-  },
-  trialBlock: {
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-  },
-  trialTitle: {
-    ...Typography.h3,
-    marginBottom: Spacing.sm,
-  },
-  illustration: {
-    width: '100%',
-    height: 200,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-  },
-  vibrationControl: {
-    backgroundColor: Colors.primaryLight + '20',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.lg,
-  },
-  vibrationControlHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  vibrationControlTitle: {
-    ...Typography.body,
-    fontWeight: '700',
-    marginLeft: Spacing.sm,
-  },
-  vibrationControlDesc: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-  },
-  miniVibrateBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryLight + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  miniVibrateBtnActive: {
-    backgroundColor: Colors.danger,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: Spacing.xl,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    ...Typography.h2,
-    color: Colors.danger,
-    marginBottom: Spacing.sm,
-  },
-  modalText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-});
+

@@ -13,10 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Chip, Input, Button, Select, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion, EarthquakeForm, EarthquakeResults, EarthquakePostActivity, EarthquakeDiscussion, HumanPerformanceForm, HumanPerformancePostActivity, HumanPerformanceResults, HumanPerformanceDiscussion, BreathingPaceForm, BreathingPacePostActivity, BreathingPaceResults, BreathingPaceDiscussion, ReactionBoardForm, ReactionBoardPostActivity, ReactionBoardResults, ReactionBoardDiscussion } from '../../../src/components';
+import { Card, Chip, Input, Button, Select, ActivityMenuDashboard, ParachuteDropForm, ParachuteDropPostActivity, ParachuteDropResults, ParachuteDropDiscussion, HandFanForm, HandFanPostActivity, HandFanResults, HandFanDiscussion, SoundPollutionForm, SoundPollutionResults, SoundPollutionPostActivity, SoundPollutionDiscussion, EarthquakeForm, EarthquakeResults, EarthquakePostActivity, EarthquakeDiscussion, HumanPerformanceForm, HumanPerformancePostActivity, HumanPerformanceResults, HumanPerformanceDiscussion, BreathingPaceForm, BreathingPacePostActivity, BreathingPaceResults, BreathingPaceDiscussion, ReactionBoardForm, ReactionBoardPostActivity, ReactionBoardResults, ReactionBoardDiscussion } from '../../../src/components';
 import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
-import { Colors, Spacing, BorderRadius, Typography, Shadows } from '../../../src/theme';
+import { useTheme } from '../../../src/context/ThemeContext';
+import { useThemedStyles } from '../../../src/hooks/useThemedStyles';
+import { Spacing, BorderRadius, Shadows } from '../../../src/theme';
 import { useRequireAuth, useActivityResultsStore, useResultsForActivity, calculateScore } from '../../../src/stores';
 import type { ActivityResult } from '../../../src/types';
 
@@ -29,6 +31,49 @@ interface FormField {
 
 export default function ActivityDetail() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ colors: c, typography }) => ({
+    safe: { flex: 1, backgroundColor: c.background },
+    container: { flex: 1 },
+    content: { padding: Spacing.xl, paddingBottom: Spacing.xxxl },
+    backBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.lg },
+    backText: { ...typography.body, color: c.primary, fontWeight: '600' },
+    infoCard: { marginBottom: Spacing.xl },
+    activityName: { ...typography.h2, marginBottom: Spacing.xs, color: c.text },
+    activityDesc: { ...typography.body, color: c.textSecondary, marginBottom: Spacing.md },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.lg },
+    alert: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: Spacing.sm,
+      backgroundColor: c.primary + '10',
+      borderRadius: BorderRadius.md,
+      padding: Spacing.md,
+      marginBottom: Spacing.xl,
+    },
+    alertText: { ...typography.bodySmall, color: c.primary, flex: 1 },
+    menuContainer: {
+      padding: Spacing.md,
+      backgroundColor: c.surface,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    menuTitle: { ...typography.h3, marginBottom: Spacing.lg, color: c.text, textAlign: 'center' },
+    menuBtn: { marginBottom: Spacing.md },
+    resultsSection: { marginTop: Spacing.sm },
+    resultsTitle: { ...typography.h3, marginBottom: Spacing.md, color: c.text },
+    resultCard: { marginBottom: Spacing.md },
+    resultHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.sm,
+    },
+    resultDate: { ...typography.caption, color: c.textMuted },
+    resultField: { ...typography.bodySmall, marginBottom: 2, color: c.textSecondary },
+    resultFieldName: { fontWeight: '600', color: c.text },
+  }));
   const { activityId } = useLocalSearchParams<{ activityId: string }>();
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -237,7 +282,7 @@ export default function ActivityDetail() {
               }
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
+            <Ionicons name="arrow-back" size={20} color={colors.primary} />
             <Text style={styles.backText}>{t('common.back')}</Text>
           </TouchableOpacity>
 
@@ -247,7 +292,7 @@ export default function ActivityDetail() {
             <Text style={styles.activityDesc}>{t(`data.activities.${activity.id}.desc`, { defaultValue: activity.description })}</Text>
 
             <View style={styles.chipRow}>
-              <Chip label={t(`data.categories.${activity.category}`, { defaultValue: activity.category })} variant="filled" color={Colors.primary} size="md" />
+              <Chip label={t(`data.categories.${activity.category}`, { defaultValue: activity.category })} variant="filled" color={colors.primary} size="md" />
               {activity.sensors.map((sensor) => (
                 <Chip
                   key={sensor}
@@ -261,9 +306,21 @@ export default function ActivityDetail() {
 
             {/* Info alert */}
             <View style={styles.alert}>
-              <Ionicons name="information-circle" size={18} color={Colors.primary} />
+              <Ionicons name="information-circle" size={18} color={colors.primary} />
               <Text style={styles.alertText}>
-                {activity.id === 'parachute-drop' ? t('data.activities.parachute-drop.overview') : activity.id === 'human-performance' ? t('data.activities.human-performance.overview') : activity.id === 'breathing-pace' ? t('data.activities.breathing-pace.overview') : activity.id === 'reaction-board' ? t('data.activities.reaction-board.overview') : t('activities.infoAlert')}
+                {activity.id === 'parachute-drop'
+                  ? t('data.activities.parachute-drop.overview')
+                  : activity.id === 'sound-pollution'
+                    ? t('data.activities.sound-pollution.overview')
+                    : activity.id === 'earthquake'
+                      ? t('data.activities.earthquake.overview')
+                      : activity.id === 'human-performance'
+                        ? t('data.activities.human-performance.overview')
+                        : activity.id === 'breathing-pace'
+                          ? t('data.activities.breathing-pace.overview')
+                          : activity.id === 'reaction-board'
+                            ? t('data.activities.reaction-board.overview')
+                            : t('activities.infoAlert')}
               </Text>
             </View>
 
@@ -274,37 +331,17 @@ export default function ActivityDetail() {
                   <ParachuteDropForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {parachuteViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button 
-                      title="View Past Result" 
-                      onPress={() => setParachuteViewState('past-result')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
-                      onPress={() => setParachuteViewState('quiz')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Discussions" 
-                      onPress={() => setParachuteViewState('forum')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Do Another Experiment" 
-                      onPress={() => {
-                        setFormData({});
-                        setParachuteViewState('form');
-                      }} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
-                      variant="outlined" 
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    pastResultsVariant="singular"
+                    onPastResults={() => setParachuteViewState('past-result')}
+                    onQuiz={() => setParachuteViewState('quiz')}
+                    onDiscussions={() => setParachuteViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setParachuteViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'hand-fan' ? (
@@ -313,37 +350,16 @@ export default function ActivityDetail() {
                   <HandFanForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {handFanViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button 
-                      title="View Past Results" 
-                      onPress={() => setHandFanViewState('past-result')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
-                      onPress={() => setHandFanViewState('quiz')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Discussions" 
-                      onPress={() => setHandFanViewState('forum')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Do Another Experiment" 
-                      onPress={() => {
-                        setFormData({});
-                        setHandFanViewState('form');
-                      }} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
-                      variant="outlined" 
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setHandFanViewState('past-result')}
+                    onQuiz={() => setHandFanViewState('quiz')}
+                    onDiscussions={() => setHandFanViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setHandFanViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'human-performance' ? (
@@ -352,37 +368,16 @@ export default function ActivityDetail() {
                   <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {humanPerformanceViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button 
-                      title="View Past Results" 
-                      onPress={() => setHumanPerformanceViewState('past-result')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
-                      onPress={() => setHumanPerformanceViewState('quiz')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Discussions" 
-                      onPress={() => setHumanPerformanceViewState('forum')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Do Another Experiment" 
-                      onPress={() => {
-                        setFormData({});
-                        setHumanPerformanceViewState('form');
-                      }} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
-                      variant="outlined" 
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setHumanPerformanceViewState('past-result')}
+                    onQuiz={() => setHumanPerformanceViewState('quiz')}
+                    onDiscussions={() => setHumanPerformanceViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setHumanPerformanceViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'breathing-pace' ? (
@@ -391,37 +386,16 @@ export default function ActivityDetail() {
                   <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {breathingPaceViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button
-                      title="View Past Results"
-                      onPress={() => setBreathingPaceViewState('past-result')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title={latestResult?.data?.quizCompleted ? 'View Quiz' : 'Do Quiz'}
-                      onPress={() => setBreathingPaceViewState('quiz')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title="Discussions"
-                      onPress={() => setBreathingPaceViewState('forum')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title="Do Another Experiment"
-                      onPress={() => {
-                        setFormData({});
-                        setBreathingPaceViewState('form');
-                      }}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />}
-                      variant="outlined"
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setBreathingPaceViewState('past-result')}
+                    onQuiz={() => setBreathingPaceViewState('quiz')}
+                    onDiscussions={() => setBreathingPaceViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setBreathingPaceViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'human-performance' ? (
@@ -430,37 +404,16 @@ export default function ActivityDetail() {
                   <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {humanPerformanceViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button 
-                      title="View Past Results" 
-                      onPress={() => setHumanPerformanceViewState('past-result')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
-                      onPress={() => setHumanPerformanceViewState('quiz')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Discussions" 
-                      onPress={() => setHumanPerformanceViewState('forum')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Do Another Experiment" 
-                      onPress={() => {
-                        setFormData({});
-                        setHumanPerformanceViewState('form');
-                      }} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
-                      variant="outlined" 
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setHumanPerformanceViewState('past-result')}
+                    onQuiz={() => setHumanPerformanceViewState('quiz')}
+                    onDiscussions={() => setHumanPerformanceViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setHumanPerformanceViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'breathing-pace' ? (
@@ -469,37 +422,16 @@ export default function ActivityDetail() {
                   <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {breathingPaceViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button
-                      title="View Past Results"
-                      onPress={() => setBreathingPaceViewState('past-result')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title={latestResult?.data?.quizCompleted ? 'View Quiz' : 'Do Quiz'}
-                      onPress={() => setBreathingPaceViewState('quiz')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title="Discussions"
-                      onPress={() => setBreathingPaceViewState('forum')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title="Do Another Experiment"
-                      onPress={() => {
-                        setFormData({});
-                        setBreathingPaceViewState('form');
-                      }}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />}
-                      variant="outlined"
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setBreathingPaceViewState('past-result')}
+                    onQuiz={() => setBreathingPaceViewState('quiz')}
+                    onDiscussions={() => setBreathingPaceViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setBreathingPaceViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'sound-pollution' ? (
@@ -508,37 +440,16 @@ export default function ActivityDetail() {
                   <SoundPollutionForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {soundPollutionViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button 
-                      title="View Past Results" 
-                      onPress={() => setSoundPollutionViewState('past-result')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
-                      onPress={() => setSoundPollutionViewState('quiz')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Discussions" 
-                      onPress={() => setSoundPollutionViewState('forum')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Do Another Experiment" 
-                      onPress={() => {
-                        setFormData({});
-                        setSoundPollutionViewState('form');
-                      }} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
-                      variant="outlined" 
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setSoundPollutionViewState('past-result')}
+                    onQuiz={() => setSoundPollutionViewState('quiz')}
+                    onDiscussions={() => setSoundPollutionViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setSoundPollutionViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'earthquake' ? (
@@ -547,37 +458,16 @@ export default function ActivityDetail() {
                   <EarthquakeForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {earthquakeViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button 
-                      title="View Past Results" 
-                      onPress={() => setEarthquakeViewState('past-result')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title={latestResult?.data?.quizCompleted ? "View Quiz" : "Do Quiz"} 
-                      onPress={() => setEarthquakeViewState('quiz')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Discussions" 
-                      onPress={() => setEarthquakeViewState('forum')} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />} 
-                    />
-                    <Button 
-                      title="Do Another Experiment" 
-                      onPress={() => {
-                        setFormData({});
-                        setEarthquakeViewState('form');
-                      }} 
-                      style={styles.menuBtn} 
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />} 
-                      variant="outlined" 
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setEarthquakeViewState('past-result')}
+                    onQuiz={() => setEarthquakeViewState('quiz')}
+                    onDiscussions={() => setEarthquakeViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setEarthquakeViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : activity.id === 'reaction-board' ? (
@@ -586,37 +476,16 @@ export default function ActivityDetail() {
                   <ReactionBoardForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
                 )}
                 {reactionBoardViewState === 'menu' && (
-                  <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Activity Dashboard</Text>
-                    <Button
-                      title="View Past Results"
-                      onPress={() => setReactionBoardViewState('past-result')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="time" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title={latestResult?.data?.quizCompleted ? 'View Quiz' : 'Do Quiz'}
-                      onPress={() => setReactionBoardViewState('quiz')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="school" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title="Discussions"
-                      onPress={() => setReactionBoardViewState('forum')}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="chatbubbles" size={18} color={Colors.white} />}
-                    />
-                    <Button
-                      title="Do Another Experiment"
-                      onPress={() => {
-                        setFormData({});
-                        setReactionBoardViewState('form');
-                      }}
-                      style={styles.menuBtn}
-                      icon={<Ionicons name="flask" size={18} color={Colors.primary} />}
-                      variant="outlined"
-                    />
-                  </View>
+                  <ActivityMenuDashboard
+                    quizCompleted={!!latestResult?.data?.quizCompleted}
+                    onPastResults={() => setReactionBoardViewState('past-result')}
+                    onQuiz={() => setReactionBoardViewState('quiz')}
+                    onDiscussions={() => setReactionBoardViewState('forum')}
+                    onNewExperiment={() => {
+                      setFormData({});
+                      setReactionBoardViewState('form');
+                    }}
+                  />
                 )}
               </>
             ) : (
@@ -659,7 +528,7 @@ export default function ActivityDetail() {
                 onPress={handleSubmit}
                 size="lg"
                 fullWidth
-                icon={<Ionicons name="save" size={18} color={Colors.white} />}
+                icon={<Ionicons name="save" size={18} color={colors.white} />}
               />
             )}
           </Card>
@@ -683,11 +552,11 @@ export default function ActivityDetail() {
                       <View style={styles.resultHeader}>
                         <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
                         <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
-                          <Text style={{fontWeight: '700', color: Colors.primary}}>
-                            Score: {calculateScore(result)}
+                          <Text style={{fontWeight: '700', color: colors.primary}}>
+                            {t('activities.scoreLabel', { score: calculateScore(result) })}
                           </Text>
                           <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -715,11 +584,11 @@ export default function ActivityDetail() {
                       <View style={styles.resultHeader}>
                         <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
                         <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
-                          <Text style={{fontWeight: '700', color: Colors.primary}}>
-                            Score: {calculateScore(result)}
+                          <Text style={{fontWeight: '700', color: colors.primary}}>
+                            {t('activities.scoreLabel', { score: calculateScore(result) })}
                           </Text>
                           <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -747,11 +616,11 @@ export default function ActivityDetail() {
                       <View style={styles.resultHeader}>
                         <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
                         <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
-                          <Text style={{fontWeight: '700', color: Colors.primary}}>
-                            Score: {calculateScore(result)}
+                          <Text style={{fontWeight: '700', color: colors.primary}}>
+                            {t('activities.scoreLabel', { score: calculateScore(result) })}
                           </Text>
                           <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -779,11 +648,11 @@ export default function ActivityDetail() {
                       <View style={styles.resultHeader}>
                         <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
                         <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
-                          <Text style={{fontWeight: '700', color: Colors.primary}}>
-                            Score: {calculateScore(result)}
+                          <Text style={{fontWeight: '700', color: colors.primary}}>
+                            {t('activities.scoreLabel', { score: calculateScore(result) })}
                           </Text>
                           <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -811,11 +680,11 @@ export default function ActivityDetail() {
                       <View style={styles.resultHeader}>
                         <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
                         <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
-                          <Text style={{fontWeight: '700', color: Colors.primary}}>
-                            Score: {calculateScore(result)}
+                          <Text style={{fontWeight: '700', color: colors.primary}}>
+                            {t('activities.scoreLabel', { score: calculateScore(result) })}
                           </Text>
                           <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -843,11 +712,11 @@ export default function ActivityDetail() {
                       <View style={styles.resultHeader}>
                         <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-                          <Text style={{ fontWeight: '700', color: Colors.primary }}>
-                            Score: {calculateScore(result)}
+                          <Text style={{ fontWeight: '700', color: colors.primary }}>
+                            {t('activities.scoreLabel', { score: calculateScore(result) })}
                           </Text>
                           <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -875,11 +744,11 @@ export default function ActivityDetail() {
                       <View style={styles.resultHeader}>
                         <Text style={styles.resultDate}>{new Date(result.timestamp).toLocaleDateString()}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-                          <Text style={{ fontWeight: '700', color: Colors.primary }}>
-                            Score: {calculateScore(result)}
+                          <Text style={{ fontWeight: '700', color: colors.primary }}>
+                            {t('activities.scoreLabel', { score: calculateScore(result) })}
                           </Text>
                           <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                            <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                            <Ionicons name="trash-outline" size={20} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -902,11 +771,11 @@ export default function ActivityDetail() {
                         {new Date(result.timestamp).toLocaleString()}
                       </Text>
                       <View style={{flexDirection: 'row', alignItems: 'center', gap: Spacing.sm}}>
-                        <Text style={{fontWeight: '700', color: Colors.primary}}>
+                        <Text style={{fontWeight: '700', color: colors.primary}}>
                           Score: {calculateScore(result)}
                         </Text>
                         <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                          <Ionicons name="trash-outline" size={18} color={Colors.danger} />
+                          <Ionicons name="trash-outline" size={18} color={colors.danger} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -926,103 +795,3 @@ export default function ActivityDetail() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.lg,
-  },
-  backText: {
-    ...Typography.body,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  infoCard: {
-    marginBottom: Spacing.xl,
-  },
-  activityName: {
-    ...Typography.h2,
-    marginBottom: Spacing.xs,
-  },
-  activityDesc: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  alert: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary + '10',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  alertText: {
-    ...Typography.bodySmall,
-    color: Colors.primary,
-    flex: 1,
-  },
-  menuContainer: {
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  menuTitle: {
-    ...Typography.h3,
-    marginBottom: Spacing.lg,
-    color: Colors.text,
-    textAlign: 'center',
-  },
-  menuBtn: {
-    marginBottom: Spacing.md,
-  },
-  resultsSection: {
-    marginTop: Spacing.sm,
-  },
-  resultsTitle: {
-    ...Typography.h3,
-    marginBottom: Spacing.md,
-  },
-  resultCard: {
-    marginBottom: Spacing.md,
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  resultDate: {
-    ...Typography.caption,
-  },
-  resultField: {
-    ...Typography.bodySmall,
-    marginBottom: 2,
-  },
-  resultFieldName: {
-    fontWeight: '600',
-    color: Colors.text,
-  },
-});

@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { Spacing, BorderRadius } from '../../theme';
 import { useRequireAuth } from '../../stores';
 
 interface Props {
@@ -9,6 +11,55 @@ interface Props {
 }
 
 export function ParachuteDropResults({ data }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ colors: c, typography }) => ({
+    container: { marginTop: Spacing.sm },
+    penaltyAlert: {
+      backgroundColor: c.danger + '20',
+      padding: Spacing.md,
+      borderRadius: BorderRadius.md,
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: c.danger,
+    },
+    penaltyText: { ...typography.bodySmall, color: c.danger, fontWeight: '700' },
+    setupText: { ...typography.bodySmall, color: c.textMuted, marginBottom: Spacing.sm, fontStyle: 'italic' },
+    predictionHighlight: {
+      ...typography.body,
+      color: c.primary,
+      marginBottom: Spacing.lg,
+      padding: Spacing.sm,
+      backgroundColor: c.primaryLight + '20',
+      borderRadius: BorderRadius.sm,
+    },
+    tableCard: {
+      marginBottom: Spacing.lg,
+      padding: Spacing.md,
+      backgroundColor: c.surface,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    tableTitle: { ...typography.bodySmall, fontWeight: '700', color: c.text, marginBottom: Spacing.md },
+    tableRowHeader: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+      paddingBottom: Spacing.xs,
+      marginBottom: Spacing.sm,
+    },
+    tableRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
+    tableCell: { ...typography.bodySmall, color: c.textSecondary },
+    flex2: { flex: 2 },
+    hsCalcBlock: {
+      marginBottom: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+      paddingBottom: Spacing.sm,
+    },
+    hsCalcTitle: { ...typography.bodySmall, fontWeight: '700', color: c.primary, marginBottom: 4 },
+    calcText: { ...typography.bodySmall, color: c.textSecondary, marginBottom: 2 },
+  }));
   const { t } = useTranslation();
   const { team } = useRequireAuth();
   
@@ -54,10 +105,10 @@ export function ParachuteDropResults({ data }: Props) {
           const absDiff = Math.abs(p - a);
           const hasActual = Boolean(trial.actualTime);
           const diffColor = !hasActual
-            ? Colors.textSecondary
+            ? colors.textSecondary
             : absDiff < 0.01
-              ? Colors.secondary
-              : Colors.danger;
+              ? colors.secondary
+              : colors.danger;
           return (
             <View key={trial.id} style={styles.tableRow}>
               <Text style={[styles.tableCell, styles.flex2, { fontWeight: '700' }]}>{trial.label}</Text>
@@ -109,8 +160,8 @@ export function ParachuteDropResults({ data }: Props) {
           <Text style={styles.tableTitle}>{t('common.notes')}</Text>
           {data.trials.filter((t: any) => t.notes).map((trial: any) => (
             <View key={`notes-${trial.id}`} style={{ marginBottom: Spacing.sm }}>
-              <Text style={{ ...Typography.bodySmall, fontWeight: '700' }}>{trial.label}</Text>
-              <Text style={{...Typography.bodySmall, color: Colors.textSecondary, fontStyle: 'italic'}}>{trial.notes}</Text>
+              <Text style={[styles.tableCell, { fontWeight: '700' }]}>{trial.label}</Text>
+              <Text style={[styles.tableCell, { fontStyle: 'italic' }]}>{trial.notes}</Text>
             </View>
           ))}
         </View>
@@ -119,83 +170,3 @@ export function ParachuteDropResults({ data }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: Spacing.sm,
-  },
-  penaltyAlert: {
-    backgroundColor: Colors.danger + '20',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.danger,
-  },
-  penaltyText: {
-    ...Typography.bodySmall,
-    color: Colors.danger,
-    fontWeight: '700',
-  },
-  setupText: {
-    ...Typography.bodySmall,
-    color: Colors.textMuted,
-    marginBottom: Spacing.sm,
-    fontStyle: 'italic',
-  },
-  predictionHighlight: {
-    ...Typography.body,
-    color: Colors.primary,
-    marginBottom: Spacing.lg,
-    padding: Spacing.sm,
-    backgroundColor: Colors.primaryLight + '20',
-    borderRadius: BorderRadius.sm,
-  },
-  tableCard: {
-    marginBottom: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  tableTitle: {
-    ...Typography.bodySmall,
-    fontWeight: '700',
-    color: '#334155',
-    marginBottom: Spacing.md,
-  },
-  tableRowHeader: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  tableCell: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-  },
-  flex2: { flex: 2 },
-  hsCalcBlock: {
-    marginBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: Spacing.sm,
-  },
-  hsCalcTitle: {
-    ...Typography.bodySmall,
-    fontWeight: '700',
-    color: Colors.primary,
-    marginBottom: 4,
-  },
-  calcText: {
-    ...Typography.bodySmall,
-    color: '#475569',
-    marginBottom: 2,
-  }
-});

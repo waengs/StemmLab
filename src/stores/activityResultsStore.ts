@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -6,6 +7,10 @@ import {
   deleteActivityResult,
 } from '../utils/storage';
 import type { ActivityResult } from '../types';
+import {
+  getTeamActivityCompletions,
+  type TeamActivityCompletion,
+} from './selectors/leaderboard';
 
 interface ActivityResultsState {
   results: ActivityResult[];
@@ -71,9 +76,47 @@ export function useResultsForActivity(
   );
 }
 
+/** Distinct completed activity IDs (stable primitive array for useShallow). */
+export function useCompletedActivityIds(discriminator: string | undefined): string[] {
+  return useActivityResultsStore(
+    useShallow((state) => {
+      if (!discriminator) return [];
+      const code = discriminator.toUpperCase();
+      const lastById = new Map<string, number>();
+      for (const r of state.results) {
+        if (r.teamDiscriminator.toUpperCase() !== code) continue;
+        const prev = lastById.get(r.activityId);
+        if (prev === undefined || r.timestamp > prev) {
+          lastById.set(r.activityId, r.timestamp);
+        }
+      }
+      return Array.from(lastById.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([id]) => id);
+    })
+  );
+}
+
+/** Full completion rows for UI lists — derive from IDs to avoid useShallow loops. */
+export function useCompletedActivities(
+  discriminator: string | undefined
+): TeamActivityCompletion[] {
+  const activityIds = useCompletedActivityIds(discriminator);
+  const results = useActivityResultsStore((state) => state.results);
+  return useMemo(() => {
+    if (!discriminator) return [];
+    return getTeamActivityCompletions(results, discriminator);
+  }, [discriminator, results, activityIds]);
+}
+
 export function useCompletedCount(discriminator: string | undefined): number {
   return useActivityResultsStore((state) => {
     if (!discriminator) return 0;
-    return state.results.filter((r) => r.teamDiscriminator === discriminator).length;
+    const code = discriminator.toUpperCase();
+    const ids = new Set<string>();
+    for (const r of state.results) {
+      if (r.teamDiscriminator.toUpperCase() === code) ids.add(r.activityId);
+    }
+    return ids.size;
   });
 }

@@ -12,9 +12,16 @@ interface DashboardHeaderProps {
   team: Team;
   completedCount: number;
   onProfilePress: () => void;
+  onCompletedPress?: () => void;
 }
 
-export function DashboardHeader({ user, team, completedCount, onProfilePress }: DashboardHeaderProps) {
+export function DashboardHeader({
+  user,
+  team,
+  completedCount,
+  onProfilePress,
+  onCompletedPress,
+}: DashboardHeaderProps) {
   const { t } = useTranslation();
   const { typography } = useTheme();
 
@@ -47,7 +54,7 @@ export function DashboardHeader({ user, team, completedCount, onProfilePress }: 
       <Text style={styles.teamInfo}>
         {team.name} • {t('dashboard.teamId', { id: team.discriminator })}
       </Text>
-      <StatsRow completedCount={completedCount} />
+      <StatsRow completedCount={completedCount} onCompletedPress={onCompletedPress} />
     </View>
   );
 }

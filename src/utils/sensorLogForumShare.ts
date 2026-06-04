@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { ForumAttachment, SensorLog } from '../types';
 import { getSensorChipLabel } from './sensorChip';
+import { getBatteryLogDisplayLines } from './batteryLog';
 import { parseSlowMoLogData, parseVibrationLogData } from './slowMoLog';
 
 export type SensorLogForumSharePayload = {
@@ -44,6 +45,16 @@ export function buildSensorLogForumShare(log: SensorLog, t: TFunction): SensorLo
     }
   } else if (log.sensorType === 'vibration') {
     const { stats, notes } = parseVibrationLogData(data);
+    if (stats.length > 0) {
+      lines.push(t('sensors.shareForum.measurementsHeader'));
+      stats.forEach((stat) => lines.push(`• ${stat}`));
+      lines.push('');
+    }
+    if (notes.trim()) {
+      lines.push(t('sensors.shareForum.notesLine', { notes: notes.trim() }), '');
+    }
+  } else if (log.sensorType === 'battery') {
+    const { stats, notes } = getBatteryLogDisplayLines(data, t);
     if (stats.length > 0) {
       lines.push(t('sensors.shareForum.measurementsHeader'));
       stats.forEach((stat) => lines.push(`• ${stat}`));

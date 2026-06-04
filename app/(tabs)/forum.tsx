@@ -21,15 +21,16 @@ import { useTheme } from '../../src/stores/themeStore';
 import { useForumStore } from '../../src/stores';
 import { useRequireAuth } from '../../src/stores';
 import { BorderRadius, Shadows, Spacing } from '../../src/theme';
+import { loadForumFeedParallel } from '../../src/services/app/parallelFeedLoad';
 import { ACTIVITIES, type ForumAttachment, type ForumPost, type ForumReply } from '../../src/types';
 
 type SortOption = 'new' | 'top' | 'trending' | 'relevance';
 
-const SORT_OPTIONS: { id: SortOption; label: string; icon: string }[] = [
-  { id: 'new',       label: 'New',       icon: 'time-outline' },
-  { id: 'top',       label: 'Top',       icon: 'arrow-up-outline' },
-  { id: 'trending',  label: 'Trending',  icon: 'flame-outline' },
-  { id: 'relevance', label: 'Relevance', icon: 'search-outline' },
+const SORT_OPTION_META: { id: SortOption; icon: string; labelKey: string }[] = [
+  { id: 'new', icon: 'time-outline', labelKey: 'forum.sort.new' },
+  { id: 'top', icon: 'arrow-up-outline', labelKey: 'forum.sort.top' },
+  { id: 'trending', icon: 'flame-outline', labelKey: 'forum.sort.trending' },
+  { id: 'relevance', icon: 'search-outline', labelKey: 'forum.sort.relevance' },
 ];
 
 /** Simple "hotness" score: upvotes + 2× replies, decayed by age (hours). */
@@ -84,10 +85,19 @@ export default function Forum() {
   >();
   const [sortBy, setSortBy] = useState<SortOption>('new');
 
+  const sortOptions = useMemo(
+    () =>
+      SORT_OPTION_META.map((opt) => ({
+        ...opt,
+        label: t(opt.labelKey),
+      })),
+    [t]
+  );
+
   const categoryOptions = useMemo(() => {
     const activityOptions = Object.values(ACTIVITIES).map((activity) => ({
       id: activity.id,
-      label: activity.name,
+      label: t(`data.activities.${activity.id}.name`, { defaultValue: activity.name }),
     }));
     return [
       { id: 'general', label: t('forum.generalCategory') },
@@ -104,7 +114,10 @@ export default function Forum() {
         setActiveCategoryId(share.categoryId);
         setComposerOpen(true);
       }
-    }, [])
+      if (user?.uid) {
+        void loadForumFeedParallel(user.uid);
+      }
+    }, [user?.uid])
   );
 
   const composerCategoryLabel = useMemo(
@@ -206,7 +219,17 @@ export default function Forum() {
   );
 
   const handleCreatePost = async (attachments?: { url: string; type: 'image' | 'video' | 'raw'; name: string }[]) => {
-    if (!user || !team || !draftTitle.trim() || !draftContent.trim()) return;
+    if (!user || !team) return;
+
+    if (!draftTitle.trim() || !draftContent.trim()) {
+      Alert.alert(
+        t('forum.missingFieldsTitle', { defaultValue: 'Cannot post' }),
+        t('forum.missingFieldsMsg', {
+          defaultValue: 'Add a title and message before posting.',
+        })
+      );
+      return;
+    }
 
     if (hasProfanity(draftTitle) || hasProfanity(draftContent)) {
       Alert.alert(t('common.profanityWarningTitle'), t('common.profanityWarningMsg'));
@@ -223,23 +246,30 @@ export default function Forum() {
       gradeBand: viewerGradeBand,
       categoryId: draftCategoryId,
       categoryLabel: composerCategoryLabel,
-      content: draftContent,
+      content: draftContent.trim(),
       timestamp: Date.now(),
       replies: [],
       upvotes: [],
       attachments,
     };
 
-    await addPost(post);
-    await clearDraft();
-    setComposerOpen(false);
-    setComposerInitialAttachments(undefined);
+    try {
+      await addPost(post);
+      await clearDraft();
+      setComposerOpen(false);
+      setComposerInitialAttachments(undefined);
+    } catch (err) {
+      Alert.alert(
+        t('common.error', { defaultValue: 'Error' }),
+        err instanceof Error ? err.message : t('forum.postFailed', { defaultValue: 'Could not publish your post.' })
+      );
+    }
   };
 
   const handleDeletePost = (postId: string) => {
     const runDelete = () => {
       void deletePost(postId).catch((err) => {
-        Alert.alert('Error', err.message);
+        Alert.alert(t('common.error'), err.message);
       });
     };
 
@@ -297,7 +327,7 @@ export default function Forum() {
             contentContainerStyle={[styles.sortRow, { paddingRight: Spacing.xl }]}
             style={{ marginHorizontal: -Spacing.xl, paddingHorizontal: Spacing.xl }}
           >
-            {SORT_OPTIONS.map((opt) => {
+            {sortOptions.map((opt) => {
               const active = sortBy === opt.id;
               return (
                 <Pressable

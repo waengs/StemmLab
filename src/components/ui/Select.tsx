@@ -17,6 +17,8 @@ interface SelectProps {
   label?: string;
   value: string;
   options: string[];
+  /** Optional map from stored value to display label (e.g. i18n). */
+  optionLabels?: Record<string, string>;
   onValueChange: (value: string) => void;
   placeholder?: string;
   containerStyle?: ViewStyle;
@@ -32,6 +34,7 @@ export function Select({
   label,
   value,
   options,
+  optionLabels,
   onValueChange,
   placeholder = 'Select...',
   containerStyle,
@@ -110,7 +113,9 @@ export function Select({
         disabled={disabled}
         android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
       >
-        <Text style={[styles.triggerText, !value && styles.placeholder]}>{value || placeholder}</Text>
+        <Text style={[styles.triggerText, !value && styles.placeholder]}>
+          {(value && optionLabels?.[value]) || value || placeholder}
+        </Text>
         <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
       </Pressable>
 
@@ -130,7 +135,9 @@ export function Select({
                     onClose?.();
                   }}
                 >
-                  <Text style={[styles.optionText, item === value && styles.optionTextSelected]}>{item}</Text>
+                  <Text style={[styles.optionText, item === value && styles.optionTextSelected]}>
+                    {optionLabels?.[item] ?? item}
+                  </Text>
                   {item === value && <Ionicons name="checkmark" size={20} color={colors.primary} />}
                 </Pressable>
               )}

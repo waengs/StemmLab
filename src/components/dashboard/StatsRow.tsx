@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing, BorderRadius } from '../../theme';
 
 interface StatsRowProps {
   completedCount: number;
+  onCompletedPress?: () => void;
 }
 
-export function StatsRow({ completedCount }: StatsRowProps) {
+export function StatsRow({ completedCount, onCompletedPress }: StatsRowProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
 
@@ -34,12 +35,30 @@ export function StatsRow({ completedCount }: StatsRowProps) {
     [colors, typography]
   );
 
+  const statContent = (
+    <>
+      <Text style={styles.value}>{completedCount}</Text>
+      <Text style={styles.label}>{t('dashboard.completed')}</Text>
+    </>
+  );
+
+  const canOpenList = completedCount > 0 && onCompletedPress;
+
   return (
     <View style={styles.row}>
-      <View style={styles.stat}>
-        <Text style={styles.value}>{completedCount}</Text>
-        <Text style={styles.label}>{t('dashboard.completed')}</Text>
-      </View>
+      {canOpenList ? (
+        <Pressable
+          style={styles.stat}
+          onPress={onCompletedPress}
+          accessibilityRole="button"
+          accessibilityLabel={t('dashboard.completedStatHint', { count: completedCount })}
+          android_ripple={{ color: colors.border }}
+        >
+          {statContent}
+        </Pressable>
+      ) : (
+        <View style={styles.stat}>{statContent}</View>
+      )}
     </View>
   );
 }

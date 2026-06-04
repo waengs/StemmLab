@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { View, Text } from 'react-native';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { Spacing, BorderRadius } from '../../theme';
 import type { BreathingPaceData } from './BreathingPaceForm';
 
 interface BreathingPaceResultsProps {
@@ -9,6 +10,43 @@ interface BreathingPaceResultsProps {
 
 export function BreathingPaceResults({ data }: BreathingPaceResultsProps) {
   const bpData = data as BreathingPaceData;
+
+  const styles = useThemedStyles(({ colors, typography }) => ({
+    predictionsBox: {
+      backgroundColor: colors.background,
+      padding: Spacing.md,
+      borderRadius: BorderRadius.sm,
+      marginBottom: Spacing.lg,
+    },
+    predictionsTitle: { ...typography.label, marginBottom: Spacing.xs },
+    text: { ...typography.bodySmall, marginBottom: 2 },
+    tableTitle: { ...typography.h3, marginBottom: Spacing.sm },
+    tableRowHeader: {
+      flexDirection: 'row',
+      backgroundColor: colors.background,
+      padding: Spacing.sm,
+      borderTopLeftRadius: BorderRadius.sm,
+      borderTopRightRadius: BorderRadius.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tableRow: {
+      flexDirection: 'row',
+      padding: Spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tableCell: { ...typography.bodySmall },
+    flex1: { flex: 1 },
+    flex2: { flex: 2 },
+    notesBox: {
+      marginTop: Spacing.lg,
+      padding: Spacing.md,
+      backgroundColor: colors.background,
+      borderRadius: BorderRadius.sm,
+    },
+    notesTitle: { ...typography.label, marginBottom: Spacing.sm },
+  }));
 
   return (
     <View>
@@ -50,40 +88,3 @@ export function BreathingPaceResults({ data }: BreathingPaceResultsProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  predictionsBox: {
-    backgroundColor: Colors.background,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.lg,
-  },
-  predictionsTitle: { ...Typography.label, marginBottom: Spacing.xs },
-  text: { ...Typography.bodySmall, marginBottom: 2 },
-  tableTitle: { ...Typography.h3, marginBottom: Spacing.sm },
-  tableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background,
-    padding: Spacing.sm,
-    borderTopLeftRadius: BorderRadius.sm,
-    borderTopRightRadius: BorderRadius.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    padding: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableCell: { ...Typography.bodySmall },
-  flex1: { flex: 1 },
-  flex2: { flex: 2 },
-  notesBox: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.sm,
-  },
-  notesTitle: { ...Typography.label, marginBottom: Spacing.sm },
-});

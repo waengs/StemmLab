@@ -1,15 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Image, Alert, ScrollView, Modal as RNModal, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { useGradeBand } from '../../hooks/useGradeBand';
 import { TrialVideoPlayer } from '../sensors/TrialVideoPlayer';
+import {
+  HAND_FAN_DESIGNS,
+  HAND_FAN_DISTANCES,
+  HAND_FAN_MATERIALS,
+  getHandFanDesignLabels,
+  getHandFanMaterialLabels,
+  resolveHandFanDesign,
+  resolveHandFanMaterial,
+} from '../../utils/handFanLabels';
 
 export interface HandFanTrial {
   id: string;
@@ -38,16 +51,258 @@ interface Props {
 
 const DEFAULT_TIME = 3600;
 
-const STIFFNESS_DATA = [
-  { material: 'Thin printer paper', thickness: '0.1', k: '0.05', notes: 'Bends very easily' },
-  { material: 'Standard card stock', thickness: '0.25', k: '0.2', notes: 'Moderate bend' },
-  { material: 'Thin cardboard', thickness: '0.5', k: '0.5', notes: 'Much harder to bend' },
-  { material: 'Corrugated cardboard', thickness: '3', k: '2–3', notes: 'Very stiff, almost no bend' },
-];
+type StiffnessRow = { material: string; thickness: string; k: string; notes: string };
 
 type HandFanTab = 'setup' | 'predictions' | 'experiment' | 'calculations';
 
-export function HandFanForm({ value, onChange, onSubmit }: Props) {
+function useHandFanFormStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxxl,
+  },
+  pageCard: {
+    marginBottom: Spacing.md,
+    padding: Spacing.xl,
+  },
+  sectionTitle: {
+    ...typography.h2,
+    marginBottom: Spacing.md,
+  },
+  recordHint: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: Spacing.lg,
+    lineHeight: 20,
+  },
+  tabContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  tabScroll: {
+    paddingHorizontal: Spacing.md,
+  },
+  tab: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  stickyTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  timerTitle: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  timerDisplay: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  timerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  flex1: {
+    flex: 1,
+  },
+  flex2: {
+    flex: 2,
+  },
+  flex3: {
+    flex: 3,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    gap: Spacing.md,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  checklistText: {
+    ...typography.body,
+    flex: 1,
+  },
+  instructionText: {
+    ...typography.body,
+    marginBottom: Spacing.sm,
+  },
+  illustration: {
+    width: '100%',
+    height: 200,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  wizardNavBoth: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+  },
+  trialBlock: {
+    padding: Spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  trialTitle: {
+    ...typography.h3,
+    marginBottom: Spacing.sm,
+  },
+  videoContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  tableScroll: {
+    marginTop: Spacing.sm,
+  },
+  tableRowHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    padding: Spacing.sm,
+    borderTopLeftRadius: BorderRadius.sm,
+    borderTopRightRadius: BorderRadius.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    padding: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableCell: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    paddingRight: Spacing.sm,
+  },
+  tableHeaderCell: {
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: colors.text,
+    paddingRight: Spacing.sm,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  tableTitle: {
+    ...typography.h3,
+  },
+  calcBlock: {
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.md,
+  },
+  calcTitle: {
+    ...typography.label,
+    marginBottom: Spacing.xs,
+  },
+  calcText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    ...typography.h2,
+    color: colors.danger,
+    marginBottom: Spacing.sm,
+  },
+  modalText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  instructionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  instructionsTitle: {
+    ...typography.h3,
+    color: colors.primary,
+  },
+  formulaBox: {
+    backgroundColor: colors.primary + '10',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+  },
+  formulaText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    marginBottom: Spacing.xs,
+  },
+  }));
+}
+
+export function HandFanForm({
+  value,
+  onChange,
+  onSubmit,
+}: Props) {
+  const styles = useHandFanFormStyles();
+  const { colors } = useTheme();
+
   const { t } = useTranslation();
   const { isHighSchool } = useGradeBand();
 
@@ -57,16 +312,27 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   
-  const equipmentList = [
-    'Paper and cardboard',
-    'Scissors',
-    'Mobile phone',
-    'Sticky Tape',
-    'STEMM Mobile App',
-    'Protractor'
-  ];
+  const equipmentString = t('data.activities.hand-fan.equipment');
+  const equipmentList = useMemo(
+    () => equipmentString.split(',').map((s) => s.trim()),
+    [equipmentString]
+  );
   const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
   const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every(item => checkedEquipment[item]);
+
+  const materialLabels = useMemo(() => getHandFanMaterialLabels(t), [t]);
+  const designLabels = useMemo(() => getHandFanDesignLabels(t), [t]);
+
+  const stiffnessRows = useMemo(() => {
+    const rows = t('data.activities.hand-fan.stiffnessRows', { returnObjects: true });
+    if (Array.isArray(rows)) {
+      return rows as StiffnessRow[];
+    }
+    return [];
+  }, [t]);
+
+  const displayDesign = (design: string) => resolveHandFanDesign(design, t);
+  const displayMaterial = (material: string) => resolveHandFanMaterial(material, t);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -297,7 +563,7 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
           <View style={styles.stickyTimer}>
             <View style={{flex: 1}}>
               <Text style={styles.timerTitle}>{t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' })}</Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: Colors.danger}]}>{formatTime(timeLeft)}</Text>
+              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: colors.danger}]}>{formatTime(timeLeft)}</Text>
             </View>
             <View style={styles.timerButtons}>
               <Button 
@@ -354,7 +620,7 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
                   disabled={isLocked}
                 >
                   <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
                   </View>
                   <Text style={styles.checklistText}>{item}</Text>
                 </TouchableOpacity>
@@ -362,13 +628,11 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-              <Text style={styles.instructionText}>1. Stand paper upright on a table.</Text>
-              <Text style={styles.instructionText}>2. Fan air from the distance specified in your current trial.</Text>
-              <Text style={styles.instructionText}>3. Observe and record movement.</Text>
-              <Text style={styles.instructionText}>4. Pause the video in slow motion and record the bend angle using the screen and a protractor.</Text>
-              <Text style={styles.instructionText}>5. Repeat this process for all 4 preset fan designs (Paper Wide, Paper Narrow, Cardboard Wide, Cardboard Narrow).</Text>
-              <Text style={styles.instructionText}>6. For each design, test the 3 different fan distances (15cm, 30cm, 45cm). Keep the target material as Paper for all trials.</Text>
+              <ActivityInstructionsList
+                activityId="hand-fan"
+                textStyle={styles.instructionText}
+                titleStyle={styles.sectionTitle}
+              />
               <Image 
                 source={require('../../../assets/images/activity3illustration.jpeg')} 
                 style={styles.illustration}
@@ -391,30 +655,27 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
               <Text style={styles.sectionTitle}>{t('activities.predictionsTitle', { defaultValue: 'Make Your Predictions' })}</Text>
               
               <Select
-                label="Predict which fan material is going to perform the best"
+                label={t('data.activities.hand-fan.predictMaterialLabel')}
                 value={data.predictedMaterial}
-                options={['Paper', 'Cardboard']}
+                options={[...HAND_FAN_MATERIALS]}
+                optionLabels={materialLabels}
                 onValueChange={(v) => updateData({ predictedMaterial: v })}
                 disabled={isLocked}
               />
               
               <Select
-                label="Predict which fan design is going to perform the best"
+                label={t('data.activities.hand-fan.predictDesignLabel')}
                 value={data.predictedDesign}
-                options={[
-                  'Paper, Wide Fold',
-                  'Paper, Narrow Fold',
-                  'Cardboard, Wide Fold',
-                  'Cardboard, Narrow Fold'
-                ]}
+                options={[...HAND_FAN_DESIGNS]}
+                optionLabels={designLabels}
                 onValueChange={(v) => updateData({ predictedDesign: v })}
                 disabled={isLocked}
               />
               
               <Select
-                label="Predict which fan distance is going to perform the best"
+                label={t('data.activities.hand-fan.predictDistanceLabel')}
                 value={data.predictedDistance || ''}
-                options={['15cm', '30cm', '45cm']}
+                options={[...HAND_FAN_DISTANCES]}
                 onValueChange={(v) => updateData({ predictedDistance: v })}
                 disabled={isLocked}
               />
@@ -432,51 +693,49 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
           <View>
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.trialsTitle', { defaultValue: 'Record Trials' })}</Text>
-              <Text style={styles.recordHint}>
-                {t('data.activities.hand-fan.recordHint', {
-                  defaultValue:
-                    'For each trial, tap Record Slow-Mo Video, fan the paper, then enter the max bend angle.',
-                })}
-              </Text>
+              <Text style={styles.recordHint}>{t('data.activities.hand-fan.recordHint')}</Text>
 
               {data.trials.map((trial, index) => (
                 <View key={trial.id} style={styles.trialBlock}>
-                  <Text style={styles.trialTitle}>Trial {index + 1}</Text>
+                  <Text style={styles.trialTitle}>{t('activities.trialNumber', { n: index + 1 })}</Text>
                   
-                  <Input
-                    label="Fan Design"
+                  <Select
+                    label={t('data.activities.hand-fan.fanDesignLabel')}
                     value={trial.design}
-                    onChangeText={(v) => updateTrial(trial.id, { design: v })}
-                    editable={!isLocked}
-                    onLightSurface
+                    options={[...HAND_FAN_DESIGNS]}
+                    optionLabels={designLabels}
+                    onValueChange={(v) => updateTrial(trial.id, { design: v })}
+                    disabled={isLocked}
                   />
                   
                   <Select
-                    label="Fan Material"
+                    label={t('data.activities.hand-fan.fanMaterialLabel')}
                     value={trial.fanMaterial}
-                    options={['Paper', 'Cardboard']}
+                    options={[...HAND_FAN_MATERIALS]}
+                    optionLabels={materialLabels}
                     onValueChange={(v) => updateTrial(trial.id, { fanMaterial: v })}
                     disabled={isLocked}
                   />
 
                   <Select
-                    label="Target Vertical Material"
+                    label={t('data.activities.hand-fan.targetMaterialLabel')}
                     value={trial.targetMaterial}
-                    options={['Paper', 'Cardboard']}
+                    options={[...HAND_FAN_MATERIALS]}
+                    optionLabels={materialLabels}
                     onValueChange={(v) => updateTrial(trial.id, { targetMaterial: v })}
                     disabled={isLocked}
                   />
                   
                   <Select
-                    label="Fan Distance"
+                    label={t('data.activities.hand-fan.fanDistanceLabel')}
                     value={trial.distance}
-                    options={['15cm', '30cm', '45cm']}
+                    options={[...HAND_FAN_DISTANCES]}
                     onValueChange={(v) => updateTrial(trial.id, { distance: v })}
                     disabled={isLocked}
                   />
 
                   <Input
-                    label="Max Bend Angle (degrees)"
+                    label={t('data.activities.hand-fan.maxBendAngleLabel')}
                     value={trial.maxBendAngle}
                     onChangeText={(v) => updateTrial(trial.id, { maxBendAngle: v })}
                     keyboardType="numeric"
@@ -489,21 +748,21 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
                       <TrialVideoPlayer videoUri={trial.videoUri} />
                       {!isLocked && (
                         <Button 
-                          title="Retake Video" 
+                          title={t('activities.retakeVideo')} 
                           onPress={() => recordVideo(trial.id)} 
                           variant="outlined"
                           size="sm"
                           style={{ marginTop: Spacing.sm }}
-                          icon={<Ionicons name="camera-reverse" size={16} color={Colors.primary} />}
+                          icon={<Ionicons name="camera-reverse" size={16} color={colors.primary} />}
                         />
                       )}
                     </View>
                   ) : (
                     <Button 
-                      title="Record Slow-Mo Video" 
+                      title={t('activities.recordSlowMoVideo')} 
                       onPress={() => recordVideo(trial.id)} 
                       variant="primary"
-                      icon={<Ionicons name="videocam" size={18} color={Colors.white} />}
+                      icon={<Ionicons name="videocam" size={18} color={colors.white} />}
                       disabled={isLocked}
                       style={{ marginTop: Spacing.sm }}
                     />
@@ -529,24 +788,24 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
           <View>
             <Card style={[styles.pageCard, { marginBottom: Spacing.lg }]}>
               <View style={styles.instructionsHeader}>
-                <Ionicons name="calculator" size={24} color={Colors.primary} />
-                <Text style={styles.instructionsTitle}>{t('activities.formulasTitle', { defaultValue: 'Helpful Formulas' })}</Text>
+                <Ionicons name="calculator" size={24} color={colors.primary} />
+                <Text style={styles.instructionsTitle}>{actT('shared.formulasTitle')}</Text>
               </View>
               <View style={styles.formulaBox}>
-                <Text style={styles.formulaText}><Text style={{fontWeight: '700'}}>Force (N) =</Text> k × Max Bend Angle (°)</Text>
+                <Text style={styles.formulaText}>{t('data.activities.hand-fan.formulaForce')}</Text>
               </View>
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.stiffnessTitle', { defaultValue: 'Material Stiffness Reference' })}</Text>
+              <Text style={styles.sectionTitle}>{t('activities.stiffnessTitle')}</Text>
               
               <View style={{ marginTop: Spacing.sm }}>
                 <View style={styles.tableRowHeader}>
-                  <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Material</Text>
+                  <Text style={[styles.tableHeaderCell, { flex: 2 }]}>{t('activities.tableMaterial')}</Text>
                   <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>k</Text>
-                  <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Notes</Text>
+                  <Text style={[styles.tableHeaderCell, { flex: 2 }]}>{t('activities.tableNotes')}</Text>
                 </View>
-                {STIFFNESS_DATA.map((row, i) => (
+                {stiffnessRows.map((row, i) => (
                   <View key={i} style={styles.tableRow}>
                     <Text style={[styles.tableCell, { flex: 2 }]}>{row.material}</Text>
                     <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{row.k}</Text>
@@ -558,10 +817,10 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
 
             <Card style={styles.pageCard}>
               <View style={{ marginBottom: Spacing.md }}>
-                <Text style={styles.tableTitle}>Calculate Force</Text>
+                <Text style={styles.tableTitle}>{t('data.activities.hand-fan.calculateForceTitle')}</Text>
                 {!isLocked && (
                   <Button 
-                    title="Instant Calc (-20 pts)" 
+                    title={t('data.activities.parachute-drop.btnInstantCalc')} 
                     onPress={handleInstantCalc} 
                     variant="outlined" 
                     size="sm"
@@ -574,16 +833,24 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
                 const isValid = validateForce(trial.manualForce, trial);
                 return (
                   <View key={trial.id} style={styles.calcBlock}>
-                    <Text style={styles.calcTitle}>Trial {i + 1}: {trial.design} ({trial.targetMaterial})</Text>
-                    <Text style={styles.calcText}>Max Bend: {trial.maxBendAngle || '0'}°</Text>
+                    <Text style={styles.calcTitle}>
+                      {t('data.activities.hand-fan.calcTrialTitle', {
+                        n: i + 1,
+                        design: displayDesign(trial.design),
+                        material: displayMaterial(trial.targetMaterial),
+                      })}
+                    </Text>
+                    <Text style={styles.calcText}>
+                      {t('data.activities.hand-fan.maxBendValue', { angle: trial.maxBendAngle || '0' })}
+                    </Text>
                     <Input
-                      label="Calculated Force (N)"
+                      label={t('data.activities.hand-fan.calculatedForceLabel')}
                       value={trial.manualForce}
                       onChangeText={(v) => updateTrial(trial.id, { manualForce: v })}
                       keyboardType="numeric"
                       editable={!isLocked}
                       onLightSurface
-                      error={isValid === false ? 'Incorrect calculation' : undefined}
+                      error={isValid === false ? t('activities.incorrectCalculation') : undefined}
                     />
                   </View>
                 );
@@ -601,240 +868,4 @@ export function HandFanForm({ value, onChange, onSubmit }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxxl,
-  },
-  pageCard: {
-    marginBottom: Spacing.md,
-    padding: Spacing.xl,
-  },
-  sectionTitle: {
-    ...Typography.h2,
-    marginBottom: Spacing.md,
-  },
-  recordHint: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
-    lineHeight: 20,
-  },
-  tabContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  tabScroll: {
-    paddingHorizontal: Spacing.md,
-  },
-  tab: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: Colors.primary,
-  },
-  tabText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  stickyTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  timerTitle: {
-    ...Typography.caption,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    marginBottom: 2,
-  },
-  timerDisplay: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.primary,
-    fontVariant: ['tabular-nums'],
-  },
-  timerButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  flex1: {
-    flex: 1,
-  },
-  flex2: {
-    flex: 2,
-  },
-  flex3: {
-    flex: 3,
-  },
-  checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    gap: Spacing.md,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.primary,
-  },
-  checklistText: {
-    ...Typography.body,
-    flex: 1,
-  },
-  instructionText: {
-    ...Typography.body,
-    marginBottom: Spacing.sm,
-  },
-  illustration: {
-    width: '100%',
-    height: 200,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  wizardNavBoth: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-  },
-  trialBlock: {
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-  },
-  trialTitle: {
-    ...Typography.h3,
-    marginBottom: Spacing.sm,
-  },
-  videoContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  tableScroll: {
-    marginTop: Spacing.sm,
-  },
-  tableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background,
-    padding: Spacing.sm,
-    borderTopLeftRadius: BorderRadius.sm,
-    borderTopRightRadius: BorderRadius.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    padding: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableCell: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    paddingRight: Spacing.sm,
-  },
-  tableHeaderCell: {
-    ...Typography.bodySmall,
-    fontWeight: '700',
-    color: Colors.text,
-    paddingRight: Spacing.sm,
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  tableTitle: {
-    ...Typography.h3,
-  },
-  calcBlock: {
-    marginBottom: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-  },
-  calcTitle: {
-    ...Typography.label,
-    marginBottom: Spacing.xs,
-  },
-  calcText: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: Spacing.xl,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    ...Typography.h2,
-    color: Colors.danger,
-    marginBottom: Spacing.sm,
-  },
-  modalText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  instructionsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  instructionsTitle: {
-    ...Typography.h3,
-    color: Colors.primary,
-  },
-  formulaBox: {
-    backgroundColor: Colors.primary + '10',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.sm,
-  },
-  formulaText: {
-    ...Typography.bodySmall,
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
-  },
-});
+

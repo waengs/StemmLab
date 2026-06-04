@@ -70,8 +70,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           applyAuthState(set, user, team);
           if (firebaseUser) {
             try {
-              const { refreshSharedData } = await import('../utils/storage');
-              await refreshSharedData();
+              const { loadAppDataParallel } = await import('../services/app/parallelFeedLoad');
+              await loadAppDataParallel(firebaseUser.uid);
               await rehydrateAppData();
             } catch (err) {
               console.warn('[auth] sync after sign-in failed:', err);
@@ -88,10 +88,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isHydrated: true });
 
     const { getFirebaseAuth } = await import('../config/firebase');
-    if (getFirebaseAuth().currentUser) {
+    const current = getFirebaseAuth().currentUser;
+    if (current) {
       try {
-        const { refreshSharedData } = await import('../utils/storage');
-        await refreshSharedData();
+        const { loadAppDataParallel } = await import('../services/app/parallelFeedLoad');
+        await loadAppDataParallel(current.uid);
       } catch (err) {
         console.warn('[auth] startup sync failed:', err);
       }

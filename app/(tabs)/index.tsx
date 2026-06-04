@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -8,15 +8,29 @@ import {
   QuickActionsGrid,
   ProgressBanner,
 } from '../../src/components';
+import { CompletedActivitiesModal } from '../../src/components/dashboard/CompletedActivitiesModal';
 import { Spacing } from '../../src/theme';
 import { useRequireAuth } from '../../src/stores';
-import { useCompletedCount } from '../../src/stores/activityResultsStore';
-import { useAuthStore } from '../../src/stores';
+import { useCompletedActivities } from '../../src/stores/activityResultsStore';
 
 export default function Dashboard() {
   const router = useRouter();
   const { user, team, isHydrated } = useRequireAuth();
-  const completedCount = useCompletedCount(user?.teamDiscriminator ?? undefined);
+  const discriminator = user?.teamDiscriminator ?? undefined;
+  const completedActivities = useCompletedActivities(discriminator);
+  const completedCount = completedActivities.length;
+  const [completedModalVisible, setCompletedModalVisible] = useState(false);
+
+  const openCompletedList = useCallback(() => setCompletedModalVisible(true), []);
+  const closeCompletedList = useCallback(() => setCompletedModalVisible(false), []);
+
+  const openActivity = useCallback(
+    (activityId: string) => {
+      setCompletedModalVisible(false);
+      router.push(`/(tabs)/activities/${activityId}`);
+    },
+    [router]
+  );
 
   if (!isHydrated || !user || !team) return null;
 
@@ -30,9 +44,19 @@ export default function Dashboard() {
         team={team}
         completedCount={completedCount}
         onProfilePress={() => router.push('/(tabs)/profile')}
+        onCompletedPress={completedCount > 0 ? openCompletedList : undefined}
       />
       <QuickActionsGrid />
-      <ProgressBanner completedCount={completedCount} />
+      <ProgressBanner
+        completedCount={completedCount}
+        onPress={completedCount > 0 ? openCompletedList : undefined}
+      />
+      <CompletedActivitiesModal
+        visible={completedModalVisible}
+        completions={completedActivities}
+        onClose={closeCompletedList}
+        onActivityPress={openActivity}
+      />
     </Screen>
   );
 }

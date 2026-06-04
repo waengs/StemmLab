@@ -78,6 +78,21 @@ export interface ForumPost {
   attachments?: ForumAttachment[];
 }
 
+export type AppNotificationType = 'forum_reply' | 'forum_comment';
+
+export interface AppNotification {
+  id: string;
+  recipientUid: string;
+  type: AppNotificationType;
+  postId: string;
+  postTitle: string;
+  fromUid: string;
+  fromName: string;
+  preview: string;
+  timestamp: number;
+  read: boolean;
+}
+
 export interface ForumReply {
   id: string;
   /** Reply nesting parent id (null/undefined = direct reply to post). */
@@ -178,5 +193,11 @@ export const SENSORS = {
     name: 'Reaction Test',
     icon: 'flash',
     description: 'Measure reaction time to a visual cue',
+  },
+  battery: {
+    id: 'battery',
+    name: 'Battery',
+    icon: 'battery-half',
+    description: 'Device battery level and charging status',
   },
 };

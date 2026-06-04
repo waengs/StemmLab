@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,16 +10,27 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { useRequireAuth } from '../../stores';
 import { HumanPerformanceExperiment } from './HumanPerformanceExperiment';
+import {
+  MOVEMENT_IDS,
+  getMovementLabel,
+  movementIdFromLabel,
+  resolveMovementLabel,
+  type MovementId,
+} from '../../utils/humanPerformanceMovements';
 
-export type MovementId = 'circle' | 'figure8' | 'upDown' | 'sideToSide';
+export type { MovementId };
 
 export interface MovementTrial {
   id: MovementId;
@@ -48,17 +59,10 @@ interface Props {
 
 const DEFAULT_TIME = 1800; // 30 minutes
 
-const MOVEMENTS: { id: MovementId; label: string }[] = [
-  { id: 'circle', label: 'Circle' },
-  { id: 'figure8', label: 'Figure of 8' },
-  { id: 'upDown', label: 'Up and down' },
-  { id: 'sideToSide', label: 'Side to side' },
-];
-
-function getInitialTrials(): MovementTrial[] {
-  return MOVEMENTS.map((m) => ({
-    id: m.id,
-    label: m.label,
+function getInitialTrials(t: (key: string) => string): MovementTrial[] {
+  return MOVEMENT_IDS.map((id) => ({
+    id,
+    label: getMovementLabel(id, t),
     predictedVibration: '',
     vibrationAvg: '',
     vibrationAvgWithFeedback: '',
@@ -70,15 +74,109 @@ function getInitialTrials(): MovementTrial[] {
   }));
 }
 
-function getInitialData(): HumanPerformanceData {
+function getInitialData(t: (key: string) => string): HumanPerformanceData {
   return {
     predictedHardestMovement: '',
     usedInstantCalc: false,
-    trials: getInitialTrials(),
+    trials: getInitialTrials(t),
   };
 }
 
-export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
+function useHumanPerformanceFormStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  container: { flex: 1 },
+  scrollContent: { padding: Spacing.md, paddingBottom: Spacing.xxxl },
+  pageCard: { marginBottom: Spacing.md, padding: Spacing.xl },
+  sectionTitle: { ...typography.h2, marginBottom: Spacing.md },
+  subSectionTitle: { ...typography.h3, marginTop: Spacing.lg, marginBottom: Spacing.sm },
+  tabContainer: { borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface },
+  tabScroll: { paddingHorizontal: Spacing.md },
+  tab: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  activeTab: { borderBottomColor: colors.primary },
+  tabText: { ...typography.body, color: colors.textSecondary, fontWeight: '500' },
+  activeTabText: { color: colors.primary, fontWeight: '700' },
+  stickyTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  timerTitle: { ...typography.caption, fontWeight: '700', color: colors.textSecondary, marginBottom: 2 },
+  timerDisplay: { fontSize: 24, fontWeight: '700', color: colors.primary, fontVariant: ['tabular-nums'] },
+  timerButtons: { flexDirection: 'row', gap: Spacing.sm },
+  checklistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.md },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: { backgroundColor: colors.primary },
+  checklistText: { ...typography.body, flex: 1 },
+  instructionText: { ...typography.body, marginBottom: Spacing.sm },
+  illustration: { width: '100%', height: 200, marginTop: Spacing.md, borderRadius: BorderRadius.md },
+  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
+  hintText: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: Spacing.lg },
+  tableRowHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    padding: Spacing.sm,
+    borderTopLeftRadius: BorderRadius.sm,
+    borderTopRightRadius: BorderRadius.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableCell: { ...typography.bodySmall, color: colors.textSecondary, paddingRight: Spacing.sm },
+  predictionCheck: {
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.md,
+  },
+  predictionCheckTitle: { ...typography.label, marginBottom: Spacing.sm },
+  predictionCheckText: { ...typography.bodySmall, marginBottom: Spacing.xs },
+  predictionResultText: { ...typography.bodySmall, fontWeight: '600', marginTop: Spacing.sm },
+  instructionsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md, gap: Spacing.sm },
+  instructionsTitle: { ...typography.h3, color: colors.primary },
+  formulaBox: { backgroundColor: colors.primary + '10', padding: Spacing.md, borderRadius: BorderRadius.md, marginTop: Spacing.sm },
+  formulaText: { ...typography.bodySmall, color: colors.primary },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  tableTitle: { ...typography.h3 },
+  calcBlock: { marginBottom: Spacing.lg, padding: Spacing.md, backgroundColor: colors.background, borderRadius: BorderRadius.md },
+  calcTitle: { ...typography.label, marginBottom: Spacing.xs },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: Spacing.xl },
+  modalContent: { backgroundColor: colors.surface, padding: Spacing.xl, borderRadius: BorderRadius.lg, alignItems: 'center' },
+  modalTitle: { ...typography.h2, color: colors.danger, marginBottom: Spacing.sm },
+  modalText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: Spacing.lg },
+  }));
+}
+
+export function HumanPerformanceForm({
+  value,
+  onChange,
+  onSubmit,
+}: Props) {
+  const styles = useHumanPerformanceFormStyles();
+  const { colors } = useTheme();
+
   const { t } = useTranslation();
   const { team } = useRequireAuth();
 
@@ -93,7 +191,13 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
 
-  const equipmentList = ['Mobile phone with STEMM Lab app', 'Open space to move safely'];
+  const equipmentList = useMemo(
+    () => [
+      t('data.activities.human-performance.equipmentPhone'),
+      t('data.activities.human-performance.equipmentSpace'),
+    ],
+    [t]
+  );
   const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
   const allEquipmentChecked = equipmentList.every((item) => checkedEquipment[item]);
 
@@ -121,12 +225,23 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const defaultData = getInitialData();
+  const defaultData = getInitialData(t);
   const data: HumanPerformanceData = {
     ...defaultData,
     ...(value as Partial<HumanPerformanceData>),
     trials: (value?.trials as MovementTrial[]) || defaultData.trials,
   };
+
+  const predictedHardestId = useMemo(() => {
+    if (!data.predictedHardestMovement) return '';
+    const id = movementIdFromLabel(data.predictedHardestMovement, t);
+    return id ?? data.predictedHardestMovement;
+  }, [data.predictedHardestMovement, t]);
+
+  const movementOptionLabels = useMemo(
+    () => MOVEMENT_IDS.map((id) => getMovementLabel(id, t)),
+    [t]
+  );
 
   const updateData = (updates: Partial<HumanPerformanceData>) => onChange({ ...data, ...updates });
 
@@ -199,7 +314,7 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
     setIsLocked(false);
     setShowTimeoutModal(false);
     setCheckedEquipment({});
-    onChange(getInitialData());
+    onChange(getInitialData(t));
     setActiveTab('setup');
   };
 
@@ -243,7 +358,7 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
               onPress={() => {
                 if (!isTimerRunning) {
-                  Alert.alert('Timer Required', 'Please start the timer to navigate to other sections.');
+                  Alert.alert(t('activities.timerRequiredTitle'), t('activities.timerRequiredMsg'));
                   return;
                 }
                 setActiveTab(tab);
@@ -267,14 +382,17 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
               <Text style={styles.timerTitle}>
                 {t('data.activities.human-performance.timerTitle', { defaultValue: 'Activity Timer (30 min)' })}
               </Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: Colors.danger }]}>{formatTime(timeLeft)}</Text>
+              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: colors.danger }]}>{formatTime(timeLeft)}</Text>
             </View>
             <View style={styles.timerButtons}>
               <Button
                 title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })}
                 onPress={() => {
                   if (isTimerRunning) {
-                    Alert.alert('Pause Timer', "Don't pause the timer unless you need to. Value integrity!", [
+                    Alert.alert(
+                      t('data.activities.parachute-drop.timerPauseTitle'),
+                      t('data.activities.parachute-drop.timerPauseWarning'),
+                      [
                       { text: 'Cancel', style: 'cancel' },
                       { text: 'Pause', onPress: () => setIsTimerRunning(false) },
                     ]);
@@ -289,7 +407,7 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
               <Button
                 title={t('common.reset', { defaultValue: 'Reset' })}
                 onPress={() => {
-                  Alert.alert('Reset Timer & Data', 'Are you sure you want to start over? This wipes all data.', [
+                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'Start Over', style: 'destructive', onPress: handleStartOver },
                   ]);
@@ -318,7 +436,7 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
                   disabled={isLocked}
                 >
                   <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
                   </View>
                   <Text style={styles.checklistText}>{item}</Text>
                 </TouchableOpacity>
@@ -326,12 +444,11 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-              <Text style={styles.instructionText}>1. Hold the phone firmly in one hand. Activate the App vibration sensor.</Text>
-              <Text style={styles.instructionText}>2. Round 1: record each movement silently (sensor only).</Text>
-              <Text style={styles.instructionText}>3. Round 2: repeat with live feedback — screen turns red and says &quot;Slow&quot; if too shaky.</Text>
-              <Text style={styles.instructionText}>4. Review smoothness and range-of-motion data; calculate speed yourself.</Text>
-              <Text style={styles.instructionText}>5. Upload results and complete the post-experiment quiz.</Text>
+              <ActivityInstructionsList
+                activityId="human-performance"
+                textStyle={styles.instructionText}
+                titleStyle={styles.sectionTitle}
+              />
               <Image
                 source={require('../../../assets/images/activity5illustration.jpeg')}
                 style={styles.illustration}
@@ -354,8 +471,9 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
                 label={t('data.activities.human-performance.predictHardest', {
                   defaultValue: 'Predict what movement is the hardest to keep the vibration low',
                 })}
-                value={data.predictedHardestMovement}
-                options={MOVEMENTS.map((m) => m.label)}
+                value={predictedHardestId}
+                options={[...MOVEMENT_IDS]}
+                optionLabels={movementOptionLabels}
                 onValueChange={(v) => updateData({ predictedHardestMovement: v })}
                 disabled={isLocked}
               />
@@ -369,7 +487,7 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
               {data.trials.map((trial) => (
                 <Input
                   key={trial.id}
-                  label={trial.label}
+                  label={getMovementLabel(trial.id, t)}
                   value={trial.predictedVibration}
                   onChangeText={(v) => updateTrial(trial.id, { predictedVibration: v })}
                   keyboardType="numeric"
@@ -415,32 +533,49 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
               </Text>
 
               <View style={styles.tableRowHeader}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>Movement</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Time</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Predicted</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Actual</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>
+                  {t('data.activities.human-performance.resultsTable.movement')}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
+                  {t('data.activities.human-performance.resultsTable.time')}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
+                  {t('data.activities.human-performance.resultsTable.predicted')}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
+                  {t('data.activities.human-performance.resultsTable.actual')}
+                </Text>
               </View>
 
               {data.trials.map((trial) => (
                 <View key={trial.id} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{trial.label}</Text>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{getMovementLabel(trial.id, t)}</Text>
                   <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.movementTime || '—'}s</Text>
                   <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.predictedVibration || '—'} cm</Text>
                   <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.vibrationAvg || '—'} cm</Text>
                 </View>
               ))}
 
-              {hardestActual && data.predictedHardestMovement && (
+              {hardestActual && predictedHardestId && (
                 <View style={styles.predictionCheck}>
-                  <Text style={styles.predictionCheckTitle}>Hardest movement prediction:</Text>
-                  <Text style={styles.predictionCheckText}>You predicted: {data.predictedHardestMovement}</Text>
+                  <Text style={styles.predictionCheckTitle}>
+                    {t('data.activities.human-performance.resultsTable.hardestPredictionTitle')}
+                  </Text>
                   <Text style={styles.predictionCheckText}>
-                    Actual highest vibration: {MOVEMENTS.find((m) => m.id === hardestActual.id)?.label} ({hardestActual.avg.toFixed(1)} cm)
+                    {t('data.activities.human-performance.resultsTable.youPredicted', {
+                      movement: resolveMovementLabel(data.predictedHardestMovement, t),
+                    })}
+                  </Text>
+                  <Text style={styles.predictionCheckText}>
+                    {t('data.activities.human-performance.resultsTable.actualHighest', {
+                      movement: getMovementLabel(hardestActual.id, t),
+                      value: hardestActual.avg.toFixed(1),
+                    })}
                   </Text>
                   <Text style={styles.predictionResultText}>
-                    {data.predictedHardestMovement === MOVEMENTS.find((m) => m.id === hardestActual.id)?.label
-                      ? 'Your hardest-movement prediction matched the results.'
-                      : 'Your hardest-movement prediction differed from the results.'}
+                    {predictedHardestId === hardestActual.id
+                      ? t('data.activities.human-performance.resultsTable.predictionMatched')
+                      : t('data.activities.human-performance.resultsTable.predictionDiffered')}
                   </Text>
                 </View>
               )}
@@ -461,24 +596,22 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
           <View>
             <Card style={styles.pageCard}>
               <View style={styles.instructionsHeader}>
-                <Ionicons name="calculator" size={24} color={Colors.primary} />
-                <Text style={styles.instructionsTitle}>{t('activities.formulasTitle', { defaultValue: 'Helpful Formulas' })}</Text>
+                <Ionicons name="calculator" size={24} color={colors.primary} />
+                <Text style={styles.instructionsTitle}>{actT('shared.formulasTitle')}</Text>
               </View>
               <View style={styles.formulaBox}>
-                <Text style={styles.formulaText}>
-                  <Text style={{ fontWeight: '700' }}>Speed (m/s) =</Text> Range of Motion (m) ÷ Time (s)
-                </Text>
+                <Text style={styles.formulaText}>{t('data.activities.human-performance.formulaSpeed')}</Text>
                 <Text style={[styles.formulaText, { marginTop: Spacing.xs }]}>
-                  Convert cm to m by dividing by 100.
+                  {t('data.activities.human-performance.formulaSpeedHint')}
                 </Text>
               </View>
             </Card>
 
             <Card style={styles.pageCard}>
-              <Text style={styles.tableTitle}>Calculate Speed</Text>
+              <Text style={styles.tableTitle}>{t('data.activities.human-performance.calculateSpeedTitle')}</Text>
               {!isLocked && (
                 <Button
-                  title="Instant Calc (-20 pts)"
+                  title={t('data.activities.parachute-drop.btnInstantCalc')}
                   onPress={handleInstantCalc}
                   variant="outlined"
                   size="sm"
@@ -491,16 +624,20 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
                 return (
                   <View key={trial.id} style={styles.calcBlock}>
                     <Text style={styles.calcTitle}>
-                      {trial.label} — ROM: {trial.rangeOfMotion || '0'} cm, Time: {trial.movementTime || '10'}s
+                      {t('data.activities.human-performance.calcTrialRom', {
+                        label: getMovementLabel(trial.id, t),
+                        rom: trial.rangeOfMotion || '0',
+                        time: trial.movementTime || '10',
+                      })}
                     </Text>
                     <Input
-                      label="Calculated Speed (m/s)"
+                      label={t('data.activities.human-performance.calculatedSpeedLabel')}
                       value={trial.manualSpeed}
                       onChangeText={(v) => updateTrial(trial.id, { manualSpeed: v })}
                       keyboardType="numeric"
                       editable={!isLocked}
                       onLightSurface
-                      error={isValid === false ? 'Incorrect calculation' : undefined}
+                      error={isValid === false ? t('activities.incorrectCalculation') : undefined}
                     />
                   </View>
                 );
@@ -518,87 +655,4 @@ export function HumanPerformanceForm({ value, onChange, onSubmit }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { padding: Spacing.md, paddingBottom: Spacing.xxxl },
-  pageCard: { marginBottom: Spacing.md, padding: Spacing.xl },
-  sectionTitle: { ...Typography.h2, marginBottom: Spacing.md },
-  subSectionTitle: { ...Typography.h3, marginTop: Spacing.lg, marginBottom: Spacing.sm },
-  tabContainer: { borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surface },
-  tabScroll: { paddingHorizontal: Spacing.md },
-  tab: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  activeTab: { borderBottomColor: Colors.primary },
-  tabText: { ...Typography.body, color: Colors.textSecondary, fontWeight: '500' },
-  activeTabText: { color: Colors.primary, fontWeight: '700' },
-  stickyTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  timerTitle: { ...Typography.caption, fontWeight: '700', color: Colors.textSecondary, marginBottom: 2 },
-  timerDisplay: { fontSize: 24, fontWeight: '700', color: Colors.primary, fontVariant: ['tabular-nums'] },
-  timerButtons: { flexDirection: 'row', gap: Spacing.sm },
-  checklistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.md },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: { backgroundColor: Colors.primary },
-  checklistText: { ...Typography.body, flex: 1 },
-  instructionText: { ...Typography.body, marginBottom: Spacing.sm },
-  illustration: { width: '100%', height: 200, marginTop: Spacing.md, borderRadius: BorderRadius.md },
-  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
-  hintText: { ...Typography.bodySmall, color: Colors.textSecondary, marginBottom: Spacing.lg },
-  tableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background,
-    padding: Spacing.sm,
-    borderTopLeftRadius: BorderRadius.sm,
-    borderTopRightRadius: BorderRadius.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tableCell: { ...Typography.bodySmall, color: Colors.textSecondary, paddingRight: Spacing.sm },
-  predictionCheck: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-  },
-  predictionCheckTitle: { ...Typography.label, marginBottom: Spacing.sm },
-  predictionCheckText: { ...Typography.bodySmall, marginBottom: Spacing.xs },
-  predictionResultText: { ...Typography.bodySmall, fontWeight: '600', marginTop: Spacing.sm },
-  instructionsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md, gap: Spacing.sm },
-  instructionsTitle: { ...Typography.h3, color: Colors.primary },
-  formulaBox: { backgroundColor: Colors.primary + '10', padding: Spacing.md, borderRadius: BorderRadius.md, marginTop: Spacing.sm },
-  formulaText: { ...Typography.bodySmall, color: Colors.primary },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
-  tableTitle: { ...Typography.h3 },
-  calcBlock: { marginBottom: Spacing.lg, padding: Spacing.md, backgroundColor: Colors.background, borderRadius: BorderRadius.md },
-  calcTitle: { ...Typography.label, marginBottom: Spacing.xs },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: Spacing.xl },
-  modalContent: { backgroundColor: Colors.white, padding: Spacing.xl, borderRadius: BorderRadius.lg, alignItems: 'center' },
-  modalTitle: { ...Typography.h2, color: Colors.danger, marginBottom: Spacing.sm },
-  modalText: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.lg },
-});
+

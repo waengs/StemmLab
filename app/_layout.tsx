@@ -1,15 +1,24 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 import '../src/i18n';
 import { StoreHydrator } from '../src/components/StoreHydrator';
+import { AppServicesBootstrap } from '../src/components/AppServicesBootstrap';
 import { useAuthStore } from '../src/stores/authStore';
-import { useTheme } from '../src/stores/themeStore';
-import { Colors } from '../src/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useThemedStyles } from '../src/hooks/useThemedStyles';
 
 function RootNavigator() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+  const styles = useThemedStyles(({ colors: c }) => ({
+    boot: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: c.primary,
+    },
+  }));
   const { isHydrated, user, team, needsTeam } = useAuthStore(
     useShallow((s) => ({
       isHydrated: s.isHydrated,
@@ -23,7 +32,7 @@ function RootNavigator() {
     return (
       <View style={styles.boot}>
         <StatusBar style="light" />
-        <ActivityIndicator size="large" color={Colors.white} />
+        <ActivityIndicator size="large" color={colors.white} />
       </View>
     );
   }
@@ -48,16 +57,9 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <StoreHydrator>
+      <AppServicesBootstrap />
       <RootNavigator />
     </StoreHydrator>
   );
 }
 
-const styles = StyleSheet.create({
-  boot: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-  },
-});

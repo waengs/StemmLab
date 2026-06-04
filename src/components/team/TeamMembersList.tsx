@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Avatar } from '../ui/Avatar';
-import { Spacing, BorderRadius, lightColors } from '../../theme';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { Spacing, BorderRadius } from '../../theme';
 import type { TeamMemberSummary } from '../../types';
 
 interface TeamMembersListProps {
@@ -19,6 +20,31 @@ export function TeamMembersList({
   emptyText,
   loadingText,
 }: TeamMembersListProps) {
+  const styles = useThemedStyles(({ colors, typography }) => ({
+    wrap: {
+      backgroundColor: colors.surface,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    title: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    meta: { fontSize: 14, color: colors.textMuted },
+    list: { gap: Spacing.sm },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    name: { fontSize: 15, color: colors.text, flex: 1 },
+  }));
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{title}</Text>
@@ -39,26 +65,3 @@ export function TeamMembersList({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    backgroundColor: lightColors.background,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  title: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: lightColors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  meta: { fontSize: 14, color: lightColors.textMuted },
-  list: { gap: Spacing.sm },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  name: { fontSize: 15, color: lightColors.text, flex: 1 },
-});

@@ -10,6 +10,7 @@ import { useSensorStore } from '../../stores/sensorStore';
 import { useTheme } from '../../context/ThemeContext';
 import { filterSensorLogsBySearch } from '../../utils/sensorLogSearch';
 import { getSensorChipLabel } from '../../utils/sensorChip';
+import { getBatteryLogDisplayLines } from '../../utils/batteryLog';
 import { parseSlowMoLogData, parseVibrationLogData } from '../../utils/slowMoLog';
 import { EmptyState } from '../layout/EmptyState';
 import { Spacing } from '../../theme';
@@ -144,7 +145,7 @@ export function SensorLogList({
 
   const handleSaveEdit = async (log: SensorLog) => {
     if (editValue.trim().length === 0) {
-      Alert.alert('Error', 'Log cannot be empty.');
+      Alert.alert(t('common.error'), t('sensors.logEmptyError'));
       return;
     }
     await updateLog({ ...log, data: editValue });
@@ -158,9 +159,9 @@ export function SensorLogList({
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Delete Log', 'Are you sure you want to delete this sensor log?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteLog(id) },
+    Alert.alert(t('sensors.deleteLogTitle'), t('sensors.deleteLogConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deleteLog(id) },
     ]);
   };
 
@@ -202,6 +203,23 @@ export function SensorLogList({
           </>
         );
       }
+    }
+
+    if (log.sensorType === 'battery') {
+      const battery = getBatteryLogDisplayLines(data, t);
+      return (
+        <>
+          <View style={styles.statsList}>
+            {battery.stats.map((stat) => (
+              <View key={stat} style={styles.statRow}>
+                <Ionicons name="ellipse" size={6} color={colors.primary} />
+                <Text style={styles.statText}>{stat}</Text>
+              </View>
+            ))}
+          </View>
+          <LogNotes text={battery.notes} label={t('common.notes')} styles={styles} />
+        </>
+      );
     }
 
     return <Text style={styles.plainData}>{data}</Text>;

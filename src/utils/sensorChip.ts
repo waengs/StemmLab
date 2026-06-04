@@ -7,6 +7,7 @@ export const SENSOR_CHIP_DEFAULTS: Record<string, string> = {
   location: 'GPS',
   vibration: 'Accelerometer',
   'reaction-timer': 'Touchscreen',
+  battery: 'Battery API',
   'phone-vibration': 'Vibration motor',
 };
 

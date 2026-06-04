@@ -22,6 +22,19 @@ export const cloudinaryEnv = {
   forumFolder: process.env.EXPO_PUBLIC_CLOUDINARY_FORUM_FOLDER ?? 'stemmlab/forum',
 };
 
+export const admobEnv = {
+  androidAppId: process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID ?? '',
+  iosAppId: process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID ?? '',
+  interstitialUnitId:
+    process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_UNIT_ID ??
+    process.env.EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID ??
+    '',
+};
+
+export function isAdMobConfigured(): boolean {
+  return Boolean(admobEnv.interstitialUnitId);
+}
+
 export function isFirebaseConfigured(): boolean {
   return Boolean(
     firebaseEnv.apiKey &&

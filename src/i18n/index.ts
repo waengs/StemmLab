@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import en from './locales/en.json';
 import id from './locales/id.json';
+import activityContentEn from './locales/activityContent.en.json';
+import activityContentId from './locales/activityContent.id.json';
 
 const LANGUAGE_KEY = 'stem_app_language';
 
@@ -45,8 +47,8 @@ i18n
   .init({
     compatibilityJSON: 'v4',
     resources: {
-      en: { translation: en },
-      id: { translation: id },
+      en: { translation: { ...en, activityContent: activityContentEn } },
+      id: { translation: { ...id, activityContent: activityContentId } },
     },
     fallbackLng: 'en',
     interpolation: {

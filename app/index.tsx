@@ -16,14 +16,76 @@ import { Input, Button, Select } from '../src/components';
 import { TeamJoinPanel } from '../src/components/team/TeamJoinPanel';
 import { useAuthStore } from '../src/stores';
 import { hasProfanity } from '../src/utils/profanity';
-import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../src/theme';
+import { useMemo } from 'react';
+import { useTheme } from '../src/context/ThemeContext';
+import { Spacing, BorderRadius, Shadows } from '../src/theme';
 
 type AuthMode = 'signIn' | 'register';
 type TeamMode = 'create' | 'join';
 
 export default function AuthSetup() {
   const { t, i18n } = useTranslation();
+  const { colors, typography } = useTheme();
   const insets = useSafeAreaInsets();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        gradient: { flex: 1, backgroundColor: colors.primary },
+        flex: { flex: 1 },
+        scrollContent: { flexGrow: 1, justifyContent: 'center', padding: Spacing.xxl },
+        header: { alignItems: 'center', marginBottom: Spacing.xxxl },
+        iconContainer: {
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: 'rgba(255,255,255,0.2)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: Spacing.lg,
+        },
+        title: { fontSize: 32, fontWeight: '800', color: colors.white, marginBottom: Spacing.xs },
+        subtitle: { ...typography.body, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
+        formCard: {
+          backgroundColor: colors.surface,
+          borderRadius: BorderRadius.xl,
+          padding: Spacing.xxl,
+          ...Shadows.lg,
+        },
+        tabsContainer: {
+          flexDirection: 'row',
+          marginBottom: Spacing.xl,
+          backgroundColor: colors.background,
+          borderRadius: BorderRadius.md,
+          padding: 4,
+        },
+        tab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: BorderRadius.sm },
+        activeTab: { backgroundColor: colors.surfaceElevated, ...Shadows.sm },
+        tabText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+        activeTabText: { color: colors.primary },
+        welcomeUser: {
+          fontSize: 15,
+          fontWeight: '600',
+          marginBottom: Spacing.lg,
+          color: colors.text,
+        },
+        hint: { fontSize: 12, color: colors.textMuted, marginTop: -Spacing.sm, marginBottom: Spacing.md },
+        langToggleContainer: {
+          position: 'absolute',
+          right: Spacing.xl,
+          flexDirection: 'row',
+          backgroundColor: 'rgba(255,255,255,0.2)',
+          borderRadius: BorderRadius.md,
+          padding: 4,
+          zIndex: 10,
+        },
+        langToggleBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.sm },
+        langToggleBtnActive: { backgroundColor: colors.surfaceElevated, ...Shadows.sm },
+        langToggleText: { ...typography.bodySmall, fontWeight: '700', color: colors.white },
+        langToggleTextActive: { color: colors.primary },
+      }),
+    [colors, typography]
+  );
   const user = useAuthStore((s) => s.user);
   const needsTeam = useAuthStore((s) => s.needsTeam);
   const signIn = useAuthStore((s) => s.signIn);
@@ -134,7 +196,7 @@ export default function AuthSetup() {
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             <View style={styles.header}>
               <View style={styles.iconContainer}>
-                <Ionicons name={showTeamStep ? 'people' : 'person'} size={36} color={Colors.white} />
+                <Ionicons name={showTeamStep ? 'people' : 'person'} size={36} color={colors.white} />
               </View>
               <Text style={styles.title}>{t('setup.title')}</Text>
               <Text style={styles.subtitle}>
@@ -171,7 +233,6 @@ export default function AuthSetup() {
                       onChangeText={setDisplayName}
                       placeholder={t('setup.displayNamePlaceholder')}
                       autoCapitalize="words"
-                      onLightSurface
                     />
                   )}
 
@@ -234,7 +295,6 @@ export default function AuthSetup() {
                         value={teamName}
                         onChangeText={setTeamName}
                         placeholder={t('setup.teamNamePlaceholder')}
-                        onLightSurface
                       />
                       <Select
                         label={t('setup.gradeLevel')}
@@ -242,7 +302,6 @@ export default function AuthSetup() {
                         options={gradeLevels}
                         onValueChange={setGradeLevel}
                         placeholder={t('setup.gradeLevelPlaceholder')}
-                        onLightSurface
                       />
                       <Input
                         label={t('setup.joinPassword')}
@@ -250,7 +309,6 @@ export default function AuthSetup() {
                         onChangeText={setJoinPassword}
                         placeholder={t('setup.joinPasswordPlaceholder')}
                         secureTextEntry
-                        onLightSurface
                       />
                       <Text style={styles.hint}>{t('setup.joinPasswordHint')}</Text>
                       <Button
@@ -282,57 +340,3 @@ export default function AuthSetup() {
   );
 }
 
-const styles = StyleSheet.create({
-  gradient: { flex: 1, backgroundColor: Colors.primary },
-  flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: Spacing.xxl },
-  header: { alignItems: 'center', marginBottom: Spacing.xxxl },
-  iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
-  },
-  title: { fontSize: 32, fontWeight: '800', color: Colors.white, marginBottom: Spacing.xs },
-  subtitle: { ...Typography.body, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
-  formCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
-    ...Shadows.lg,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginBottom: Spacing.xl,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-    padding: 4,
-  },
-  tab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: BorderRadius.sm },
-  activeTab: { backgroundColor: Colors.white, ...Shadows.sm },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
-  activeTabText: { color: Colors.primary },
-  welcomeUser: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: Spacing.lg,
-    color: '#0F172A',
-  },
-  hint: { fontSize: 12, color: '#64748B', marginTop: -Spacing.sm, marginBottom: Spacing.md },
-  langToggleContainer: {
-    position: 'absolute',
-    right: Spacing.xl,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: BorderRadius.md,
-    padding: 4,
-    zIndex: 10,
-  },
-  langToggleBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.sm },
-  langToggleBtnActive: { backgroundColor: Colors.white, ...Shadows.sm },
-  langToggleText: { ...Typography.bodySmall, fontWeight: '700', color: Colors.white },
-  langToggleTextActive: { color: Colors.primary },
-});

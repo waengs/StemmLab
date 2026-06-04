@@ -24,10 +24,10 @@ import { getGradeBand, isForumPostVisibleToBand } from '../../../src/utils/grade
 
 type SortOption = 'new' | 'old' | 'top';
 
-const SORT_OPTIONS: { id: SortOption; label: string; icon: string }[] = [
-  { id: 'new', label: 'New', icon: 'time-outline' },
-  { id: 'old', label: 'Old', icon: 'hourglass-outline' },
-  { id: 'top', label: 'Top', icon: 'arrow-up-outline' },
+const SORT_OPTION_META: { id: SortOption; icon: string; labelKey: string }[] = [
+  { id: 'new', icon: 'time-outline', labelKey: 'forum.sort.new' },
+  { id: 'old', icon: 'hourglass-outline', labelKey: 'forum.sort.old' },
+  { id: 'top', icon: 'arrow-up-outline', labelKey: 'forum.sort.top' },
 ];
 
 export default function PostThreadScreen() {
@@ -49,6 +49,15 @@ export default function PostThreadScreen() {
   const [sortBy, setSortBy] = useState<SortOption>('new');
   // Always keep replies expanded in thread view
   const [expanded, setExpanded] = useState(true);
+
+  const sortOptions = useMemo(
+    () =>
+      SORT_OPTION_META.map((opt) => ({
+        ...opt,
+        label: t(opt.labelKey),
+      })),
+    [t]
+  );
 
   const viewerGradeBand = useMemo(
     () => getGradeBand(team?.gradeLevel, t),
@@ -199,7 +208,7 @@ export default function PostThreadScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.sortRow}>
-            {SORT_OPTIONS.map((opt) => {
+            {sortOptions.map((opt) => {
               const active = sortBy === opt.id;
               return (
                 <Pressable

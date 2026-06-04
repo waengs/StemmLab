@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, LayoutChangeEvent } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { Spacing, BorderRadius } from '../../theme';
 
 interface TrialVideoPlayerProps {
   videoUri: string;
@@ -20,11 +22,110 @@ function readAspectRatio(player: ReturnType<typeof useVideoPlayer> | null): numb
 }
 
 export function TrialVideoPlayer({ videoUri, compact = false }: TrialVideoPlayerProps) {
+  const { colors } = useTheme();
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [playbackRate, setPlaybackRate] = React.useState(1);
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [aspectRatio, setAspectRatio] = React.useState(PORTRAIT_FALLBACK);
+
+  const styles = useThemedStyles(({ colors: c, typography }) => ({
+    videoPlayer: {
+      width: '100%',
+      backgroundColor: '#000',
+      borderTopLeftRadius: BorderRadius.md,
+      borderTopRightRadius: BorderRadius.md,
+      overflow: 'hidden',
+      elevation: 4,
+    },
+    slowMoContainer: {
+      width: '100%',
+      borderRadius: BorderRadius.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      overflow: 'hidden',
+    },
+    slowMoContainerCompact: {
+      borderRadius: BorderRadius.sm,
+    },
+    slowMoControls: {
+      padding: Spacing.md,
+      backgroundColor: c.background,
+    },
+    slowMoControlsCompact: {
+      padding: Spacing.sm,
+    },
+    timerDisplayContainer: {
+      alignItems: 'center',
+      marginBottom: Spacing.sm,
+    },
+    slowMoTimerText: {
+      ...typography.h2,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      color: c.primary,
+    },
+    slowMoTimerTextCompact: {
+      ...typography.h3,
+    },
+    slowMoRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: Spacing.lg,
+      marginBottom: Spacing.md,
+    },
+    speedRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      flexWrap: 'wrap',
+    },
+    iconBtn: {
+      backgroundColor: c.textSecondary,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconBtnCompact: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+    },
+    playBtn: {
+      backgroundColor: c.primary,
+    },
+    iconBtnText: {
+      ...typography.caption,
+      color: c.white,
+      fontWeight: 'bold',
+      marginTop: -2,
+      fontSize: 10,
+    },
+    speedBadge: {
+      paddingVertical: Spacing.xs,
+      paddingHorizontal: Spacing.md,
+      borderRadius: BorderRadius.full,
+      backgroundColor: c.borderLight,
+    },
+    speedBadgeCompact: {
+      paddingHorizontal: Spacing.sm,
+    },
+    speedBadgeActive: {
+      backgroundColor: c.primary,
+    },
+    speedBadgeText: {
+      ...typography.bodySmall,
+      color: c.textSecondary,
+      fontWeight: '600',
+    },
+    speedBadgeTextActive: {
+      color: c.white,
+    },
+  }));
 
   const player = useVideoPlayer({ uri: videoUri }, (p) => {
     p.loop = true;
@@ -80,7 +181,6 @@ export function TrialVideoPlayer({ videoUri, compact = false }: TrialVideoPlayer
       const wasPlaying = player.playing;
       player.playbackRate = speed;
       setPlaybackRate(speed);
-      // Sometimes Android requires a pause/play cycle to apply rate changes
       if (wasPlaying) {
         player.pause();
         setTimeout(() => {
@@ -111,7 +211,7 @@ export function TrialVideoPlayer({ videoUri, compact = false }: TrialVideoPlayer
 
         <View style={styles.slowMoRow}>
           <TouchableOpacity onPress={() => handleSeek(-0.033)} style={[styles.iconBtn, compact && styles.iconBtnCompact]}>
-            <Ionicons name="play-back" size={compact ? 16 : 20} color={Colors.white} />
+            <Ionicons name="play-back" size={compact ? 16 : 20} color={colors.white} />
             <Text style={styles.iconBtnText}>-1f</Text>
           </TouchableOpacity>
 
@@ -119,11 +219,11 @@ export function TrialVideoPlayer({ videoUri, compact = false }: TrialVideoPlayer
             onPress={() => (player?.playing ? player.pause() : player?.play())}
             style={[styles.iconBtn, styles.playBtn, compact && styles.iconBtnCompact]}
           >
-            <Ionicons name={isPlaying ? 'pause' : 'play'} size={compact ? 20 : 24} color={Colors.white} />
+            <Ionicons name={isPlaying ? 'pause' : 'play'} size={compact ? 20 : 24} color={colors.white} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => handleSeek(0.033)} style={[styles.iconBtn, compact && styles.iconBtnCompact]}>
-            <Ionicons name="play-forward" size={compact ? 16 : 20} color={Colors.white} />
+            <Ionicons name="play-forward" size={compact ? 16 : 20} color={colors.white} />
             <Text style={styles.iconBtnText}>+1f</Text>
           </TouchableOpacity>
         </View>
@@ -145,101 +245,3 @@ export function TrialVideoPlayer({ videoUri, compact = false }: TrialVideoPlayer
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  videoPlayer: {
-    width: '100%',
-    backgroundColor: '#000',
-    borderTopLeftRadius: BorderRadius.md,
-    borderTopRightRadius: BorderRadius.md,
-    overflow: 'hidden',
-    elevation: 4,
-  },
-  slowMoContainer: {
-    width: '100%',
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    overflow: 'hidden',
-  },
-  slowMoContainerCompact: {
-    borderRadius: BorderRadius.sm,
-  },
-  slowMoControls: {
-    padding: Spacing.md,
-    backgroundColor: Colors.background,
-  },
-  slowMoControlsCompact: {
-    padding: Spacing.sm,
-  },
-  timerDisplayContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  slowMoTimerText: {
-    ...Typography.h2,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: Colors.primary,
-  },
-  slowMoTimerTextCompact: {
-    ...Typography.h3,
-  },
-  slowMoRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  speedRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flexWrap: 'wrap',
-  },
-  iconBtn: {
-    backgroundColor: Colors.textSecondary,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconBtnCompact: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
-  playBtn: {
-    backgroundColor: Colors.primary,
-  },
-  iconBtnText: {
-    ...Typography.caption,
-    color: Colors.white,
-    fontWeight: 'bold',
-    marginTop: -2,
-    fontSize: 10,
-  },
-  speedBadge: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.borderLight,
-  },
-  speedBadgeCompact: {
-    paddingHorizontal: Spacing.sm,
-  },
-  speedBadgeActive: {
-    backgroundColor: Colors.primary,
-  },
-  speedBadgeText: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-  },
-  speedBadgeTextActive: {
-    color: Colors.white,
-  },
-});

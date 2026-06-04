@@ -239,8 +239,22 @@ export async function pushSyncQueue(): Promise<void> {
   }
 }
 
-export async function syncWhenOnline(): Promise<void> {
+export type SyncWhenOnlineOptions = {
+  /** When true, blocks until the device has connectivity (for background sync). */
+  waitForNetwork?: boolean;
+};
+
+export async function syncWhenOnline(options?: SyncWhenOnlineOptions): Promise<void> {
   if (isSigningOut()) return;
+
+  if (options?.waitForNetwork) {
+    const { waitForOnline } = await import('../network/waitForOnline');
+    const online = await waitForOnline();
+    if (!online) return;
+  } else {
+    const { isDeviceOnline } = await import('../network/waitForOnline');
+    if (!(await isDeviceOnline())) return;
+  }
 
   const firebaseUser = await waitForSignedInUser();
   if (!firebaseUser || isSigningOut()) return;
@@ -270,6 +284,18 @@ export async function syncWhenOnline(): Promise<void> {
     } else {
       console.warn('[sync] pull failed:', err);
     }
+  }
+
+  try {
+    const { pullNotificationsForUser, presentNewNotifications } = await import(
+      '../notifications/notificationService'
+    );
+    const notifications = await pullNotificationsForUser(firebaseUser.uid);
+    const { useNotificationStore } = await import('../../stores/notificationStore');
+    useNotificationStore.getState().setNotifications(notifications);
+    await presentNewNotifications(notifications);
+  } catch (err) {
+    console.warn('[sync] notifications pull failed:', err);
   }
 }
 

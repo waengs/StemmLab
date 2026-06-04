@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView, Modal as RNModal, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -8,9 +10,15 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { Spacing, Typography, BorderRadius  } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { useRequireAuth } from '../../stores';
 import { TrialVideoPlayer } from '../sensors/TrialVideoPlayer';
+import {
+  isParachuteBaselineTrial,
+  resolveParachuteTrialLabel,
+} from '../../utils/parachuteTrialLabel';
 
 interface TrialData {
   id: string;
@@ -46,7 +54,263 @@ interface Props {
 
 const DEFAULT_TIME = 3600;
 
-export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
+function useParachuteDropFormStyles() {
+  return useThemedStyles(({ colors, typography }) => ({
+  container: {
+    marginBottom: Spacing.xl,
+  },
+  tabContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+    marginBottom: Spacing.md,
+  },
+  tabScroll: {
+    paddingHorizontal: Spacing.md,
+  },
+  tab: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  wizardNavRight: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.sm,
+  },
+  wizardNavBoth: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.sm,
+  },
+  stickyTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  timerTitle: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  timerDisplay: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  timerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  pageCard: {
+    marginBottom: Spacing.md,
+    padding: Spacing.xl,
+  },
+  integrityBox: {
+    flexDirection: 'row',
+    backgroundColor: colors.accentLight + '30',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  integrityText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    flex: 1,
+  },
+  checklistContainer: {
+    marginTop: Spacing.sm,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  checklistText: {
+    ...typography.body,
+    flex: 1,
+  },
+  sectionTitle: {
+    ...typography.h2,
+    marginBottom: Spacing.md,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  instructionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  instructionsTitle: {
+    ...typography.h3,
+    color: colors.primary,
+  },
+  instructionListTitle: {
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: Spacing.xs,
+  },
+  instructionText: {
+    ...typography.body,
+    marginBottom: Spacing.sm,
+  },
+  illustration: {
+    width: '100%',
+    height: 200,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  tableTitle: {
+    ...typography.h3,
+    color: colors.primary,
+    marginBottom: Spacing.md,
+  },
+  tableRowHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  tableCell: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    paddingRight: Spacing.sm,
+  },
+  flex1: { flex: 1 },
+  flex2: { flex: 2 },
+  flex3: { flex: 3 },
+  row: {
+    flexDirection: 'row',
+  },
+  trialRowBlock: {
+    marginBottom: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border + '50',
+    paddingBottom: Spacing.lg,
+  },
+  subInputsContainer: {
+    paddingLeft: Spacing.md,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.primaryLight + '50',
+    marginTop: Spacing.sm,
+  },
+  calcHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  hsCalcBlock: {
+    marginBottom: Spacing.lg,
+    backgroundColor: '#f8fafc',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  hsCalcTitle: {
+    ...typography.body,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  formulaBox: {
+    backgroundColor: colors.primary + '10',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+  },
+  formulaText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    marginBottom: Spacing.xs,
+  },
+  videoContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    ...typography.h2,
+    color: colors.danger,
+    marginBottom: Spacing.sm,
+  },
+  modalText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  }));
+}
+
+export function ParachuteDropForm({
+  value,
+  onChange,
+  onSubmit,
+}: Props) {
+  const styles = useParachuteDropFormStyles();
+  const { colors } = useTheme();
+
   const { t } = useTranslation();
   const { team } = useRequireAuth();
   
@@ -155,7 +419,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
 
   const addTrial = () => {
     if (isLocked || data.trials.length >= 4) return;
-    const newIdx = data.trials.length;
+    const newIdx = data.trials.filter((tr) => !isParachuteBaselineTrial(tr.label)).length + 1;
     updateData({
       trials: [
         ...data.trials,
@@ -293,7 +557,12 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
     return diff <= 0.02;
   };
 
-  const designOptions = data.trials.map((t: TrialData) => t.label);
+  const designOptions = data.trials
+    .filter((tr: TrialData) => !isParachuteBaselineTrial(tr.label))
+    .map((tr: TrialData) => tr.label);
+  const designOptionLabels = designOptions.map((label: string) =>
+    resolveParachuteTrialLabel(label, t)
+  );
 
   const toggleEquipment = (item: string) => {
     startTimerOnInteraction();
@@ -330,7 +599,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
         <View style={styles.stickyTimer}>
           <View style={{flex: 1}}>
             <Text style={styles.timerTitle}>{t('data.activities.parachute-drop.timerTitle')}</Text>
-            <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: Colors.danger}]}>{formatTime(timeLeft)}</Text>
+            <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: colors.danger}]}>{formatTime(timeLeft)}</Text>
           </View>
           <View style={styles.timerButtons}>
             <Button 
@@ -380,7 +649,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
                 onPress={() => toggleEquipment(item)}
               >
                 <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                  {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                  {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
                 </View>
                 <Text style={styles.checklistText}>
                   {item}
@@ -390,13 +659,11 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
           </Card>
 
           <Card style={styles.pageCard}>
-            <Text style={styles.sectionTitle}>{t('data.activities.parachute-drop.instructionsTitle', { defaultValue: 'Instructions' })}</Text>
-            <Text style={styles.instructionText}>1. {t('data.activities.parachute-drop.instruction1')}</Text>
-            <Text style={styles.instructionText}>2. {t('data.activities.parachute-drop.instruction2')}</Text>
-            <Text style={styles.instructionText}>3. {t('data.activities.parachute-drop.instruction3')}</Text>
-            <Text style={styles.instructionText}>4. {t('data.activities.parachute-drop.instruction4')}</Text>
-            <Text style={styles.instructionText}>5. {t('data.activities.parachute-drop.instruction5')}</Text>
-            <Text style={styles.instructionText}>6. {t('data.activities.parachute-drop.instruction6')}</Text>
+            <ActivityInstructionsList
+              activityId="parachute-drop"
+              textStyle={styles.instructionText}
+              titleStyle={styles.sectionTitle}
+            />
             
             <Image 
               source={require('../../../assets/images/activity1illustration.jpeg')} 
@@ -425,10 +692,10 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
           
           <View style={styles.wizardNavRight}>
             <Button 
-              title="Next" 
+              title={t('common.next')} 
               onPress={() => setActiveTab('predictions')} 
               disabled={!allEquipmentChecked || !data.dropHeight || !data.toyMass}
-              iconRight={<Ionicons name="arrow-forward" size={16} color={Colors.white} />}
+              iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
             />
           </View>
         </View>
@@ -443,6 +710,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
               label={t('data.activities.parachute-drop.predictedDesignLabel')}
               value={data.predictedDesign}
               options={designOptions}
+              optionLabels={designOptionLabels}
               onValueChange={(v) => updateData({ predictedDesign: v })}
             />
             
@@ -453,7 +721,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
             
             {data.trials.map((trial: TrialData) => (
               <View key={`pred-${trial.id}`} style={styles.tableRow}>
-                <Text style={[styles.tableCell, styles.flex2]}>{trial.label}</Text>
+                <Text style={[styles.tableCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
                 <View style={styles.flex3}>
                   <Input
                     value={trial.predictedTime}
@@ -479,15 +747,15 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
           
           <View style={styles.wizardNavBoth}>
             <Button 
-              title="Previous" 
+              title={t('common.previous')} 
               variant="outlined"
               onPress={() => setActiveTab('setup')} 
-              icon={<Ionicons name="arrow-back" size={16} color={Colors.primary} />}
+              icon={<Ionicons name="arrow-back" size={16} color={colors.primary} />}
             />
             <Button 
-              title="Next" 
+              title={t('common.next')} 
               onPress={() => setActiveTab('experiment')} 
-              iconRight={<Ionicons name="arrow-forward" size={16} color={Colors.white} />}
+              iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
             />
           </View>
         </View>
@@ -517,7 +785,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
                     </View>
                   )}
                   <View style={styles.tableRow}>
-                    <Text style={[styles.tableCell, styles.flex2, { fontWeight: '600' }]}>{trial.label}</Text>
+                    <Text style={[styles.tableCell, styles.flex2, { fontWeight: '600' }]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
                     <View style={styles.flex2}>
                       <Input
                         value={trial.actualTime}
@@ -567,7 +835,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
                       </View>
                     </View>
 
-                    {trial.didBounce === 'Yes' && (
+                    {trial.didBounce === t('common.yes') && (
                       <Input
                         label={t('data.activities.parachute-drop.reboundTime')}
                         value={trial.reboundTime}
@@ -594,21 +862,21 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
                         <TrialVideoPlayer videoUri={trial.videoUri} />
                         {!isLocked && (
                           <Button 
-                            title="Retake Video" 
+                            title={t('activities.retakeVideo')} 
                             onPress={() => recordVideo(trial.id)} 
                             variant="outlined"
                             size="sm"
                             style={{ marginTop: Spacing.sm }}
-                            icon={<Ionicons name="camera-reverse" size={16} color={Colors.primary} />}
+                            icon={<Ionicons name="camera-reverse" size={16} color={colors.primary} />}
                           />
                         )}
                       </View>
                     ) : (
                       <Button 
-                        title="Record Video" 
+                        title={t('activities.recordVideo')} 
                         onPress={() => recordVideo(trial.id)} 
                         variant="primary"
-                        icon={<Ionicons name="videocam" size={18} color={Colors.white} />}
+                        icon={<Ionicons name="videocam" size={18} color={colors.white} />}
                         disabled={isLocked}
                       />
                     )}
@@ -620,15 +888,15 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
           
           <View style={styles.wizardNavBoth}>
             <Button 
-              title="Previous" 
+              title={t('common.previous')} 
               variant="outlined"
               onPress={() => setActiveTab('predictions')} 
-              icon={<Ionicons name="arrow-back" size={16} color={Colors.primary} />}
+              icon={<Ionicons name="arrow-back" size={16} color={colors.primary} />}
             />
             <Button 
-              title="Next" 
+              title={t('common.next')} 
               onPress={() => setActiveTab('calculations')} 
-              iconRight={<Ionicons name="arrow-forward" size={16} color={Colors.white} />}
+              iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
             />
           </View>
         </View>
@@ -639,20 +907,20 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
         <ScrollView style={{ flex: 1 }}>
           <Card style={[styles.pageCard, { marginBottom: Spacing.lg }]}>
             <View style={styles.instructionsHeader}>
-              <Ionicons name="calculator" size={24} color={Colors.primary} />
-              <Text style={styles.instructionsTitle}>{t('data.activities.parachute-drop.formulasTitle', { defaultValue: 'Helpful Formulas' })}</Text>
+              <Ionicons name="calculator" size={24} color={colors.primary} />
+              <Text style={styles.instructionsTitle}>{actT('shared.formulasTitle')}</Text>
             </View>
             {!isHighSchool ? (
               <View style={styles.formulaBox}>
-                <Text style={styles.formulaText}><Text style={{fontWeight: '700'}}>Speed (m/s) =</Text> Drop Height (m) ÷ Time to Contact (s)</Text>
+                <Text style={styles.formulaText}>{t('data.activities.parachute-drop.formulaSpeedPrimary')}</Text>
               </View>
             ) : (
               <View style={styles.formulaBox}>
-                <Text style={styles.formulaText}><Text style={{fontWeight: '700'}}>Velocity (m/s) =</Text> (2 × Drop Height) ÷ Time to Contact</Text>
-                <Text style={styles.formulaText}><Text style={{fontWeight: '700'}}>Acceleration (m/s²) =</Text> Velocity ÷ Time to Contact</Text>
-                <Text style={styles.formulaText}><Text style={{fontWeight: '700'}}>Net Force (N) =</Text> Mass × Acceleration</Text>
-                <Text style={styles.formulaText}><Text style={{fontWeight: '700'}}>Drag Force (N) =</Text> Weight - Net Force</Text>
-                <Text style={styles.formulaText}><Text style={{fontWeight: '700'}}>G-Force =</Text> Velocity ÷ (Stopping Time × 9.8)</Text>
+                <Text style={styles.formulaText}>{t('data.activities.parachute-drop.formulaVelocity')}</Text>
+                <Text style={styles.formulaText}>{t('data.activities.parachute-drop.formulaAcceleration')}</Text>
+                <Text style={styles.formulaText}>{t('data.activities.parachute-drop.formulaNetForce')}</Text>
+                <Text style={styles.formulaText}>{t('data.activities.parachute-drop.formulaDragForce')}</Text>
+                <Text style={styles.formulaText}>{t('data.activities.parachute-drop.formulaGForce')}</Text>
               </View>
             )}
           </Card>
@@ -681,7 +949,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
                   const isCorrect = validate(trial.manualSpeed, truePhys.speed);
                   return (
                     <View key={`calc-${trial.id}`} style={styles.tableRow}>
-                      <Text style={[styles.tableCell, styles.flex2]}>{trial.label}</Text>
+                      <Text style={[styles.tableCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
                       <View style={styles.flex3}>
                         <Input
                           value={trial.manualSpeed}
@@ -703,7 +971,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
                   const truePhys = calculateTruePhysics(trial);
                   return (
                     <View key={`calc-hs-${trial.id}`} style={styles.hsCalcBlock}>
-                      <Text style={styles.hsCalcTitle}>{trial.label}</Text>
+                      <Text style={styles.hsCalcTitle}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
                       <View style={styles.row}>
                         <View style={styles.flex1}>
                           <Input
@@ -776,15 +1044,15 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
           
           <View style={styles.wizardNavBoth}>
             <Button 
-              title="Previous" 
+              title={t('common.previous')} 
               variant="outlined"
               onPress={() => setActiveTab('experiment')} 
-              icon={<Ionicons name="arrow-back" size={16} color={Colors.primary} />}
+              icon={<Ionicons name="arrow-back" size={16} color={colors.primary} />}
             />
             <Button 
-              title="Save Results" 
+              title={t('common.save')} 
               onPress={handleFinalSave} 
-              icon={<Ionicons name="save" size={16} color={Colors.white} />}
+              icon={<Ionicons name="save" size={16} color={colors.white} />}
               disabled={!validateAllFields()}
             />
           </View>
@@ -795,7 +1063,7 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
       <RNModal visible={showTimeoutModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Ionicons name="time" size={48} color={Colors.danger} style={{ marginBottom: Spacing.md }} />
+            <Ionicons name="time" size={48} color={colors.danger} style={{ marginBottom: Spacing.md }} />
             <Text style={styles.modalTitle}>{t('data.activities.parachute-drop.timeUpTitle')}</Text>
             <Text style={styles.modalText}>{t('data.activities.parachute-drop.timeUpText')}</Text>
             <View style={styles.modalButtons}>
@@ -819,249 +1087,4 @@ export function ParachuteDropForm({ value, onChange, onSubmit }: Props) {
 
 
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: Spacing.xl,
-  },
-  tabContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
-  },
-  tabScroll: {
-    paddingHorizontal: Spacing.md,
-  },
-  tab: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: Colors.primary,
-  },
-  tabText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  wizardNavRight: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: Spacing.xl,
-    paddingTop: Spacing.sm,
-  },
-  wizardNavBoth: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xl,
-    paddingTop: Spacing.sm,
-  },
-  stickyTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  timerTitle: {
-    ...Typography.caption,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    marginBottom: 2,
-  },
-  timerDisplay: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.primary,
-    fontVariant: ['tabular-nums'],
-  },
-  timerButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  pageCard: {
-    marginBottom: Spacing.md,
-    padding: Spacing.xl,
-  },
-  integrityBox: {
-    flexDirection: 'row',
-    backgroundColor: Colors.accentLight + '30',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  integrityText: {
-    ...Typography.bodySmall,
-    color: '#854d0e',
-    flex: 1,
-  },
-  checklistContainer: {
-    marginTop: Spacing.sm,
-  },
-  checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  checklistText: {
-    ...Typography.body,
-    flex: 1,
-  },
-  sectionTitle: {
-    ...Typography.h2,
-    marginBottom: Spacing.md,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.primary,
-  },
-  instructionsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  instructionsTitle: {
-    ...Typography.h3,
-    color: Colors.primary,
-  },
-  instructionListTitle: {
-    ...Typography.bodySmall,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  instructionText: {
-    ...Typography.body,
-    marginBottom: Spacing.sm,
-  },
-  illustration: {
-    width: '100%',
-    height: 200,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  tableTitle: {
-    ...Typography.h3,
-    color: Colors.primary,
-    marginBottom: Spacing.md,
-  },
-  tableRowHeader: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  tableCell: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    paddingRight: Spacing.sm,
-  },
-  flex1: { flex: 1 },
-  flex2: { flex: 2 },
-  flex3: { flex: 3 },
-  row: {
-    flexDirection: 'row',
-  },
-  trialRowBlock: {
-    marginBottom: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border + '50',
-    paddingBottom: Spacing.lg,
-  },
-  subInputsContainer: {
-    paddingLeft: Spacing.md,
-    borderLeftWidth: 2,
-    borderLeftColor: Colors.primaryLight + '50',
-    marginTop: Spacing.sm,
-  },
-  calcHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  hsCalcBlock: {
-    marginBottom: Spacing.lg,
-    backgroundColor: '#f8fafc',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  hsCalcTitle: {
-    ...Typography.body,
-    fontWeight: '600',
-    marginBottom: Spacing.sm,
-  },
-  formulaBox: {
-    backgroundColor: Colors.primary + '10',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.sm,
-  },
-  formulaText: {
-    ...Typography.bodySmall,
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
-  },
-  videoContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: Spacing.xl,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    ...Typography.h2,
-    color: Colors.danger,
-    marginBottom: Spacing.sm,
-  },
-  modalText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-});
+

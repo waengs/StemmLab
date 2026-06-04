@@ -5,4 +5,5 @@ export const FS = {
   sensorLogs: 'sensor_logs',
   forumPosts: 'forum_posts',
   forumReplies: 'replies',
+  notifications: 'notifications',
 } as const;
