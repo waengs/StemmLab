@@ -498,11 +498,15 @@ export function HandFanForm({
   const isFormValid = () => {
     if (!data.predictedMaterial || !data.predictedDesign) return false;
     for (const t of data.trials) {
-      if (!t.design || !t.fanMaterial || !t.targetMaterial || !t.distance || !t.maxBendAngle) return false;
-      if (isHighSchool && !t.manualForce) return false;
+      if (!t.design || !t.fanMaterial || !t.targetMaterial || !t.distance || !t.maxBendAngle?.trim()) return false;
+      if (isHighSchool && !t.manualForce?.trim()) return false;
     }
     return true;
   };
+
+  const predictionsValid = data.predictedMaterial && data.predictedDesign;
+  const experimentValid = data.trials.every(t => t.maxBendAngle?.trim());
+  const calculationsValid = data.trials.every(t => t.manualForce?.trim());
 
   const handleComplete = () => {
     if (!isFormValid()) {
@@ -682,8 +686,8 @@ export function HandFanForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => goToTab('setup')} />
-              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => goToTab('experiment')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => goToTab('setup')} />
+              <Button title={t('common.next')} onPress={() => goToTab('experiment')} disabled={!predictionsValid} />
             </View>
           </View>
         )}
@@ -773,11 +777,11 @@ export function HandFanForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => goToTab('predictions')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => goToTab('predictions')} />
               {isHighSchool ? (
-                <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => goToTab('calculations')} />
+                <Button title={t('common.next')} onPress={() => goToTab('calculations')} disabled={!experimentValid} />
               ) : (
-                <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
+                <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid} />
               )}
             </View>
           </View>
@@ -858,8 +862,8 @@ export function HandFanForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => goToTab('experiment')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => goToTab('experiment')} />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!calculationsValid} />
             </View>
           </View>
         )}

@@ -1,4 +1,5 @@
 import type { ActivityResult } from '../types';
+import { getActivityQuizMcq } from './activityContent';
 
 /** Shared leaderboard scoring rules (activities 1, 3, 5, 7 and others). */
 export const SCORE_BASE = 100;
@@ -14,10 +15,30 @@ export function applyInstantCalcPenalty(score: number, usedInstantCalc?: boolean
   return usedInstantCalc ? score - SCORE_INSTANT_CALC_PENALTY : score;
 }
 
-export function applyQuizBonus(score: number, quizScore?: unknown): number {
+export function applyQuizBonus(score: number, quizScore?: unknown, activityId?: string): number {
   const quiz = typeof quizScore === 'number' ? quizScore : parseFloat(String(quizScore ?? ''));
-  if (isNaN(quiz)) return score;
-  return score + quiz * SCORE_QUIZ_PER_CORRECT;
+  
+  if (!activityId) {
+    return score;
+  }
+  
+  const totalQuestions = Math.max(
+    getActivityQuizMcq(activityId, true).length,
+    getActivityQuizMcq(activityId, false).length
+  );
+  
+  if (totalQuestions === 0) {
+    return score;
+  }
+
+  const experimentComponent = score * 0.75;
+  
+  if (isNaN(quiz)) {
+    return experimentComponent;
+  }
+  
+  const quizComponent = (quiz / totalQuestions) * 100 * 0.25;
+  return experimentComponent + quizComponent;
 }
 
 export function normalizeLabel(value: string): string {
@@ -73,7 +94,7 @@ export function scoreParachuteDrop(data: Record<string, unknown>): number {
     }
 
     if (validTimeTrials > 0) {
-      score -= (totalTimeDiff / validTimeTrials) * 20;
+      score -= (totalTimeDiff / validTimeTrials) * 10;
     }
   }
 
@@ -238,20 +259,38 @@ export function calculateActivityScore(result: ActivityResult): number {
           String(data.predictedLoudestAction ?? ''),
           actualLoudestAction
         );
+        // Double the penalty since this activity is very easy
+        if (score < SCORE_BASE) {
+          score = SCORE_BASE - (SCORE_WRONG_PREDICTION_PENALTY * 2);
+        }
       }
       break;
     }
     case 'earthquake':
-      score = data.survived === 'Yes' ? SCORE_BASE : 0;
+      score = 50 + (data.survived === 'Yes' ? 50 : 0);
       break;
     case 'human-performance':
       score = scoreHumanPerformance(data);
       break;
-    case 'reaction-board':
-      score =
-        (parseFloat(String(data.accuracy ?? '')) || 0) -
-        (parseFloat(String(data.reactionTime ?? '')) || 1000) / 100;
+    case 'reaction-board': {
+      score = SCORE_BASE;
+      const predReact = parseFloat(String(data.predictedReactionTime ?? ''));
+      const actualReact = parseFloat(String(data.reactionTime ?? ''));
+      if (!isNaN(predReact) && !isNaN(actualReact)) {
+        const diff = Math.abs(predReact - actualReact);
+        score -= Math.min(30, diff / 20); // 1 pt penalty per 20ms diff, max 30
+      }
+      const predAcc = parseFloat(String(data.predictedAccuracy ?? ''));
+      const actualAcc = parseFloat(String(data.accuracy ?? ''));
+      if (!isNaN(predAcc) && !isNaN(actualAcc)) {
+        const diff = Math.abs(predAcc - actualAcc);
+        score -= Math.min(20, diff / 2); // 1 pt penalty per 2% diff, max 20
+      }
+      // Performance bonuses
+      if (!isNaN(actualAcc) && actualAcc >= 95) score += 5;
+      if (!isNaN(actualReact) && actualReact <= 250) score += 5;
       break;
+    }
     case 'breathing-pace':
       score = scoreBreathingPace(data);
       break;
@@ -259,5 +298,5 @@ export function calculateActivityScore(result: ActivityResult): number {
       score = 0;
   }
 
-  return finalizeScore(applyQuizBonus(score, data.quizScore));
+  return finalizeScore(applyQuizBonus(score, data.quizScore, result.activityId));
 }

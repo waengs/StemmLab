@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "41208272350",
+    "firebase_url": "https://stemmlab-eccf2-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "stemmlab-eccf2",
+    "storage_bucket": "stemmlab-eccf2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41208272350:android:7bdccad9b91e7ffef4394f",
+        "android_client_info": {
+          "package_name": "com.waengs.StemmLab"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtsjmqCKMa6qvIKAOWy2JoY-Egl85g9l0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

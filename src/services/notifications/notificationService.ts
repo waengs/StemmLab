@@ -1,12 +1,14 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   query,
   setDoc,
   updateDoc,
   where,
+  onSnapshot,
 } from 'firebase/firestore';
 import { getFirestoreDb } from '../../config/firebase';
 import { FS } from '../../firebase/collections';
@@ -38,6 +40,25 @@ export async function pullNotificationsForUser(uid: string): Promise<AppNotifica
   return snap.docs
     .map((d) => mapNotificationDoc(d.id, d.data()))
     .sort((a, b) => b.timestamp - a.timestamp);
+}
+
+export function subscribeToNotifications(
+  uid: string,
+  onUpdate: (notifications: AppNotification[]) => void
+): () => void {
+  const db = getFirestoreDb();
+  const q = query(
+    collection(db, FS.notifications),
+    where('recipientUid', '==', uid),
+    limit(PULL_LIMIT)
+  );
+  
+  return onSnapshot(q, (snap) => {
+    const notifications = snap.docs
+      .map((d) => mapNotificationDoc(d.id, d.data()))
+      .sort((a, b) => b.timestamp - a.timestamp);
+    onUpdate(notifications);
+  });
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
@@ -77,6 +98,8 @@ export async function notifyForumReply(
   const preview = reply.content.slice(0, 120);
   const type: AppNotification['type'] = reply.parentReplyId ? 'forum_comment' : 'forum_reply';
 
+  const db = getFirestoreDb();
+
   await Promise.all(
     [...recipients].map(async (recipientUid) => {
       const notification: AppNotification = {
@@ -91,7 +114,42 @@ export async function notifyForumReply(
         timestamp: reply.timestamp,
         read: false,
       };
+      
+      // 1. Write the notification doc to Firestore
       await writeNotification(notification);
+
+      // 2. Fetch the recipient's push token and send remote push
+      try {
+        const userDoc = await getDoc(doc(db, FS.users, recipientUid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const pushToken = userData.expoPushToken;
+          
+          if (pushToken) {
+            const title = type === 'forum_comment' 
+              ? `Comment on "${post.topicTitle}"` 
+              : `Reply on "${post.topicTitle}"`;
+              
+            await fetch('https://exp.host/--/api/v2/push/send', {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Accept-encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                to: pushToken,
+                sound: 'default',
+                title: title,
+                body: `${reply.authorName}: ${preview}`,
+                data: { postId: post.id, notificationId: notification.id },
+              }),
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to send remote push notification', err);
+      }
     })
   );
 }

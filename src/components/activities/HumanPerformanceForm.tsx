@@ -287,13 +287,17 @@ export function HumanPerformanceForm({
   const isFormValid = () => {
     if (!data.predictedHardestMovement) return false;
     for (const trial of data.trials) {
-      if (!trial.predictedVibration || !trial.vibrationAvg || !trial.vibrationAvgWithFeedback) {
+      if (!trial.predictedVibration?.trim() || !trial.vibrationAvg || !trial.vibrationAvgWithFeedback) {
         return false;
       }
-      if (isLowerHighSchool && !trial.manualSpeed) return false;
+      if (isLowerHighSchool && !trial.manualSpeed?.trim()) return false;
     }
     return true;
   };
+
+  const predictionsValid = data.predictedHardestMovement && data.trials.every(t => t.predictedVibration?.trim());
+  const experimentValid = data.trials.every(t => t.vibrationAvg && t.vibrationAvgWithFeedback);
+  const calculationsValid = data.trials.every(t => t.manualSpeed?.trim());
 
   const handleComplete = () => {
     if (!isFormValid()) {
@@ -499,8 +503,8 @@ export function HumanPerformanceForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('setup')} />
-              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('experiment')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('setup')} />
+              <Button title={t('common.next')} onPress={() => setActiveTab('experiment')} disabled={!predictionsValid} />
             </View>
           </View>
         )}
@@ -515,12 +519,8 @@ export function HumanPerformanceForm({
             />
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('predictions')} />
-              <Button
-                title={t('common.next', { defaultValue: 'Next' })}
-                onPress={() => setActiveTab('results')}
-                disabled={!allRecordingsComplete}
-              />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('predictions')} />
+              <Button title={t('common.next')} onPress={() => setActiveTab('results')} disabled={!experimentValid} />
             </View>
           </View>
         )}
@@ -582,9 +582,9 @@ export function HumanPerformanceForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('experiment')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('experiment')} />
               {isLowerHighSchool ? (
-                <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('calculations')} />
+                <Button title={t('common.next')} onPress={() => setActiveTab('calculations')} />
               ) : (
                 <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
               )}
@@ -645,8 +645,8 @@ export function HumanPerformanceForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('results')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('results')} />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!calculationsValid} />
             </View>
           </View>
         )}

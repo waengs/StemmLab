@@ -700,6 +700,7 @@
       "reaction-board": {
         "name": "Tantangan Papan Reaksi",
         "desc": "Ukur waktu dan akurasi reaksi",
+        "overview": "Ukur waktu reaksi dan koordinasi mata-tangan Anda menggunakan papan interaktif.",
         "equipmentPhone": "Ponsel dengan aplikasi STEMM Lab",
         "equipmentSpace": "Ruang kerja yang jelas",
         "timerTitle": "Timer aktivitas (15 menit)",

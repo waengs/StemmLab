@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { Spacing, BorderRadius } from '../../theme';
-import { ActivityWizardPostQuiz } from './ActivityWizardPostQuiz';
+import { ActivityMcqPostQuiz } from './ActivityMcqPostQuiz';
 import { ActivityDiscussionCard } from './ActivityDiscussionCard';
 import type { ActivityResult } from '../../types';
 
@@ -11,84 +11,35 @@ interface Props {
   onComplete: () => void;
 }
 
-function usePostQuizStyles() {
+function useEarthquakePostStyles() {
   return useThemedStyles(({ colors, typography }) => ({
-    container: {
-      padding: Spacing.xl,
-      alignItems: 'center',
-      marginBottom: Spacing.xl,
-    },
-    resultsCard: {
-      alignItems: 'stretch',
-      maxHeight: '85%',
-    },
-    resultsContent: {
-      width: '100%',
-      alignItems: 'center',
-      paddingBottom: Spacing.md,
-    },
-    progress: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginBottom: Spacing.sm,
-    },
-    question: {
-      ...typography.h3,
-      textAlign: 'center',
-      marginBottom: Spacing.xl,
-    },
-    options: {
-      width: '100%',
-      gap: Spacing.md,
-    },
-    optionBtn: {
-      width: '100%',
-    },
-    title: {
-      ...typography.h2,
-      marginBottom: Spacing.md,
-    },
-    desc: {
-      ...typography.body,
-      color: colors.textSecondary,
-      marginBottom: Spacing.xl,
-    },
-    scoreText: {
-      ...typography.h1,
-      color: colors.primary,
-      marginBottom: Spacing.xl,
-    },
-    explanationBox: {
+    container: { marginTop: Spacing.xl },
+    card: {
+      padding: Spacing.lg,
+      marginTop: Spacing.lg,
       backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    title: { ...typography.h2, color: colors.primary, marginBottom: Spacing.xs },
+    subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: Spacing.xl },
+    questionBlock: { marginBottom: Spacing.xl },
+    question: { ...typography.body, fontWeight: '600', marginBottom: Spacing.md, color: colors.text },
+    optionBtn: {
+      marginBottom: Spacing.sm,
+      justifyContent: 'flex-start',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+    },
+    scoreBox: {
+      backgroundColor: colors.secondary + '20',
       padding: Spacing.md,
       borderRadius: BorderRadius.md,
-      marginBottom: Spacing.xl,
-      width: '100%',
-    },
-    explanationTitle: {
-      ...typography.bodySmall,
-      fontWeight: '700',
-      color: colors.text,
-      marginBottom: Spacing.xs,
-    },
-    explanationText: {
-      ...typography.body,
-      color: colors.textSecondary,
-    },
-    successBadge: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: colors.secondary,
       alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.secondary,
     },
-    successText: {
-      fontSize: 32,
-      color: colors.white,
-      fontWeight: '700',
-    },
+    scoreText: { ...typography.h3, color: colors.secondary },
     discussionCard: {
       padding: Spacing.lg,
       marginTop: Spacing.lg,
@@ -108,25 +59,51 @@ function usePostQuizStyles() {
       marginTop: Spacing.md,
     },
     infoText: { ...typography.bodySmall, color: colors.text },
+    tableBlock: { marginTop: Spacing.xl, marginBottom: Spacing.md },
+    tableHeading: { ...typography.h3, color: colors.text, marginBottom: Spacing.sm },
+    tableRowHeader: {
+      flexDirection: 'row',
+      borderBottomWidth: 2,
+      borderBottomColor: colors.border,
+      paddingBottom: Spacing.xs,
+      marginBottom: Spacing.xs,
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      paddingVertical: Spacing.sm,
+    },
+    tableCell: { ...typography.bodySmall, color: colors.textSecondary },
   }));
 }
 
 export function EarthquakePostActivity({ result, onComplete }: Props) {
-  const styles = usePostQuizStyles();
+  const styles = useEarthquakePostStyles();
   return (
-    <ActivityWizardPostQuiz
+    <ActivityMcqPostQuiz
       activityId="earthquake"
       result={result}
       onComplete={onComplete}
-      styles={styles}
+      styles={{
+        container: styles.container,
+        card: styles.card,
+        title: styles.title,
+        subtitle: styles.subtitle,
+        questionBlock: styles.questionBlock,
+        question: styles.question,
+        optionBtn: styles.optionBtn,
+        scoreBox: styles.scoreBox,
+        scoreText: styles.scoreText,
+      }}
     />
   );
 }
 
 export function EarthquakeDiscussion() {
-  const styles = usePostQuizStyles();
+  const styles = useEarthquakePostStyles();
   return (
-    <View style={{ marginTop: Spacing.md }}>
+    <View style={styles.container}>
       <ActivityDiscussionCard activityId="earthquake" styles={styles} showHighSchoolTables={false} />
     </View>
   );

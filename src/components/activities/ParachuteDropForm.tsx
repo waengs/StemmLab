@@ -476,15 +476,19 @@ export function ParachuteDropForm({
 
   const validateAllFields = () => {
     if (data.trials.length < 2) return false;
-    if (!data.dropHeight || !data.toyMass || !data.predictedDesign) return false;
+    if (!data.dropHeight?.trim() || !data.toyMass?.trim() || !data.predictedDesign) return false;
     for (const t of data.trials) {
-      if (!t.predictedTime || !t.actualTime || !t.stoppingTime) return false;
-      if (t.didBounce === 'Yes' && !t.reboundTime) return false;
-      if (!isHighSchool && !t.manualSpeed) return false;
-      if (isHighSchool && (!t.manualVelocity || !t.manualAcceleration || !t.manualNetForce || !t.manualDragForce || !t.manualGForce)) return false;
+      if (!t.predictedTime?.trim() || !t.actualTime?.trim() || !t.stoppingTime?.trim()) return false;
+      if (t.didBounce === 'Yes' && !t.reboundTime?.trim()) return false;
+      if (!isHighSchool && !t.manualSpeed?.trim()) return false;
+      if (isHighSchool && (!t.manualVelocity?.trim() || !t.manualAcceleration?.trim() || !t.manualNetForce?.trim() || !t.manualDragForce?.trim() || !t.manualGForce?.trim())) return false;
     }
     return true;
   };
+
+  const setupValid = data.dropHeight?.trim() && data.toyMass?.trim();
+  const predictionsValid = data.predictedDesign && data.trials.every(t => t.predictedTime?.trim());
+  const experimentValid = data.trials.every(t => t.actualTime?.trim() && t.stoppingTime?.trim() && (t.didBounce !== 'Yes' || t.reboundTime?.trim()));
 
   const handleFinalSave = () => {
     setIsTimerRunning(false); // Stop timer on submit
@@ -694,7 +698,7 @@ export function ParachuteDropForm({
             <Button 
               title={t('common.next')} 
               onPress={() => setActiveTab('predictions')} 
-              disabled={!allEquipmentChecked || !data.dropHeight || !data.toyMass}
+              disabled={!allEquipmentChecked || !data.dropHeight?.trim() || !data.toyMass?.trim()}
               iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
             />
           </View>
@@ -756,6 +760,7 @@ export function ParachuteDropForm({
               title={t('common.next')} 
               onPress={() => setActiveTab('experiment')} 
               iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
+              disabled={!predictionsValid}
             />
           </View>
         </View>
@@ -897,6 +902,7 @@ export function ParachuteDropForm({
               title={t('common.next')} 
               onPress={() => setActiveTab('calculations')} 
               iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
+              disabled={!experimentValid}
             />
           </View>
         </View>

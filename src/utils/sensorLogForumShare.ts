@@ -64,9 +64,11 @@ export function buildSensorLogForumShare(log: SensorLog, t: TFunction): SensorLo
       lines.push(t('sensors.shareForum.notesLine', { notes: notes.trim() }), '');
     }
   } else if (data.includes('\nNotes: ')) {
-    const [main, notePart] = data.split('\nNotes: ');
+    const splitIdx = data.indexOf('\nNotes: ');
+    const main = data.substring(0, splitIdx);
+    const notePart = data.substring(splitIdx + '\nNotes: '.length);
     lines.push(t('sensors.shareForum.resultLine', { result: main.trim() }));
-    if (notePart?.trim()) {
+    if (notePart.trim()) {
       lines.push(t('sensors.shareForum.notesLine', { notes: notePart.trim() }), '');
     }
   } else {

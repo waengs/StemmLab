@@ -7,13 +7,6 @@ export type QuizMcqItem = {
   answerIndex: number;
 };
 
-export type QuizWizardItem = {
-  question: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
-};
-
 export function actT(key: string, options?: Record<string, unknown>): string {
   return i18n.t(`activityContent.${key}`, options as object);
 }
@@ -31,13 +24,6 @@ export function getActivityQuizMcq(activityId: string, isPrimary: boolean): Quiz
   const value = i18n.t(`activityContent.quiz.${activityId}.${band}`, { returnObjects: true });
   if (!Array.isArray(value)) return [];
   return value as QuizMcqItem[];
-}
-
-export function getActivityQuizWizard(activityId: string, isPrimary: boolean): QuizWizardItem[] {
-  const band = isPrimary ? 'primary' : 'highSchool';
-  const value = i18n.t(`activityContent.quizWizard.${activityId}.${band}`, { returnObjects: true });
-  if (!Array.isArray(value)) return [];
-  return value as QuizWizardItem[];
 }
 
 export function getQuizOpenQuestions(activityId: ActivityQuizId, isPrimary: boolean): string[] {

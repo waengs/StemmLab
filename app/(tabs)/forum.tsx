@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  RefreshControl,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -84,6 +85,14 @@ export default function Forum() {
     ForumAttachment[] | undefined
   >();
   const [sortBy, setSortBy] = useState<SortOption>('new');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    if (!user?.uid) return;
+    setRefreshing(true);
+    await loadForumFeedParallel(user.uid);
+    setRefreshing(false);
+  }, [user?.uid]);
 
   const sortOptions = useMemo(
     () =>
@@ -298,6 +307,7 @@ export default function Forum() {
           style={styles.flex}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
           showsVerticalScrollIndicator={false}
         >
           <PageTitle showSettings>{t('forum.pageTitle')}</PageTitle>

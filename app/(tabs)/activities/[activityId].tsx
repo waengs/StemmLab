@@ -308,19 +308,9 @@ export default function ActivityDetail() {
             <View style={styles.alert}>
               <Ionicons name="information-circle" size={18} color={colors.primary} />
               <Text style={styles.alertText}>
-                {activity.id === 'parachute-drop'
-                  ? t('data.activities.parachute-drop.overview')
-                  : activity.id === 'sound-pollution'
-                    ? t('data.activities.sound-pollution.overview')
-                    : activity.id === 'earthquake'
-                      ? t('data.activities.earthquake.overview')
-                      : activity.id === 'human-performance'
-                        ? t('data.activities.human-performance.overview')
-                        : activity.id === 'breathing-pace'
-                          ? t('data.activities.breathing-pace.overview')
-                          : activity.id === 'reaction-board'
-                            ? t('data.activities.reaction-board.overview')
-                            : t('activities.infoAlert')}
+                {t(`data.activities.${activity.id}.overview`, {
+                  defaultValue: t('activities.infoAlert'),
+                })}
               </Text>
             </View>
 

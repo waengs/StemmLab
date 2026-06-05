@@ -700,6 +700,7 @@
       "reaction-board": {
         "name": "Reaction Board Challenge",
         "desc": "Measure reaction time and accuracy",
+        "overview": "Measure your reaction time and hand-eye coordination using the interactive board.",
         "equipmentPhone": "Mobile phone with STEMM Lab app",
         "equipmentSpace": "Clear working space",
         "timerTitle": "Activity timer (15 min)",

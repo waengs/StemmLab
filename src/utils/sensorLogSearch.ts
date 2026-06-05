@@ -24,7 +24,9 @@ export function getSensorLogSearchText(log: SensorLog, t: TFunction): string {
     parts.push(...stats);
     if (notes.trim()) parts.push(notes.trim());
   } else if (data.includes('\nNotes: ')) {
-    const [main, notePart] = data.split('\nNotes: ');
+    const splitIdx = data.indexOf('\nNotes: ');
+    const main = data.substring(0, splitIdx);
+    const notePart = data.substring(splitIdx + '\nNotes: '.length);
     if (main.trim()) parts.push(main.trim());
     if (notePart?.trim()) parts.push(notePart.trim());
   } else if (data.trim()) {

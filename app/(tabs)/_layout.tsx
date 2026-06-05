@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
 import { Redirect, Tabs } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '../../src/context/ThemeContext';
 import { CustomTabBar } from '../../src/components/layout/CustomTabBar';
 import { useAuthStore } from '../../src/stores/authStore';
+import { subscribeToNotifications, presentNewNotifications } from '../../src/services/notifications/notificationService';
+import { useNotificationStore } from '../../src/stores/notificationStore';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
@@ -13,6 +16,15 @@ export default function TabsLayout() {
       isHydrated: s.isHydrated,
     }))
   );
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsubscribe = subscribeToNotifications(user.uid, (notifications) => {
+      useNotificationStore.getState().setNotifications(notifications);
+      void presentNewNotifications(notifications);
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   if (isHydrated && (!user || !team)) {
     return <Redirect href="/" />;

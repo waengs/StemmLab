@@ -3,6 +3,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { getFirestoreDb } from '../../config/firebase';
 import { FS } from '../../firebase/collections';
 import { supportsCustomNativeModules } from '../../utils/nativeFeatures';
+import Constants from 'expo-constants';
 
 async function ensureNotificationHandler(
   Notifications: typeof import('expo-notifications')
@@ -39,7 +40,9 @@ export async function registerForPushNotifications(uid: string): Promise<string 
     });
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId: Constants.expoConfig?.extra?.eas?.projectId,
+  });
   const token = tokenData.data;
 
   const db = getFirestoreDb();

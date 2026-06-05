@@ -33,9 +33,10 @@ export function parseSlowMoLogData(data: string): { videoUrl: string | null; not
 }
 
 export function parseVibrationLogData(data: string): { stats: string[]; notes: string } {
-  const parts = String(data).split('\nNotes: ');
-  const main = parts[0] ?? '';
-  const notes = parts[1]?.trim() ?? '';
+  const str = String(data);
+  const splitIdx = str.indexOf('\nNotes: ');
+  const main = splitIdx >= 0 ? str.substring(0, splitIdx) : str;
+  const notes = splitIdx >= 0 ? str.substring(splitIdx + '\nNotes: '.length).trim() : '';
   const stats = main
     .split('|')
     .map((part) => part.trim())

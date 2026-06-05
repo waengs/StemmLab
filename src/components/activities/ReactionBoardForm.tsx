@@ -180,8 +180,10 @@ export function ReactionBoardForm({
   };
 
   const isFormValid = () => {
-    return data.predictedReactionTime && data.predictedAccuracy && data.reactionTime !== null && data.accuracy !== null;
+    return !!data.predictedReactionTime?.trim() && !!data.predictedAccuracy?.trim() && data.reactionTime !== null && data.accuracy !== null;
   };
+
+  const predictionsValid = !!data.predictedReactionTime?.trim() && !!data.predictedAccuracy?.trim();
 
   const handleComplete = () => {
     if (!isFormValid()) {
@@ -357,8 +359,8 @@ export function ReactionBoardForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('setup')} />
-              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('experiment')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('setup')} />
+              <Button title={t('common.next')} onPress={() => setActiveTab('experiment')} disabled={!predictionsValid} />
             </View>
           </View>
         )}
@@ -375,11 +377,11 @@ export function ReactionBoardForm({
             </Card>
             
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('predictions')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('predictions')} />
               <Button 
-                title={t('common.next', { defaultValue: 'Next' })} 
+                title={t('common.next')} 
                 onPress={() => setActiveTab('results')} 
-                disabled={data.reactionTime === null} 
+                disabled={data.reactionTime === null || data.accuracy === null} 
               />
             </View>
           </View>
@@ -433,7 +435,7 @@ export function ReactionBoardForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('experiment')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('experiment')} />
               <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
             </View>
           </View>

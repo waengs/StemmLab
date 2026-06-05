@@ -3,6 +3,12 @@
     "name": "StemmLab",
     "slug": "StemmLab",
     "version": "1.0.0",
+    "icon": "./assets/images/logo.jpeg",
+    "extra": {
+      "eas": {
+        "projectId": "13f75974-3f0a-453a-a6e8-f732bebdba28"
+      }
+    },
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "stemmlab",
@@ -11,7 +17,8 @@
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.waengs.StemmLab"
+      "package": "com.waengs.StemmLab",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {},
     "plugins": [

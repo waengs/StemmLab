@@ -18,8 +18,9 @@ export function formatBatteryLogData(reading: BatteryLogReading): string {
 
 export function parseBatteryLogData(data: string): ParsedBatteryLog {
   const raw = String(data).trim();
-  const [mainPart, notesPart] = raw.split('\nNotes: ');
-  const notes = notesPart?.trim() ?? '';
+  const splitIdx = raw.indexOf('\nNotes: ');
+  const mainPart = splitIdx >= 0 ? raw.substring(0, splitIdx) : raw;
+  const notes = splitIdx >= 0 ? raw.substring(splitIdx + '\nNotes: '.length).trim() : '';
 
   if (mainPart.startsWith('{')) {
     try {

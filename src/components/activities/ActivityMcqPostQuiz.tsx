@@ -127,9 +127,9 @@ export function ActivityMcqPostQuiz({
               const isSelected = quizAnswers[questionIndex.toString()] === optionIndex;
               const isCorrect = optionIndex === q.answerIndex;
 
-              let variant: 'primary' | 'secondary' | 'outlined' | 'danger' = 'outlined';
+              let variant: 'primary' | 'outlined' | 'danger' | 'ghost' = 'outlined';
               if (quizSubmitted) {
-                if (isCorrect) variant = 'secondary';
+                if (isCorrect) variant = 'primary';
                 else if (isSelected && !isCorrect) variant = 'danger';
               } else if (isSelected) {
                 variant = 'primary';

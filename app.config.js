@@ -11,9 +11,6 @@ module.exports = {
     ...base.expo,
     extra: {
       ...(base.expo.extra ?? {}),
-      eas: {
-        projectId: '5a660196-e9a2-44d9-9761-1b78794f910a',
-      },
     },
     plugins: [
       ...(base.expo.plugins ?? []),

@@ -4,6 +4,12 @@ import { hydrateStores } from '../stores/hydrateStores';
 import { useThemeStore } from '../stores/themeStore';
 import { useTheme } from '../context/ThemeContext';
 import { Spacing } from '../theme';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the splash screen visible while we hydrate
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore errors if it's already prevented
+});
 
 interface StoreHydratorProps {
   children: React.ReactNode;
@@ -41,23 +47,32 @@ export function StoreHydrator({ children }: StoreHydratorProps) {
     hydrateStores()
       .catch((error) => {
         setStartupError(error instanceof Error ? error.message : 'Failed to start the app.');
+        SplashScreen.hideAsync().catch(console.warn);
       })
-      .finally(() => setHydrated(true));
+      .finally(() => {
+        setHydrated(true);
+      });
   }, []);
 
-  if (!hydrated || !isThemeReady) {
-    return (
-      <View style={styles.boot}>
-        <ActivityIndicator size="large" color={colors.white} />
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (hydrated && isThemeReady && !startupError) {
+      SplashScreen.hideAsync().catch(console.warn);
+    }
+  }, [hydrated, isThemeReady, startupError]);
 
   if (startupError) {
     return (
       <View style={styles.errorWrap}>
         <Text style={styles.errorTitle}>Setup required</Text>
         <Text style={styles.errorText}>{startupError}</Text>
+      </View>
+    );
+  }
+
+  if (!hydrated || !isThemeReady) {
+    return (
+      <View style={styles.boot}>
+        <ActivityIndicator size="large" color={colors.white} />
       </View>
     );
   }

@@ -233,9 +233,11 @@ export function BreathingPaceForm({
   const isFormValid = () => {
     if (!data.predictedMostMovement) return false;
     return data.trials.every(
-      (trial) => trial.predictedBpm && trial.breathsPerMinute && trial.movementAvg && trial.recordingDuration
+      (trial) => trial.predictedBpm?.trim() && trial.breathsPerMinute && trial.movementAvg && trial.recordingDuration
     );
   };
+
+  const predictionsValid = data.predictedMostMovement && data.trials.every(t => t.predictedBpm?.trim());
 
   const handleComplete = () => {
     if (!isFormValid()) {
@@ -434,8 +436,8 @@ export function BreathingPaceForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('setup')} />
-              <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('experiment')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('setup')} />
+              <Button title={t('common.next')} onPress={() => setActiveTab('experiment')} disabled={!predictionsValid} />
             </View>
           </View>
         )}
