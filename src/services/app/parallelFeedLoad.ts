@@ -4,7 +4,7 @@ import { useNotificationStore } from '../../stores/notificationStore';
 import { refreshAuthProfile } from '../auth/profileRefresh';
 import {
   pullNotificationsForUser,
-  presentNewNotifications,
+  seedSeenNotifications,
 } from '../notifications/notificationService';
 
 export type ParallelFeedLoadResult = {
@@ -27,7 +27,7 @@ export async function loadForumFeedParallel(uid: string): Promise<ParallelFeedLo
 
   if (notificationsResult.status === 'fulfilled') {
     useNotificationStore.getState().setNotifications(notificationsResult.value);
-    await presentNewNotifications(notificationsResult.value);
+    await seedSeenNotifications(notificationsResult.value);
   }
 
   return {
@@ -50,7 +50,7 @@ export async function loadAppDataParallel(uid: string): Promise<void> {
 
   if (notificationsResult.status === 'fulfilled') {
     useNotificationStore.getState().setNotifications(notificationsResult.value);
-    await presentNewNotifications(notificationsResult.value);
+    await seedSeenNotifications(notificationsResult.value);
   }
 
   if (profileResult.status === 'rejected') {

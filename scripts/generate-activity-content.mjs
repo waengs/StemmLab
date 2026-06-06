@@ -59,7 +59,7 @@ const en = {
       'Construct your first parachute design.',
       'Record a slow-motion video of the drop.',
       'Use the video playback to measure exact fall time.',
-      'Calculate forces or use Instant Calc (with penalty).',
+      'Calculate forces or use instant calculation (with penalty).',
     ],
     'hand-fan': [
       'Stand paper upright on a table.',

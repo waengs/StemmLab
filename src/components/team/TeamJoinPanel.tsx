@@ -21,6 +21,7 @@ import {
 } from '../../utils/storage';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { useAsyncAction } from '../../hooks/useAsyncAction';
 import { BorderRadius, Spacing } from '../../theme';
 import type { TeamListing, TeamMemberSummary } from '../../types';
 
@@ -95,7 +96,21 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
   const [members, setMembers] = useState<TeamMemberSummary[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [joinPassword, setJoinPassword] = useState('');
-  const [joining, setJoining] = useState(false);
+
+  const joinAction = useCallback(async () => {
+    if (!selected || !joinPassword) {
+      return;
+    }
+    const ok = await joinTeam(selected.discriminator, joinPassword);
+    if (ok) {
+      onJoinSuccess?.();
+    } else {
+      const { Alert } = await import('react-native');
+      Alert.alert(t('setup.joinError'), t('setup.joinErrorMsg'));
+    }
+  }, [selected, joinPassword, joinTeam, onJoinSuccess, t]);
+
+  const [handleJoin, isJoining] = useAsyncAction(joinAction);
 
   const loadTeams = useCallback(async () => {
     setLoadingTeams(true);
@@ -133,24 +148,6 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
   const handleSelect = (team: TeamListing) => {
     setSelected(team);
     setJoinPassword('');
-  };
-
-  const handleJoin = async () => {
-    if (!selected || !joinPassword) {
-      return;
-    }
-    setJoining(true);
-    try {
-      const ok = await joinTeam(selected.discriminator, joinPassword);
-      if (ok) {
-        onJoinSuccess?.();
-      } else {
-        const { Alert } = await import('react-native');
-        Alert.alert(t('setup.joinError'), t('setup.joinErrorMsg'));
-      }
-    } finally {
-      setJoining(false);
-    }
   };
 
   if (selected) {
@@ -191,7 +188,8 @@ export function TeamJoinPanel({ onJoinSuccess, joinTeam }: TeamJoinPanelProps) {
           onPress={handleJoin}
           size="lg"
           fullWidth
-          disabled={!joinPassword || joining}
+          disabled={!joinPassword}
+          loading={isJoining}
           style={{ marginTop: Spacing.sm }}
         />
       </View>

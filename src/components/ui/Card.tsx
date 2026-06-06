@@ -8,6 +8,8 @@ interface CardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'elevated' | 'outlined';
+  /** Adds a colored left stripe and soft tint in light mode. */
+  accentColor?: string;
   fill?: boolean;
   onPress?: () => void;
   disabled?: boolean;
@@ -17,11 +19,12 @@ export function Card({
   children,
   style,
   variant = 'default',
+  accentColor,
   fill = false,
   onPress,
   disabled,
 }: CardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const styles = useMemo(
     () =>
@@ -30,17 +33,38 @@ export function Card({
           backgroundColor: colors.surface,
           borderRadius: BorderRadius.lg,
           padding: Spacing.lg,
+          overflow: 'hidden',
         },
         fill: { flex: 1 },
         pressableFill: { flex: 1 },
         default: { ...Shadows.md },
         elevated: { ...Shadows.lg },
-        outlined: { borderWidth: 1, borderColor: colors.border },
+        accent: accentColor
+          ? {
+              borderLeftWidth: 4,
+              borderLeftColor: accentColor,
+              backgroundColor: isDark ? accentColor + '14' : accentColor + '10',
+            }
+          : undefined,
+        outlined: {
+          borderWidth: 1,
+          borderColor: accentColor
+            ? isDark
+              ? accentColor + '55'
+              : accentColor + '44'
+            : colors.border,
+        },
       }),
-    [colors]
+    [accentColor, colors, isDark]
   );
 
-  const cardStyle = [styles.base, styles[variant], fill && styles.fill, style];
+  const cardStyle = [
+    styles.base,
+    styles[variant],
+    accentColor ? styles.accent : undefined,
+    fill && styles.fill,
+    style,
+  ];
   const content = <View style={cardStyle}>{children}</View>;
 
   if (onPress) {

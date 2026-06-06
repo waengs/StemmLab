@@ -42,9 +42,7 @@ export default function Dashboard() {
       <DashboardHeader
         user={user}
         team={team}
-        completedCount={completedCount}
         onProfilePress={() => router.push('/(tabs)/profile')}
-        onCompletedPress={completedCount > 0 ? openCompletedList : undefined}
       />
       <QuickActionsGrid />
       <ProgressBanner

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { BorderRadius, Spacing, Shadows, createTypography, lightColors } from '../../theme';
+import { BorderRadius, Spacing, Shadows, createTypography, lightColors, type ThemeColors } from '../../theme';
 
 interface SelectProps {
   label?: string;
@@ -30,6 +30,24 @@ interface SelectProps {
   onClose?: () => void;
 }
 
+function resolveFieldColors(
+  colors: ThemeColors,
+  isDark: boolean,
+  onLightSurface?: boolean
+): ThemeColors {
+  if (onLightSurface && !isDark) {
+    return lightColors;
+  }
+  if (isDark) {
+    return {
+      ...colors,
+      background: colors.surfaceElevated,
+      border: colors.border,
+    };
+  }
+  return colors;
+}
+
 export function Select({
   label,
   value,
@@ -44,19 +62,20 @@ export function Select({
   onClose,
 }: SelectProps) {
   const [visible, setVisible] = useState(false);
-  const { colors, typography } = useTheme();
-  const surfaceColors = onLightSurface ? lightColors : colors;
-  const surfaceTypography = onLightSurface ? createTypography(lightColors) : typography;
+  const { colors, typography, isDark } = useTheme();
+  const fieldColors = resolveFieldColors(colors, isDark, onLightSurface);
+  const fieldTypography =
+    onLightSurface && !isDark ? createTypography(lightColors) : typography;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: { marginBottom: Spacing.md },
-        label: { ...surfaceTypography.label, marginBottom: Spacing.xs },
+        label: { ...fieldTypography.label, marginBottom: Spacing.xs },
         trigger: {
-          backgroundColor: surfaceColors.background,
+          backgroundColor: fieldColors.background,
           borderWidth: 1,
-          borderColor: surfaceColors.border,
+          borderColor: fieldColors.border,
           borderRadius: BorderRadius.md,
           paddingHorizontal: Spacing.lg,
           paddingVertical: Spacing.md,
@@ -64,8 +83,8 @@ export function Select({
           alignItems: 'center',
           justifyContent: 'space-between',
         },
-        triggerText: { fontSize: 15, color: surfaceColors.text },
-        placeholder: { color: surfaceColors.textMuted },
+        triggerText: { fontSize: 15, color: fieldColors.text },
+        placeholder: { color: fieldColors.textMuted },
         overlay: {
           flex: 1,
           backgroundColor: 'rgba(0,0,0,0.4)',
@@ -93,11 +112,13 @@ export function Select({
           borderBottomWidth: StyleSheet.hairlineWidth,
           borderBottomColor: colors.borderLight,
         },
-        optionSelected: { backgroundColor: colors.background },
-        optionText: { ...typography.body },
+        optionSelected: {
+          backgroundColor: isDark ? colors.surfaceElevated : colors.background,
+        },
+        optionText: { ...typography.body, color: colors.text },
         optionTextSelected: { color: colors.primary, fontWeight: '600' },
       }),
-    [colors, surfaceColors, surfaceTypography]
+    [colors, fieldColors, fieldTypography, isDark, typography]
   );
 
   return (
@@ -116,7 +137,7 @@ export function Select({
         <Text style={[styles.triggerText, !value && styles.placeholder]}>
           {(value && optionLabels?.[value]) || value || placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+        <Ionicons name="chevron-down" size={18} color={fieldColors.textMuted} />
       </Pressable>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => { setVisible(false); onClose?.(); }}>

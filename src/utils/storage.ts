@@ -86,7 +86,7 @@ export async function createTeam(
     ...input,
     discriminator: input.discriminator ?? generateDiscriminator(),
   });
-  await syncWhenOnline();
+  void syncWhenOnline();
   return result;
 }
 
@@ -96,7 +96,7 @@ export async function joinTeam(
   joinPassword: string
 ): Promise<{ user: AppUser; team: Team } | null> {
   const result = await joinTeamForUser(uid, { teamDiscriminator, joinPassword });
-  if (result) await syncWhenOnline();
+  if (result) void syncWhenOnline();
   return result;
 }
 
@@ -125,7 +125,7 @@ export async function clearSession(): Promise<void> {
 export async function saveActivityResult(result: ActivityResult): Promise<void> {
   await activityRepo.upsertActivityResult(result);
   await queueActivityResultSync(result);
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function getActivityResults(): Promise<ActivityResult[]> {
@@ -135,13 +135,13 @@ export async function getActivityResults(): Promise<ActivityResult[]> {
 export async function deleteActivityResult(id: string): Promise<void> {
   await activityRepo.deleteActivityResult(id);
   await queueActivityResultDelete(id);
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function saveSensorLog(log: SensorLog): Promise<void> {
   await sensorRepo.upsertSensorLog(log);
   await queueSensorLogSync(log);
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function getSensorLogs(): Promise<SensorLog[]> {
@@ -151,13 +151,13 @@ export async function getSensorLogs(): Promise<SensorLog[]> {
 export async function deleteSensorLogRecord(id: string): Promise<void> {
   await sensorRepo.deleteSensorLog(id);
   await queueSensorLogDelete(id);
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function saveForumPost(post: ForumPost): Promise<void> {
   await forumRepo.upsertForumPost(post);
   await queueForumPostSync(post);
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function updateForumPost(post: ForumPost): Promise<void> {
@@ -177,7 +177,7 @@ export async function updateForumPost(post: ForumPost): Promise<void> {
       await notifyForumReply(post, latestReply, actorUid);
     }
   }
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function getForumPosts(): Promise<ForumPost[]> {
@@ -187,7 +187,7 @@ export async function getForumPosts(): Promise<ForumPost[]> {
 export async function deleteForumPostRecord(id: string): Promise<void> {
   await forumRepo.deleteForumPost(id);
   await queueForumPostDelete(id);
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function deleteForumReplyRecord(postId: string, replyId: string): Promise<void> {
@@ -218,7 +218,7 @@ export async function deleteForumReplyRecord(postId: string, replyId: string): P
     await forumRepo.deleteForumReply(id);
     await queueForumReplyDelete(postId, id);
   }
-  await syncWhenOnline();
+  void syncWhenOnline();
 }
 
 export async function refreshSharedData(): Promise<void> {

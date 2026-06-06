@@ -42,6 +42,7 @@ export default function Activities() {
       {engineeringActivities.length > 0 && (
         <ActivityCategorySection
           title={t('activities.engineering')}
+          description={t('activities.engineeringIntro')}
           activities={engineeringActivities}
           icon="construct"
           iconColor={colors.engineering}
@@ -51,6 +52,7 @@ export default function Activities() {
       {healthActivities.length > 0 && (
         <ActivityCategorySection
           title={t('activities.health')}
+          description={t('activities.healthIntro')}
           activities={healthActivities}
           icon="medkit"
           iconColor={colors.health}

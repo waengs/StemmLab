@@ -122,3 +122,16 @@ export async function deleteForumPost(id: string): Promise<void> {
 export async function deleteForumReply(id: string): Promise<void> {
   await withDatabase((db) => db.runAsync(`DELETE FROM forum_replies WHERE id = ?`, id));
 }
+
+/** Removes local posts (and their replies) whose ids are not in the remote set. */
+export async function purgeForumPostsNotIn(keepIds: Set<string>): Promise<void> {
+  await withDatabase(async (db) => {
+    const local = await db.getAllAsync<{ id: string }>(`SELECT id FROM forum_posts`);
+    for (const row of local) {
+      if (!keepIds.has(row.id)) {
+        await db.runAsync(`DELETE FROM forum_posts WHERE id = ?`, row.id);
+        await db.runAsync(`DELETE FROM forum_replies WHERE post_id = ?`, row.id);
+      }
+    }
+  });
+}

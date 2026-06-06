@@ -87,7 +87,9 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
   const postsSnap = await getDocs(
     query(collection(db, FS.forumPosts), orderBy('timestamp', 'desc'), limit(PULL_LIMIT))
   );
+  const remotePostIds = new Set<string>();
   for (const postDoc of postsSnap.docs) {
+    remotePostIds.add(postDoc.id);
     const data = postDoc.data();
     const repliesSnap = await getDocs(collection(db, FS.forumPosts, postDoc.id, FS.forumReplies));
     const replies: ForumReply[] = repliesSnap.docs.map((r) => {
@@ -131,6 +133,8 @@ export async function pullSharedDataFromFirestore(): Promise<void> {
       replies,
     });
   }
+  await forumRepo.purgeForumPostsNotIn(remotePostIds);
+  await syncQueue.removePendingForumPostUpsertsNotIn(remotePostIds);
 }
 
 export async function pushSyncQueue(): Promise<void> {

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import { View, Text, Alert, StyleSheet } from 'react-native';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useGradeBand } from '../../hooks/useGradeBand';
@@ -15,8 +14,10 @@ import {
 import { actT, getActivityQuizMcq } from '../../utils/activityContent';
 import { showInterstitialAd } from '../../services/ads/showInterstitialAd';
 import { QuizOpenSection } from './QuizOpenSection';
+import { McqOption, type McqOptionState } from './McqOption';
 import type { ActivityResult } from '../../types';
 import type { ActivityQuizId } from '../../utils/quizOpenQuestions';
+import { Spacing } from '../../theme';
 
 type McqQuizStyles = {
   container: object;
@@ -25,7 +26,6 @@ type McqQuizStyles = {
   subtitle: object;
   questionBlock: object;
   question: object;
-  optionBtn: object;
   scoreBox: object;
   scoreText: object;
 };
@@ -35,6 +35,20 @@ interface ActivityMcqPostQuizProps {
   result: ActivityResult;
   onComplete: () => void;
   styles: McqQuizStyles;
+}
+
+function getOptionState(
+  quizSubmitted: boolean,
+  isSelected: boolean,
+  isCorrect: boolean
+): McqOptionState {
+  if (quizSubmitted) {
+    if (isCorrect) return 'correct';
+    if (isSelected && !isCorrect) return 'incorrect';
+    return 'default';
+  }
+  if (isSelected) return 'selected';
+  return 'default';
 }
 
 export function ActivityMcqPostQuiz({
@@ -113,35 +127,27 @@ export function ActivityMcqPostQuiz({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, localStyles.container]}>
       <Card style={styles.card}>
         <Text style={styles.title}>{actT('shared.postQuizTitle')}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
 
         {quizQuestions.map((q, questionIndex) => (
-          <View key={questionIndex} style={styles.questionBlock}>
+          <View key={questionIndex} style={[styles.questionBlock, localStyles.questionBlock]}>
             <Text style={styles.question}>
               {questionIndex + 1}. {q.question}
             </Text>
             {q.options.map((opt, optionIndex) => {
               const isSelected = quizAnswers[questionIndex.toString()] === optionIndex;
               const isCorrect = optionIndex === q.answerIndex;
-
-              let variant: 'primary' | 'outlined' | 'danger' | 'ghost' = 'outlined';
-              if (quizSubmitted) {
-                if (isCorrect) variant = 'primary';
-                else if (isSelected && !isCorrect) variant = 'danger';
-              } else if (isSelected) {
-                variant = 'primary';
-              }
+              const state = getOptionState(quizSubmitted, isSelected, isCorrect);
 
               return (
-                <Button
+                <McqOption
                   key={optionIndex}
-                  title={opt}
+                  label={opt}
+                  state={state}
                   onPress={() => handleOptionSelect(questionIndex, optionIndex)}
-                  variant={variant}
-                  style={styles.optionBtn}
                   disabled={quizSubmitted}
                 />
               );
@@ -163,7 +169,7 @@ export function ActivityMcqPostQuiz({
         />
 
         {!quizSubmitted ? (
-          <Button title={actT('shared.submitQuiz')} onPress={handleSubmitQuiz} size="lg" />
+          <Button title={actT('shared.submitQuiz')} onPress={handleSubmitQuiz} size="lg" fullWidth />
         ) : (
           <View style={styles.scoreBox}>
             <Text style={styles.scoreText}>
@@ -173,13 +179,15 @@ export function ActivityMcqPostQuiz({
               title={actT('shared.continueDiscussion')}
               onPress={handleContinue}
               size="lg"
-              style={{ marginTop: 12 }}
+              fullWidth
+              style={{ marginTop: Spacing.md }}
             />
             <Button
               title={actT('shared.retakeQuiz')}
               onPress={handleRetake}
               variant="outlined"
-              style={{ marginTop: 8 }}
+              fullWidth
+              style={{ marginTop: Spacing.sm }}
             />
           </View>
         )}
@@ -187,3 +195,12 @@ export function ActivityMcqPostQuiz({
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  container: {
+    paddingBottom: Spacing.xxxl,
+  },
+  questionBlock: {
+    marginBottom: Spacing.lg,
+  },
+});

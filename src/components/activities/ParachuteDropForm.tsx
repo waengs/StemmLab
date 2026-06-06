@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView, Modal as RNModal, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { ActivityIllustration } from './ActivityIllustration';
+import { EquipmentChecklist } from './EquipmentChecklist';
+import { ActivityTimerBar } from './ActivityTimerBar';
+import { CalcEncouragementNote } from './CalcEncouragementNote';
 import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -50,6 +54,7 @@ interface Props {
   value: any;
   onChange: (value: any) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
 }
 
 const DEFAULT_TIME = 3600;
@@ -217,9 +222,16 @@ function useParachuteDropFormStyles() {
     alignItems: 'center',
     marginBottom: Spacing.sm,
   },
-  tableCell: {
+  tableHeaderCell: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '700',
+    paddingRight: Spacing.sm,
+  },
+  tableBodyCell: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontWeight: '400',
     paddingRight: Spacing.sm,
   },
   flex1: { flex: 1 },
@@ -248,13 +260,14 @@ function useParachuteDropFormStyles() {
   },
   hsCalcBlock: {
     marginBottom: Spacing.lg,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surfaceElevated,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
   },
   hsCalcTitle: {
     ...typography.body,
-    fontWeight: '600',
+    fontWeight: '400',
+    color: colors.text,
     marginBottom: Spacing.sm,
   },
   formulaBox: {
@@ -307,9 +320,10 @@ export function ParachuteDropForm({
   value,
   onChange,
   onSubmit,
+  isSubmitting = false,
 }: Props) {
   const styles = useParachuteDropFormStyles();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const { t } = useTranslation();
   const { team } = useRequireAuth();
@@ -348,12 +362,6 @@ export function ParachuteDropForm({
     }
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft]);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
 
   const getInitialData = (): ParachuteDropData => ({
     dropHeight: '',
@@ -398,15 +406,8 @@ export function ParachuteDropForm({
 
   const data = (value && value.trials) ? value : getInitialData();
 
-  const startTimerOnInteraction = () => {
-    if (!isTimerRunning && !isLocked && timeLeft > 0) {
-      setIsTimerRunning(true);
-    }
-  };
-
   const updateData = (updates: Partial<ParachuteDropData>) => {
     if (isLocked) return;
-    startTimerOnInteraction();
     onChange({ ...data, ...updates });
   };
 
@@ -463,6 +464,7 @@ export function ParachuteDropForm({
   const handleStartOver = () => {
     setShowTimeoutModal(false);
     setIsLocked(false);
+    setIsTimerRunning(false);
     setTimeLeft(DEFAULT_TIME);
     onChange(getInitialData());
     setCheckedEquipment({});
@@ -569,9 +571,32 @@ export function ParachuteDropForm({
   );
 
   const toggleEquipment = (item: string) => {
-    startTimerOnInteraction();
     setCheckedEquipment(prev => ({ ...prev, [item]: !prev[item] }));
   };
+
+  const timerTitle = t('data.activities.parachute-drop.timerTitle', { defaultValue: 'Activity Timer (60 min)' });
+  const showTimerControls = activeTab !== 'setup' || isTimerRunning;
+
+  const promptResetTimer = () => {
+    Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
+    ]);
+  };
+
+  const renderTimerBar = () => (
+    <ActivityTimerBar
+      durationMinutes={60}
+      timeLeft={timeLeft}
+      isTimerRunning={isTimerRunning}
+      isLocked={isLocked}
+      timerTitle={timerTitle}
+      showControls={showTimerControls}
+      onPause={() => setIsTimerRunning(false)}
+      onResume={() => setIsTimerRunning(true)}
+      onReset={promptResetTimer}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -583,8 +608,8 @@ export function ParachuteDropForm({
               key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
               onPress={() => {
-                if (!isTimerRunning) {
-                  Alert.alert("Timer Required", "Please start the timer to navigate to other sections.");
+                if (!isTimerRunning && tab !== 'setup') {
+                  Alert.alert(t('activities.timerRequiredTitle'), t('activities.timerRequiredMsg'));
                   return;
                 }
                 setActiveTab(tab as any);
@@ -598,81 +623,26 @@ export function ParachuteDropForm({
           ))}
         </ScrollView>
       </View>
-      {/* Universal Timer & Warning */}
-      <View style={{ marginBottom: Spacing.lg }}>
-        <View style={styles.stickyTimer}>
-          <View style={{flex: 1}}>
-            <Text style={styles.timerTitle}>{t('data.activities.parachute-drop.timerTitle')}</Text>
-            <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: colors.danger}]}>{formatTime(timeLeft)}</Text>
-          </View>
-          <View style={styles.timerButtons}>
-            <Button 
-              title={isTimerRunning ? t('data.activities.parachute-drop.timerPause') : t('data.activities.parachute-drop.timerStart')} 
-              onPress={() => {
-                if (isTimerRunning) {
-                  Alert.alert(
-                    t('data.activities.parachute-drop.timerPauseTitle', { defaultValue: 'Pause Timer' }),
-                    t('data.activities.parachute-drop.timerPauseWarning', { defaultValue: "Don't pause the timer unless you need to. Value integrity!" }),
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      { text: "Pause", onPress: () => setIsTimerRunning(false) }
-                    ]
-                  );
-                } else {
-                  setIsTimerRunning(true);
-                }
-              }} 
-              variant={isTimerRunning ? "outlined" : "primary"}
-              size="sm"
-              disabled={isLocked && timeLeft === 0}
-            />
-            <Button 
-              title={t('data.activities.parachute-drop.timerReset')} 
-              onPress={() => {
-                Alert.alert("Reset Timer & Data", "Are you sure you want to start over? This wipes all data.", [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Start Over", style: "destructive", onPress: handleStartOver }
-                ]);
-              }} 
-              variant="outlined"
-              size="sm"
-            />
-          </View>
-        </View>
-      </View>
-
       {/* PAGE 1: SETUP */}
       {activeTab === 'setup' && (
         <View>
           <Card style={styles.pageCard}>
-            <Text style={styles.sectionTitle}>{t('data.activities.parachute-drop.equipmentTitle', { defaultValue: 'Equipment Checklist' })}</Text>
-            {equipmentList.map(item => (
-              <TouchableOpacity 
-                key={item} 
-                style={styles.checklistItem}
-                onPress={() => toggleEquipment(item)}
-              >
-                <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                  {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
-                </View>
-                <Text style={styles.checklistText}>
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </Card>
-
-          <Card style={styles.pageCard}>
             <ActivityInstructionsList
               activityId="parachute-drop"
+              durationMinutes={60}
               textStyle={styles.instructionText}
               titleStyle={styles.sectionTitle}
             />
             
-            <Image 
-              source={require('../../../assets/images/activity1illustration.jpeg')} 
-              style={styles.illustration} 
-              resizeMode="contain" 
+            <ActivityIllustration activityId="parachute-drop" style={styles.illustration} />
+          </Card>
+
+          <Card style={styles.pageCard}>
+            <EquipmentChecklist
+              equipmentList={equipmentList}
+              checkedEquipment={checkedEquipment}
+              titleKey="data.activities.parachute-drop.equipmentTitle"
+              onToggle={toggleEquipment}
             />
           </Card>
 
@@ -693,11 +663,16 @@ export function ParachuteDropForm({
               editable={!isLocked}
             />
           </Card>
+
+          {renderTimerBar()}
           
           <View style={styles.wizardNavRight}>
             <Button 
               title={t('common.next')} 
-              onPress={() => setActiveTab('predictions')} 
+              onPress={() => {
+                setIsTimerRunning(true);
+                setActiveTab('predictions');
+              }} 
               disabled={!allEquipmentChecked || !data.dropHeight?.trim() || !data.toyMass?.trim()}
               iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
             />
@@ -708,6 +683,7 @@ export function ParachuteDropForm({
       {/* PAGE 2: PREDICTIONS */}
       {activeTab === 'predictions' && (
         <View>
+          {renderTimerBar()}
           <Card style={styles.pageCard}>
             <Text style={styles.tableTitle}>{t('data.activities.parachute-drop.predictionTableTitle')}</Text>
             <Select
@@ -719,13 +695,13 @@ export function ParachuteDropForm({
             />
             
             <View style={styles.tableRowHeader}>
-              <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
-              <Text style={[styles.tableCell, styles.flex3]}>{t('data.activities.parachute-drop.headerPredictedTime')}</Text>
+              <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
+              <Text style={[styles.tableHeaderCell, styles.flex3]}>{t('data.activities.parachute-drop.headerPredictedTime')}</Text>
             </View>
             
             {data.trials.map((trial: TrialData) => (
               <View key={`pred-${trial.id}`} style={styles.tableRow}>
-                <Text style={[styles.tableCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
+                <Text style={[styles.tableBodyCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
                 <View style={styles.flex3}>
                   <Input
                     value={trial.predictedTime}
@@ -739,12 +715,12 @@ export function ParachuteDropForm({
               </View>
             ))}
             {data.trials.length < 4 && !isLocked && (
-              <Button 
-                title={t('data.activities.parachute-drop.addTrial')} 
-                onPress={addTrial} 
-                variant="ghost" 
-                icon={<Ionicons name="add" size={16} />}
-                style={{ marginTop: Spacing.sm }}
+              <Button
+                title={t('data.activities.parachute-drop.addTrial')}
+                onPress={addTrial}
+                variant="outlined"
+                icon={<Ionicons name="add" size={16} color={isDark ? colors.primaryLight : colors.primary} />}
+                style={{ marginTop: Spacing.sm, alignSelf: 'flex-start' }}
               />
             )}
           </Card>
@@ -766,16 +742,16 @@ export function ParachuteDropForm({
         </View>
       )}
 
-      {/* PAGE 3: EXPERIMENT */}
       {activeTab === 'experiment' && (
         <View>
+          {renderTimerBar()}
           <Card variant="outlined" style={styles.pageCard}>
             <Text style={styles.tableTitle}>{t('data.activities.parachute-drop.actualTableTitle')}</Text>
             
             <View style={styles.tableRowHeader}>
-              <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
-              <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerActualTime')}</Text>
-              <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDifference')}</Text>
+              <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
+              <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerActualTime')}</Text>
+              <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDifference')}</Text>
             </View>
             
             {data.trials.map((trial: TrialData, index: number) => {
@@ -784,13 +760,13 @@ export function ParachuteDropForm({
                 <View key={`act-${trial.id}`} style={styles.trialRowBlock}>
                   {index > 0 && (
                     <View style={styles.tableRowHeader}>
-                      <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
-                      <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerActualTime')}</Text>
-                      <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDifference')}</Text>
+                      <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
+                      <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerActualTime')}</Text>
+                      <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDifference')}</Text>
                     </View>
                   )}
                   <View style={styles.tableRow}>
-                    <Text style={[styles.tableCell, styles.flex2, { fontWeight: '600' }]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
+                    <Text style={[styles.tableBodyCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
                     <View style={styles.flex2}>
                       <Input
                         value={trial.actualTime}
@@ -801,7 +777,7 @@ export function ParachuteDropForm({
                         editable={!isLocked}
                       />
                     </View>
-                    <Text style={[styles.tableCell, styles.flex2, { textAlign: 'center' }]}>
+                    <Text style={[styles.tableBodyCell, styles.flex2, { textAlign: 'center' }]}>
                       {trial.actualTime ? Math.abs(diff).toFixed(2) : '-'}
                     </Text>
                   </View>
@@ -908,9 +884,9 @@ export function ParachuteDropForm({
         </View>
       )}
 
-      {/* PAGE 4: CALCULATIONS */}
       {activeTab === 'calculations' && (
         <ScrollView style={{ flex: 1 }}>
+          {renderTimerBar()}
           <Card style={[styles.pageCard, { marginBottom: Spacing.lg }]}>
             <View style={styles.instructionsHeader}>
               <Ionicons name="calculator" size={24} color={colors.primary} />
@@ -934,6 +910,7 @@ export function ParachuteDropForm({
           <Card style={styles.pageCard}>
             <View style={{ marginBottom: Spacing.md }}>
               <Text style={styles.tableTitle}>{t('data.activities.parachute-drop.calculationsTableTitle')}</Text>
+              <CalcEncouragementNote />
               <Button 
                 title={t('data.activities.parachute-drop.btnInstantCalc')} 
                 onPress={handleInstantCalculate} 
@@ -947,15 +924,15 @@ export function ParachuteDropForm({
             {!isHighSchool ? (
               <>
                 <View style={styles.tableRowHeader}>
-                  <Text style={[styles.tableCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
-                  <Text style={[styles.tableCell, styles.flex3]}>{t('data.activities.parachute-drop.headerSpeed')}</Text>
+                  <Text style={[styles.tableHeaderCell, styles.flex2]}>{t('data.activities.parachute-drop.headerDesign')}</Text>
+                  <Text style={[styles.tableHeaderCell, styles.flex3]}>{t('data.activities.parachute-drop.headerSpeed')}</Text>
                 </View>
                 {data.trials.map((trial: TrialData) => {
                   const truePhys = calculateTruePhysics(trial);
                   const isCorrect = validate(trial.manualSpeed, truePhys.speed);
                   return (
                     <View key={`calc-${trial.id}`} style={styles.tableRow}>
-                      <Text style={[styles.tableCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
+                      <Text style={[styles.tableBodyCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
                       <View style={styles.flex3}>
                         <Input
                           value={trial.manualSpeed}
@@ -1060,6 +1037,7 @@ export function ParachuteDropForm({
               onPress={handleFinalSave} 
               icon={<Ionicons name="save" size={16} color={colors.white} />}
               disabled={!validateAllFields()}
+              loading={isSubmitting}
             />
           </View>
         </ScrollView>
@@ -1082,6 +1060,7 @@ export function ParachuteDropForm({
                 title={t('data.activities.parachute-drop.btnSaveResults')} 
                 onPress={handleTimeoutSaveResults} 
                 variant="primary"
+                loading={isSubmitting}
               />
             </View>
           </View>

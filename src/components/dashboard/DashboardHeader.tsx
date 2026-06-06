@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '../ui/Avatar';
-import { StatsRow } from './StatsRow';
+import { StemmIntroCard } from './StemmIntroCard';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
 import type { AppUser, Team } from '../../types';
@@ -10,33 +10,38 @@ import type { AppUser, Team } from '../../types';
 interface DashboardHeaderProps {
   user: AppUser;
   team: Team;
-  completedCount: number;
   onProfilePress: () => void;
-  onCompletedPress?: () => void;
 }
 
-export function DashboardHeader({
-  user,
-  team,
-  completedCount,
-  onProfilePress,
-  onCompletedPress,
-}: DashboardHeaderProps) {
+export function DashboardHeader({ user, team, onProfilePress }: DashboardHeaderProps) {
   const { t } = useTranslation();
-  const { typography } = useTheme();
+  const { typography, colors, isDark } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         header: { alignItems: 'center', marginBottom: Spacing.xxl },
-        welcome: { ...typography.h1, marginTop: Spacing.lg, textAlign: 'center' },
-        teamInfo: { ...typography.bodySmall, marginTop: Spacing.xs, textAlign: 'center' },
+        welcome: {
+          ...typography.h1,
+          marginTop: Spacing.lg,
+          textAlign: 'center',
+          color: colors.primary,
+        },
+        teamInfo: {
+          ...typography.bodySmall,
+          marginTop: Spacing.xs,
+          textAlign: 'center',
+          color: colors.textSecondary,
+        },
         avatarBtn: {
           borderRadius: 44,
+          padding: 3,
+          borderWidth: isDark ? 0 : 3,
+          borderColor: colors.primaryLight,
           ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}),
         },
       }),
-    [typography]
+    [colors, isDark, typography]
   );
 
   return (
@@ -54,7 +59,7 @@ export function DashboardHeader({
       <Text style={styles.teamInfo}>
         {team.name} • {t('dashboard.teamId', { id: team.discriminator })}
       </Text>
-      <StatsRow completedCount={completedCount} onCompletedPress={onCompletedPress} />
+      <StemmIntroCard />
     </View>
   );
 }

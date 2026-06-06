@@ -20,7 +20,7 @@ export function Chip({
   style,
   onPress,
 }: ChipProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const chipColor = color ?? colors.primary;
   const isFilled = variant === 'filled';
 
@@ -30,7 +30,7 @@ export function Chip({
         styles.base,
         size === 'sm' ? styles.sm : styles.md,
         {
-          backgroundColor: isFilled ? chipColor : 'transparent',
+          backgroundColor: isFilled ? chipColor : isDark ? chipColor + '18' : chipColor + '14',
           borderColor: chipColor,
           borderWidth: isFilled ? 0 : 1,
         },

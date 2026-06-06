@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   collection,
   doc,
@@ -16,6 +17,8 @@ import type { AppNotification, ForumPost, ForumReply } from '../../types';
 import { supportsCustomNativeModules } from '../../utils/nativeFeatures';
 
 const PULL_LIMIT = 100;
+const SEEN_NOTIFICATIONS_KEY = 'stemmlab_seen_notification_ids';
+const MAX_SEEN_IDS = 500;
 
 function mapNotificationDoc(id: string, data: Record<string, unknown>): AppNotification {
   return {
@@ -142,6 +145,7 @@ export async function notifyForumReply(
                 sound: 'default',
                 title: title,
                 body: `${reply.authorName}: ${preview}`,
+                channelId: 'forum',
                 data: { postId: post.id, notificationId: notification.id },
               }),
             });
@@ -154,18 +158,44 @@ export async function notifyForumReply(
   );
 }
 
-const seenNotificationIds = new Set<string>();
+let seenNotificationIds: Set<string> | null = null;
 
-export async function presentNewNotifications(
-  notifications: AppNotification[],
-  previouslySeen: Set<string> = seenNotificationIds
-): Promise<void> {
+async function loadSeenNotificationIds(): Promise<Set<string>> {
+  if (seenNotificationIds) return seenNotificationIds;
+  try {
+    const raw = await AsyncStorage.getItem(SEEN_NOTIFICATIONS_KEY);
+    seenNotificationIds = new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    seenNotificationIds = new Set();
+  }
+  return seenNotificationIds;
+}
+
+async function saveSeenNotificationIds(seen: Set<string>): Promise<void> {
+  const trimmed = [...seen].slice(-MAX_SEEN_IDS);
+  seenNotificationIds = new Set(trimmed);
+  await AsyncStorage.setItem(SEEN_NOTIFICATIONS_KEY, JSON.stringify(trimmed));
+}
+
+/** Marks existing notifications as already presented (e.g. on app open). */
+export async function seedSeenNotifications(notifications: AppNotification[]): Promise<void> {
+  const seen = await loadSeenNotificationIds();
+  for (const n of notifications) {
+    seen.add(n.id);
+  }
+  await saveSeenNotificationIds(seen);
+}
+
+export async function presentNewNotifications(notifications: AppNotification[]): Promise<void> {
   if (!supportsCustomNativeModules()) return;
 
+  const seen = await loadSeenNotificationIds();
+  const fresh = notifications.filter((n) => !n.read && !seen.has(n.id));
+  if (fresh.length === 0) return;
+
   const Notifications = await import('expo-notifications');
-  const fresh = notifications.filter((n) => !n.read && !previouslySeen.has(n.id));
   for (const n of fresh) {
-    previouslySeen.add(n.id);
+    seen.add(n.id);
     const title =
       n.type === 'forum_comment'
         ? `Comment on "${n.postTitle}"`
@@ -177,6 +207,8 @@ export async function presentNewNotifications(
         data: { postId: n.postId, notificationId: n.id },
       },
       trigger: null,
+      channelId: 'forum',
     });
   }
+  await saveSeenNotificationIds(seen);
 }

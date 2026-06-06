@@ -68,3 +68,17 @@ export async function incrementSyncRetry(id: number): Promise<void> {
     db.runAsync(`UPDATE sync_queue SET retry_count = retry_count + 1 WHERE id = ?`, id)
   );
 }
+
+/** Drops queued forum post upserts for ids that no longer exist on the server. */
+export async function removePendingForumPostUpsertsNotIn(keepIds: Set<string>): Promise<void> {
+  await withDatabase(async (db) => {
+    const rows = await db.getAllAsync<{ id: number; entity_id: string }>(
+      `SELECT id, entity_id FROM sync_queue WHERE entity_type = 'forum_post' AND operation = 'upsert'`
+    );
+    for (const row of rows) {
+      if (!keepIds.has(row.entity_id)) {
+        await db.runAsync(`DELETE FROM sync_queue WHERE id = ?`, row.id);
+      }
+    }
+  });
+}

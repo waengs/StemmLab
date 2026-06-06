@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { ACTIVITIES } from '../../../src/types';
 import { hasProfanity } from '../../../src/utils/profanity';
 import { useTheme } from '../../../src/context/ThemeContext';
 import { useThemedStyles } from '../../../src/hooks/useThemedStyles';
+import { useAsyncAction } from '../../../src/hooks/useAsyncAction';
 import { Spacing, BorderRadius, Shadows } from '../../../src/theme';
 import { useRequireAuth, useActivityResultsStore, useResultsForActivity, calculateScore } from '../../../src/stores';
 import type { ActivityResult } from '../../../src/types';
@@ -143,10 +144,8 @@ export default function ActivityDetail() {
 
   const activity = activityId ? ACTIVITIES[activityId as keyof typeof ACTIVITIES] : null;
 
-  if (!activity || !team) return null;
-
-  const handleSubmit = async () => {
-    if (!user || !team) return;
+  const submitActivity = useCallback(async () => {
+    if (!user || !team || !activity) return;
 
     const hasBadWords = Object.values(formData).some(val => typeof val === 'string' && hasProfanity(val));
     if (hasBadWords) {
@@ -185,7 +184,11 @@ export default function ActivityDetail() {
     } else if (activity.id === 'reaction-board') {
       setReactionBoardViewState('quiz');
     }
-  };
+  }, [user, team, activity, formData, addResult, t]);
+
+  const [handleSubmit, isSubmitting] = useAsyncAction(submitActivity);
+
+  if (!activity || !team) return null;
 
   const handleDelete = (id: string) => {
     Alert.alert(t('activities.deleteResult'), t('activities.deleteConfirm'), [
@@ -318,7 +321,7 @@ export default function ActivityDetail() {
             {activity.id === 'parachute-drop' ? (
               <>
                 {parachuteViewState === 'form' && (
-                  <ParachuteDropForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <ParachuteDropForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {parachuteViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -337,7 +340,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'hand-fan' ? (
               <>
                 {handFanViewState === 'form' && (
-                  <HandFanForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <HandFanForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {handFanViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -355,7 +358,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'human-performance' ? (
               <>
                 {humanPerformanceViewState === 'form' && (
-                  <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {humanPerformanceViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -373,7 +376,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'breathing-pace' ? (
               <>
                 {breathingPaceViewState === 'form' && (
-                  <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {breathingPaceViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -391,7 +394,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'human-performance' ? (
               <>
                 {humanPerformanceViewState === 'form' && (
-                  <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <HumanPerformanceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {humanPerformanceViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -409,7 +412,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'breathing-pace' ? (
               <>
                 {breathingPaceViewState === 'form' && (
-                  <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <BreathingPaceForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {breathingPaceViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -427,7 +430,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'sound-pollution' ? (
               <>
                 {soundPollutionViewState === 'form' && (
-                  <SoundPollutionForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <SoundPollutionForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {soundPollutionViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -445,7 +448,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'earthquake' ? (
               <>
                 {earthquakeViewState === 'form' && (
-                  <EarthquakeForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <EarthquakeForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {earthquakeViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -463,7 +466,7 @@ export default function ActivityDetail() {
             ) : activity.id === 'reaction-board' ? (
               <>
                 {reactionBoardViewState === 'form' && (
-                  <ReactionBoardForm value={formData} onChange={setFormData} onSubmit={handleSubmit} />
+                  <ReactionBoardForm value={formData} onChange={setFormData} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
                 )}
                 {reactionBoardViewState === 'menu' && (
                   <ActivityMenuDashboard
@@ -518,6 +521,7 @@ export default function ActivityDetail() {
                 onPress={handleSubmit}
                 size="lg"
                 fullWidth
+                loading={isSubmitting}
                 icon={<Ionicons name="save" size={18} color={colors.white} />}
               />
             )}

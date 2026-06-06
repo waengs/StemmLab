@@ -449,9 +449,7 @@ export function ForumPostCard({
                 att.type === 'video' ? (
                   <ForumMediaAttachment key={idx} uri={att.url} type="video" variant="inline" />
                 ) : att.type === 'image' ? (
-                  <Pressable key={idx} onPress={() => Linking.openURL(att.url)}>
-                    <ForumMediaAttachment uri={att.url} type="image" variant="inline" />
-                  </Pressable>
+                  <ForumMediaAttachment key={idx} uri={att.url} type="image" variant="inline" />
                 ) : (
                   <ForumMediaAttachment
                     key={idx}
@@ -530,9 +528,7 @@ export function ForumPostCard({
             att.type === 'video' ? (
               <ForumMediaAttachment key={idx} uri={att.url} type="video" variant="inline" />
             ) : att.type === 'image' ? (
-              <Pressable key={idx} onPress={() => Linking.openURL(att.url)}>
-                <ForumMediaAttachment uri={att.url} type="image" variant="inline" />
-              </Pressable>
+              <ForumMediaAttachment key={idx} uri={att.url} type="image" variant="inline" />
             ) : (
               <ForumMediaAttachment
                 key={idx}

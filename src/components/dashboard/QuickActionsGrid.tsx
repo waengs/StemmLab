@@ -1,53 +1,44 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Grid } from '../layout/Grid';
 import { FeatureCard } from '../cards/FeatureCard';
+import { useTheme } from '../../context/ThemeContext';
 import { Spacing } from '../../theme';
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
-
-interface QuickAction {
-  title: string;
-  description: string;
-  icon: IoniconsName;
-  color: string;
-  path: string;
-}
 
 export function QuickActionsGrid() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors } = useTheme();
 
-  const actions: QuickAction[] = [
+  const actions = [
     {
       title: t('dashboard.startActivity'),
       description: t('dashboard.startActivityDesc'),
-      icon: 'flask',
-      color: '#3B82F6',
+      icon: 'flask' as const,
+      color: colors.science,
       path: '/(tabs)/activities',
     },
     {
       title: t('dashboard.useSensors'),
       description: t('dashboard.useSensorsDesc'),
-      icon: 'radio',
-      color: '#10B981',
+      icon: 'radio' as const,
+      color: colors.technology,
       path: '/(tabs)/sensors',
     },
     {
       title: t('dashboard.viewLeaderboard'),
       description: t('dashboard.viewLeaderboardDesc'),
-      icon: 'trophy',
-      color: '#F59E0B',
+      icon: 'trophy' as const,
+      color: colors.accent,
       path: '/(tabs)/leaderboard',
     },
     {
       title: t('dashboard.forum'),
       description: t('dashboard.forumDesc'),
-      icon: 'chatbubbles',
-      color: '#8B5CF6',
+      icon: 'chatbubbles' as const,
+      color: colors.maths,
       path: '/(tabs)/forum',
     },
   ];

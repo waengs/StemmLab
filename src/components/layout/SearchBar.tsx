@@ -13,7 +13,7 @@ interface SearchBarProps {
 
 export function SearchBar({ value, onChangeText, placeholder }: SearchBarProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const styles = useMemo(
     () =>
@@ -22,10 +22,10 @@ export function SearchBar({ value, onChangeText, placeholder }: SearchBarProps) 
         field: {
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.surface,
+          backgroundColor: isDark ? colors.surfaceElevated : colors.primary + '08',
           borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: BorderRadius.md,
+          borderColor: isDark ? colors.primary + '40' : colors.primaryLight + '88',
+          borderRadius: BorderRadius.lg,
           paddingHorizontal: Spacing.md,
           gap: Spacing.sm,
         },
@@ -36,13 +36,13 @@ export function SearchBar({ value, onChangeText, placeholder }: SearchBarProps) 
           paddingVertical: Platform.OS === 'ios' ? Spacing.md : Spacing.sm,
         },
       }),
-    [colors]
+    [colors, isDark]
   );
 
   return (
     <View style={styles.wrap}>
       <View style={styles.field}>
-        <Ionicons name="search" size={18} color={colors.textMuted} />
+        <Ionicons name="search" size={18} color={colors.primary} />
         <TextInput
           value={value}
           onChangeText={onChangeText}

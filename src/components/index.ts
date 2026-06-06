@@ -24,6 +24,7 @@ export { FeatureCard } from './cards/FeatureCard';
 
 // Dashboard
 export { DashboardHeader } from './dashboard/DashboardHeader';
+export { StemmIntroCard } from './dashboard/StemmIntroCard';
 export { QuickActionsGrid } from './dashboard/QuickActionsGrid';
 export { ProgressBanner } from './dashboard/ProgressBanner';
 

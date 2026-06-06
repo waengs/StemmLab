@@ -25,12 +25,6 @@ function useEarthquakePostStyles() {
     subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: Spacing.xl },
     questionBlock: { marginBottom: Spacing.xl },
     question: { ...typography.body, fontWeight: '600', marginBottom: Spacing.md, color: colors.text },
-    optionBtn: {
-      marginBottom: Spacing.sm,
-      justifyContent: 'flex-start',
-      paddingHorizontal: Spacing.lg,
-      paddingVertical: Spacing.md,
-    },
     scoreBox: {
       backgroundColor: colors.secondary + '20',
       padding: Spacing.md,
@@ -92,7 +86,6 @@ export function EarthquakePostActivity({ result, onComplete }: Props) {
         subtitle: styles.subtitle,
         questionBlock: styles.questionBlock,
         question: styles.question,
-        optionBtn: styles.optionBtn,
         scoreBox: styles.scoreBox,
         scoreText: styles.scoreText,
       }}

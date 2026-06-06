@@ -4,7 +4,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '../../src/context/ThemeContext';
 import { CustomTabBar } from '../../src/components/layout/CustomTabBar';
 import { useAuthStore } from '../../src/stores/authStore';
-import { subscribeToNotifications, presentNewNotifications } from '../../src/services/notifications/notificationService';
+import {
+  subscribeToNotifications,
+  presentNewNotifications,
+  seedSeenNotifications,
+} from '../../src/services/notifications/notificationService';
 import { useNotificationStore } from '../../src/stores/notificationStore';
 
 export default function TabsLayout() {
@@ -19,9 +23,15 @@ export default function TabsLayout() {
 
   useEffect(() => {
     if (!user?.uid) return;
+    let isInitialSnapshot = true;
     const unsubscribe = subscribeToNotifications(user.uid, (notifications) => {
       useNotificationStore.getState().setNotifications(notifications);
-      void presentNewNotifications(notifications);
+      if (isInitialSnapshot) {
+        isInitialSnapshot = false;
+        void seedSeenNotifications(notifications);
+      } else {
+        void presentNewNotifications(notifications);
+      }
     });
     return () => unsubscribe();
   }, [user?.uid]);

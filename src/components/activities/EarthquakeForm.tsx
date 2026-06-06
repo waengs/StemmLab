@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Vibration, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Vibration } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useTranslation } from 'react-i18next';
 import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { ActivityIllustration } from './ActivityIllustration';
+import { EquipmentChecklist } from './EquipmentChecklist';
+import { ActivityTimerBar } from './ActivityTimerBar';
 import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
@@ -41,6 +44,7 @@ interface Props {
   value: any;
   onChange: (value: any) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
 }
 
 const DEFAULT_TIME = 3600;
@@ -227,6 +231,7 @@ export function EarthquakeForm({
   value,
   onChange,
   onSubmit,
+  isSubmitting = false,
 }: Props) {
   const styles = useEarthquakeFormStyles();
   const { colors, typography } = useTheme();
@@ -281,12 +286,6 @@ export function EarthquakeForm({
       Vibration.cancel();
     };
   }, []);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
 
   const getInitialData = (): EarthquakeData => ({
     predictedBestDesign: '',
@@ -365,6 +364,30 @@ export function EarthquakeForm({
     }
   }, [vibrationIntensity]);
 
+  const timerTitle = t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' });
+  const showTimerControls = activeTab !== 'setup' || isTimerRunning;
+
+  const promptResetTimer = () => {
+    Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
+    ]);
+  };
+
+  const renderTimerBar = () => (
+    <ActivityTimerBar
+      durationMinutes={60}
+      timeLeft={timeLeft}
+      isTimerRunning={isTimerRunning}
+      isLocked={isLocked}
+      timerTitle={timerTitle}
+      showControls={showTimerControls}
+      onPause={() => setIsTimerRunning(false)}
+      onResume={() => setIsTimerRunning(true)}
+      onReset={promptResetTimer}
+    />
+  );
+
   return (
     <View style={styles.container}>
       {/* Timeout Modal */}
@@ -403,91 +426,46 @@ export function EarthquakeForm({
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* TIMER (Visible on all tabs) */}
-        <View style={{ marginBottom: Spacing.lg }}>
-          <View style={styles.stickyTimer}>
-            <View style={{flex: 1}}>
-              <Text style={styles.timerTitle}>{t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' })}</Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: colors.danger}]}>{formatTime(timeLeft)}</Text>
-            </View>
-            <View style={styles.timerButtons}>
-              <Button 
-                title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })} 
-                onPress={() => {
-                  if (isTimerRunning) {
-                    Alert.alert(t('activities.pauseTimerTitle'), t('activities.pauseTimerMsg'), [
-                      { text: t('common.cancel'), style: 'cancel' },
-                      { text: t('activities.timerPause'), onPress: () => setIsTimerRunning(false) },
-                    ]);
-                  } else {
-                    setIsTimerRunning(true);
-                  }
-                }} 
-                variant={isTimerRunning ? "outlined" : "primary"}
-                size="sm"
-                disabled={isLocked && timeLeft === 0}
-              />
-              <Button 
-                title={t('common.reset', { defaultValue: 'Reset' })} 
-                onPress={() => {
-                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
-                    { text: t('common.cancel'), style: 'cancel' },
-                    { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
-                  ]);
-                }} 
-                variant="outlined"
-                size="sm"
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* SETUP TAB */}
         {activeTab === 'setup' && (
           <View>
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.equipmentTitle', { defaultValue: 'Equipment Checklist' })}</Text>
-              {equipmentList.map((item) => (
-                <TouchableOpacity 
-                  key={item} 
-                  style={styles.checklistItem}
-                  onPress={() => {
-                    if (!isLocked) {
-                      setCheckedEquipment(prev => ({ ...prev, [item]: !prev[item] }));
-                      if (!isTimerRunning) setIsTimerRunning(true);
-                    }
-                  }}
-                  disabled={isLocked}
-                >
-                  <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
-                  </View>
-                  <Text style={styles.checklistText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </Card>
-
-            <Card style={styles.pageCard}>
               <ActivityInstructionsList
                 activityId="earthquake"
+                durationMinutes={60}
                 textStyle={styles.instructionText}
                 titleStyle={styles.sectionTitle}
               />
 
-              <Image source={require('../../../assets/images/activity4illustration.jpeg')} style={styles.illustration} resizeMode="contain" />
+              <ActivityIllustration activityId="earthquake" style={styles.illustration} />
             </Card>
+
+            <Card style={styles.pageCard}>
+              <EquipmentChecklist
+                equipmentList={equipmentList}
+                checkedEquipment={checkedEquipment}
+                disabled={isLocked}
+                onToggle={(item) => {
+                  setCheckedEquipment((prev) => ({ ...prev, [item]: !prev[item] }));
+                }}
+              />
+            </Card>
+
+            {renderTimerBar()}
 
             <Button 
               title={t('common.next', { defaultValue: 'Next' })} 
-              onPress={() => setActiveTab('predictions')} 
+              onPress={() => {
+                setIsTimerRunning(true);
+                setActiveTab('predictions');
+              }} 
               disabled={!allEquipmentChecked}
             />
           </View>
         )}
 
-        {/* PREDICTIONS TAB */}
         {activeTab === 'predictions' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.predictionsTitle')}</Text>
               <Select
@@ -507,9 +485,9 @@ export function EarthquakeForm({
           </View>
         )}
 
-        {/* EXPERIMENT TAB */}
         {activeTab === 'experiment' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <View style={styles.vibrationControl}>
                 <View style={styles.vibrationControlHeader}>
@@ -660,7 +638,7 @@ export function EarthquakeForm({
 
             <View style={styles.wizardNavBoth}>
               <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('predictions')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid || !data.surprises?.trim()} />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid || !data.surprises?.trim()} loading={isSubmitting} />
             </View>
           </View>
         )}

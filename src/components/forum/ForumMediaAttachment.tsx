@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TrialVideoPlayer } from '../sensors/TrialVideoPlayer';
+import { ZoomableImage } from '../ui/ZoomableImage';
 import { BorderRadius, Spacing } from '../../theme';
 
 interface ForumMediaAttachmentProps {
@@ -78,7 +79,7 @@ export function ForumMediaAttachment({
         : { width: '100%', aspectRatio: 1.5, borderRadius: BorderRadius.md };
 
     return (
-      <Image
+      <ZoomableImage
         source={{ uri }}
         style={[imageStyle, style]}
         resizeMode="cover"

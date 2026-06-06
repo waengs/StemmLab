@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   Alert,
   ScrollView,
   Modal as RNModal,
@@ -11,6 +10,10 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { ActivityIllustration } from './ActivityIllustration';
+import { EquipmentChecklist } from './EquipmentChecklist';
+import { ActivityTimerBar } from './ActivityTimerBar';
+import { CalcEncouragementNote } from './CalcEncouragementNote';
 import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
@@ -55,6 +58,7 @@ interface Props {
   value: any;
   onChange: (value: any) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
 }
 
 const DEFAULT_TIME = 1800; // 30 minutes
@@ -173,6 +177,7 @@ export function HumanPerformanceForm({
   value,
   onChange,
   onSubmit,
+  isSubmitting = false,
 }: Props) {
   const styles = useHumanPerformanceFormStyles();
   const { colors } = useTheme();
@@ -219,12 +224,6 @@ export function HumanPerformanceForm({
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const defaultData = getInitialData(t);
   const data: HumanPerformanceData = {
     ...defaultData,
@@ -253,8 +252,8 @@ export function HumanPerformanceForm({
   const handleInstantCalc = () => {
     if (isLocked) return;
     Alert.alert(
-      t('activities.calcWarningTitle', { defaultValue: 'Instant Calculation' }),
-      t('activities.calcWarningText', { defaultValue: 'Using instant calculation will result in a 20 point deduction. Are you sure?' }),
+      t('activities.calcWarningTitle'),
+      t('activities.calcWarningText'),
       [
         { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
         {
@@ -330,6 +329,30 @@ export function HumanPerformanceForm({
     ...(isLowerHighSchool ? ['calculations'] : []),
   ] as const;
 
+  const timerTitle = t('data.activities.human-performance.timerTitle', { defaultValue: 'Activity Timer (30 min)' });
+  const showTimerControls = activeTab !== 'setup' || isTimerRunning;
+
+  const promptResetTimer = () => {
+    Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
+    ]);
+  };
+
+  const renderTimerBar = () => (
+    <ActivityTimerBar
+      durationMinutes={30}
+      timeLeft={timeLeft}
+      isTimerRunning={isTimerRunning}
+      isLocked={isLocked}
+      timerTitle={timerTitle}
+      showControls={showTimerControls}
+      onPause={() => setIsTimerRunning(false)}
+      onResume={() => setIsTimerRunning(true)}
+      onReset={promptResetTimer}
+    />
+  );
+
   const allRecordingsComplete = data.trials.every((t) => t.vibrationAvg && t.vibrationAvgWithFeedback);
 
   const hardestActual = data.trials.reduce<{ id: MovementId; avg: number } | null>((best, trial) => {
@@ -380,92 +403,45 @@ export function HumanPerformanceForm({
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={{ marginBottom: Spacing.lg }}>
-          <View style={styles.stickyTimer}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.timerTitle}>
-                {t('data.activities.human-performance.timerTitle', { defaultValue: 'Activity Timer (30 min)' })}
-              </Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: colors.danger }]}>{formatTime(timeLeft)}</Text>
-            </View>
-            <View style={styles.timerButtons}>
-              <Button
-                title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })}
-                onPress={() => {
-                  if (isTimerRunning) {
-                    Alert.alert(
-                      t('data.activities.parachute-drop.timerPauseTitle'),
-                      t('data.activities.parachute-drop.timerPauseWarning'),
-                      [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Pause', onPress: () => setIsTimerRunning(false) },
-                    ]);
-                  } else {
-                    setIsTimerRunning(true);
-                  }
-                }}
-                variant={isTimerRunning ? 'outlined' : 'primary'}
-                size="sm"
-                disabled={isLocked && timeLeft === 0}
-              />
-              <Button
-                title={t('common.reset', { defaultValue: 'Reset' })}
-                onPress={() => {
-                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Start Over', style: 'destructive', onPress: handleStartOver },
-                  ]);
-                }}
-                variant="outlined"
-                size="sm"
-              />
-            </View>
-          </View>
-        </View>
-
         {activeTab === 'setup' && (
           <View>
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.equipmentTitle', { defaultValue: 'Equipment Needed' })}</Text>
-              {equipmentList.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.checklistItem}
-                  onPress={() => {
-                    if (!isLocked) {
-                      setCheckedEquipment((prev) => ({ ...prev, [item]: !prev[item] }));
-                      if (!isTimerRunning) setIsTimerRunning(true);
-                    }
-                  }}
-                  disabled={isLocked}
-                >
-                  <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
-                  </View>
-                  <Text style={styles.checklistText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </Card>
-
-            <Card style={styles.pageCard}>
               <ActivityInstructionsList
                 activityId="human-performance"
+                durationMinutes={30}
                 textStyle={styles.instructionText}
                 titleStyle={styles.sectionTitle}
               />
-              <Image
-                source={require('../../../assets/images/activity5illustration.jpeg')}
-                style={styles.illustration}
-                resizeMode="contain"
+              <ActivityIllustration activityId="human-performance" style={styles.illustration} />
+            </Card>
+
+            <Card style={styles.pageCard}>
+              <EquipmentChecklist
+                equipmentList={equipmentList}
+                checkedEquipment={checkedEquipment}
+                disabled={isLocked}
+                onToggle={(item) => {
+                  setCheckedEquipment((prev) => ({ ...prev, [item]: !prev[item] }));
+                }}
               />
             </Card>
 
-            <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('predictions')} disabled={!allEquipmentChecked} />
+            {renderTimerBar()}
+
+            <Button
+              title={t('common.next', { defaultValue: 'Next' })}
+              onPress={() => {
+                setIsTimerRunning(true);
+                setActiveTab('predictions');
+              }}
+              disabled={!allEquipmentChecked}
+            />
           </View>
         )}
 
         {activeTab === 'predictions' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>
                 {t('data.activities.human-performance.predictionsTitle', { defaultValue: 'Questions Before the Experiment' })}
@@ -511,6 +487,7 @@ export function HumanPerformanceForm({
 
         {activeTab === 'experiment' && (
           <View>
+            {renderTimerBar()}
             <HumanPerformanceExperiment
               trials={data.trials}
               disabled={isLocked}
@@ -527,6 +504,7 @@ export function HumanPerformanceForm({
 
         {activeTab === 'results' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>
                 {t('data.activities.human-performance.resultsTitle', { defaultValue: 'Results' })}
@@ -586,7 +564,7 @@ export function HumanPerformanceForm({
               {isLowerHighSchool ? (
                 <Button title={t('common.next')} onPress={() => setActiveTab('calculations')} />
               ) : (
-                <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
+                <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" loading={isSubmitting} />
               )}
             </View>
           </View>
@@ -594,6 +572,7 @@ export function HumanPerformanceForm({
 
         {isLowerHighSchool && activeTab === 'calculations' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <View style={styles.instructionsHeader}>
                 <Ionicons name="calculator" size={24} color={colors.primary} />
@@ -609,6 +588,7 @@ export function HumanPerformanceForm({
 
             <Card style={styles.pageCard}>
               <Text style={styles.tableTitle}>{t('data.activities.human-performance.calculateSpeedTitle')}</Text>
+              <CalcEncouragementNote />
               {!isLocked && (
                 <Button
                   title={t('data.activities.parachute-drop.btnInstantCalc')}
@@ -646,7 +626,7 @@ export function HumanPerformanceForm({
 
             <View style={styles.wizardNavBoth}>
               <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('results')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!calculationsValid} />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!calculationsValid} loading={isSubmitting} />
             </View>
           </View>
         )}

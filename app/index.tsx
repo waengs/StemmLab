@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,8 @@ import { Input, Button, Select } from '../src/components';
 import { TeamJoinPanel } from '../src/components/team/TeamJoinPanel';
 import { useAuthStore } from '../src/stores';
 import { hasProfanity } from '../src/utils/profanity';
-import { useMemo } from 'react';
 import { useTheme } from '../src/context/ThemeContext';
+import { useAsyncAction } from '../src/hooks/useAsyncAction';
 import { Spacing, BorderRadius, Shadows } from '../src/theme';
 
 type AuthMode = 'signIn' | 'register';
@@ -112,7 +112,7 @@ export default function AuthSetup() {
 
   const showTeamStep = Boolean(user && needsTeam);
 
-  const handleSignIn = async () => {
+  const signInAction = useCallback(async () => {
     if (!email || !password) {
       Alert.alert(t('setup.missingFields'), t('setup.missingSignInMsg'));
       return;
@@ -129,9 +129,9 @@ export default function AuthSetup() {
         Alert.alert(t('setup.signInError'), String(err.message || err));
       }
     }
-  };
+  }, [email, password, signIn, t]);
 
-  const handleRegister = async () => {
+  const registerAction = useCallback(async () => {
     if (!displayName || !email || !password) {
       Alert.alert(t('setup.missingFields'), t('setup.missingRegisterMsg'));
       return;
@@ -153,9 +153,9 @@ export default function AuthSetup() {
         Alert.alert(t('setup.registerError'), String(err.message || err));
       }
     }
-  };
+  }, [displayName, email, password, register, t]);
 
-  const handleCreateTeam = async () => {
+  const createTeamActionFn = useCallback(async () => {
     if (!teamName || !joinPassword || !gradeLevel) {
       Alert.alert(t('setup.missingFields'), t('setup.missingTeamMsg'));
       return;
@@ -169,7 +169,13 @@ export default function AuthSetup() {
       return;
     }
     await createTeamAction({ name: teamName.trim(), gradeLevel, joinPassword });
-  };
+  }, [teamName, joinPassword, gradeLevel, createTeamAction, t]);
+
+  const [handleSignIn, isSigningIn] = useAsyncAction(signInAction);
+  const [handleRegister, isRegistering] = useAsyncAction(registerAction);
+  const [handleCreateTeam, isCreatingTeam] = useAsyncAction(createTeamActionFn);
+
+  const isAuthBusy = authMode === 'signIn' ? isSigningIn : isRegistering;
 
   return (
     <View style={styles.gradient}>
@@ -260,6 +266,7 @@ export default function AuthSetup() {
                     onPress={authMode === 'signIn' ? handleSignIn : handleRegister}
                     size="lg"
                     fullWidth
+                    loading={isAuthBusy}
                     style={{ marginTop: Spacing.lg }}
                   />
                 </>
@@ -316,6 +323,7 @@ export default function AuthSetup() {
                         onPress={handleCreateTeam}
                         size="lg"
                         fullWidth
+                        loading={isCreatingTeam}
                         style={{ marginTop: Spacing.lg }}
                       />
                     </>

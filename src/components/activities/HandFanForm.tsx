@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, Image, Alert, ScrollView, Modal as RNModal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, Modal as RNModal, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { ActivityIllustration } from './ActivityIllustration';
+import { EquipmentChecklist } from './EquipmentChecklist';
+import { ActivityTimerBar } from './ActivityTimerBar';
+import { CalcEncouragementNote } from './CalcEncouragementNote';
 import { actT } from '../../utils/activityContent';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -47,6 +51,7 @@ interface Props {
   value: any;
   onChange: (value: any) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
 }
 
 const DEFAULT_TIME = 3600;
@@ -299,6 +304,7 @@ export function HandFanForm({
   value,
   onChange,
   onSubmit,
+  isSubmitting = false,
 }: Props) {
   const styles = useHandFanFormStyles();
   const { colors } = useTheme();
@@ -352,12 +358,6 @@ export function HandFanForm({
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const getInitialData = (): HandFanData => ({
     predictedMaterial: '',
     predictedDesign: '',
@@ -409,7 +409,7 @@ export function HandFanForm({
       );
       return;
     }
-    if (!isTimerRunning) {
+    if (activeTab === 'setup' && tab !== 'setup' && !isTimerRunning) {
       setIsTimerRunning(true);
     }
     setActiveTab(tab);
@@ -461,8 +461,8 @@ export function HandFanForm({
   const handleInstantCalc = () => {
     if (isLocked) return;
     Alert.alert(
-      t('activities.calcWarningTitle', { defaultValue: 'Instant Calculation' }),
-      t('activities.calcWarningText', { defaultValue: 'Using instant calculation will result in a 20 point deduction. Are you sure?' }),
+      t('activities.calcWarningTitle'),
+      t('activities.calcWarningText'),
       [
         { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
         { 
@@ -531,6 +531,30 @@ export function HandFanForm({
     setActiveTab('setup');
   };
 
+  const timerTitle = t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' });
+  const showTimerControls = activeTab !== 'setup' || isTimerRunning;
+
+  const promptResetTimer = () => {
+    Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
+    ]);
+  };
+
+  const renderTimerBar = () => (
+    <ActivityTimerBar
+      durationMinutes={60}
+      timeLeft={timeLeft}
+      isTimerRunning={isTimerRunning}
+      isLocked={isLocked}
+      timerTitle={timerTitle}
+      showControls={showTimerControls}
+      onPause={() => setIsTimerRunning(false)}
+      onResume={() => setIsTimerRunning(true)}
+      onReset={promptResetTimer}
+    />
+  );
+
   return (
     <View style={styles.container}>
       {/* Timeout Modal */}
@@ -562,87 +586,30 @@ export function HandFanForm({
       </View>
 
       <View style={styles.scrollContent}>
-        {/* TIMER (Visible on all tabs) */}
-        <View style={{ marginBottom: Spacing.lg }}>
-          <View style={styles.stickyTimer}>
-            <View style={{flex: 1}}>
-              <Text style={styles.timerTitle}>{t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' })}</Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && {color: colors.danger}]}>{formatTime(timeLeft)}</Text>
-            </View>
-            <View style={styles.timerButtons}>
-              <Button 
-                title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })} 
-                onPress={() => {
-                  if (isTimerRunning) {
-                    Alert.alert(
-                      "Pause Timer",
-                      "Don't pause the timer unless you need to. Value integrity!",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Pause", onPress: () => setIsTimerRunning(false) }
-                      ]
-                    );
-                  } else {
-                    setIsTimerRunning(true);
-                  }
-                }} 
-                variant={isTimerRunning ? "outlined" : "primary"}
-                size="sm"
-                disabled={isLocked && timeLeft === 0}
-              />
-              <Button 
-                title={t('common.reset', { defaultValue: 'Reset' })} 
-                onPress={() => {
-                  Alert.alert("Reset Timer & Data", "Are you sure you want to start over? This wipes all data.", [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Start Over", style: "destructive", onPress: handleStartOver }
-                  ]);
-                }} 
-                variant="outlined"
-                size="sm"
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* SETUP TAB */}
         {activeTab === 'setup' && (
           <View>
-
-            <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.equipmentTitle', { defaultValue: 'Equipment Checklist' })}</Text>
-              {equipmentList.map((item) => (
-                <TouchableOpacity 
-                  key={item} 
-                  style={styles.checklistItem}
-                  onPress={() => {
-                    if (!isLocked) {
-                      setCheckedEquipment(prev => ({ ...prev, [item]: !prev[item] }));
-                      if (!isTimerRunning) setIsTimerRunning(true);
-                    }
-                  }}
-                  disabled={isLocked}
-                >
-                  <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
-                  </View>
-                  <Text style={styles.checklistText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </Card>
-
             <Card style={styles.pageCard}>
               <ActivityInstructionsList
                 activityId="hand-fan"
+                durationMinutes={60}
                 textStyle={styles.instructionText}
                 titleStyle={styles.sectionTitle}
               />
-              <Image 
-                source={require('../../../assets/images/activity3illustration.jpeg')} 
-                style={styles.illustration}
-                resizeMode="contain"
+              <ActivityIllustration activityId="hand-fan" style={styles.illustration} />
+            </Card>
+
+            <Card style={styles.pageCard}>
+              <EquipmentChecklist
+                equipmentList={equipmentList}
+                checkedEquipment={checkedEquipment}
+                disabled={isLocked}
+                onToggle={(item) => {
+                  setCheckedEquipment((prev) => ({ ...prev, [item]: !prev[item] }));
+                }}
               />
             </Card>
+
+            {renderTimerBar()}
 
             <Button
               title={t('common.next', { defaultValue: 'Next' })}
@@ -652,9 +619,9 @@ export function HandFanForm({
           </View>
         )}
 
-        {/* PREDICTIONS TAB */}
         {activeTab === 'predictions' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.predictionsTitle', { defaultValue: 'Make Your Predictions' })}</Text>
               
@@ -692,9 +659,9 @@ export function HandFanForm({
           </View>
         )}
 
-        {/* EXPERIMENT TAB */}
         {activeTab === 'experiment' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.trialsTitle', { defaultValue: 'Record Trials' })}</Text>
               <Text style={styles.recordHint}>{t('data.activities.hand-fan.recordHint')}</Text>
@@ -781,15 +748,15 @@ export function HandFanForm({
               {isHighSchool ? (
                 <Button title={t('common.next')} onPress={() => goToTab('calculations')} disabled={!experimentValid} />
               ) : (
-                <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid} />
+                <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid} loading={isSubmitting} />
               )}
             </View>
           </View>
         )}
 
-        {/* CALCULATIONS TAB */}
         {isHighSchool && activeTab === 'calculations' && (
           <View>
+            {renderTimerBar()}
             <Card style={[styles.pageCard, { marginBottom: Spacing.lg }]}>
               <View style={styles.instructionsHeader}>
                 <Ionicons name="calculator" size={24} color={colors.primary} />
@@ -822,6 +789,7 @@ export function HandFanForm({
             <Card style={styles.pageCard}>
               <View style={{ marginBottom: Spacing.md }}>
                 <Text style={styles.tableTitle}>{t('data.activities.hand-fan.calculateForceTitle')}</Text>
+                <CalcEncouragementNote />
                 {!isLocked && (
                   <Button 
                     title={t('data.activities.parachute-drop.btnInstantCalc')} 
@@ -863,7 +831,7 @@ export function HandFanForm({
 
             <View style={styles.wizardNavBoth}>
               <Button title={t('common.previous')} variant="outlined" onPress={() => goToTab('experiment')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!calculationsValid} />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!calculationsValid} loading={isSubmitting} />
             </View>
           </View>
         )}

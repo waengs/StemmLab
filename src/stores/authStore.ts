@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import type { User as FirebaseUser } from 'firebase/auth';
 import {
-  getAuthContext,
   registerUser,
   signInUser,
   createTeam,
@@ -61,6 +60,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   needsTeam: false,
 
   hydrate: async () => {
+    const { getFirebaseAuth } = await import('../config/firebase');
+    const auth = getFirebaseAuth();
+    await auth.authStateReady();
+
     if (!authSubscription) {
       authSubscription = subscribeToAuthState(async (firebaseUser) => {
         if (isSigningOut()) return;
@@ -69,13 +72,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const { user, team } = await resolveUserAfterAuth(firebaseUser);
           applyAuthState(set, user, team);
           if (firebaseUser) {
-            try {
-              const { loadAppDataParallel } = await import('../services/app/parallelFeedLoad');
-              await loadAppDataParallel(firebaseUser.uid);
-              await rehydrateAppData();
-            } catch (err) {
-              console.warn('[auth] sync after sign-in failed:', err);
-            }
+            void import('../services/app/parallelFeedLoad')
+              .then(({ loadAppDataParallel }) => loadAppDataParallel(firebaseUser.uid))
+              .then(() => rehydrateAppData())
+              .catch((err) => {
+                console.warn('[auth] sync after sign-in failed:', err);
+              });
           }
         } catch (err) {
           console.warn('[auth] auth state handler failed:', err);
@@ -83,20 +85,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     }
 
-    const ctx = await getAuthContext();
-    if (ctx) applyAuthState(set, ctx.user, ctx.team);
+    set({ firebaseUser: auth.currentUser });
+    const { user, team } = await resolveUserAfterAuth(auth.currentUser);
+    applyAuthState(set, user, team);
     set({ isHydrated: true });
-
-    const { getFirebaseAuth } = await import('../config/firebase');
-    const current = getFirebaseAuth().currentUser;
-    if (current) {
-      try {
-        const { loadAppDataParallel } = await import('../services/app/parallelFeedLoad');
-        await loadAppDataParallel(current.uid);
-      } catch (err) {
-        console.warn('[auth] startup sync failed:', err);
-      }
-    }
   },
 
   register: async (input) => {

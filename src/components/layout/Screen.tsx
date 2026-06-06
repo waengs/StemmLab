@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { GradientBox } from '../ui/GradientBox';
 import { Spacing } from '../../theme';
 
 interface ScreenProps {
@@ -34,6 +35,12 @@ export function Screen({
 
   return (
     <SafeAreaView style={styles.safe} edges={edges}>
+      <GradientBox
+        colors={colors.gradientBackground}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, contentContainerStyle]}

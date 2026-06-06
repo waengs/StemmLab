@@ -12,12 +12,21 @@ interface ActivityListCardProps {
   name: string;
   description: string;
   sensors: string[];
+  accentColor?: string;
   onPress: () => void;
 }
 
-export function ActivityListCard({ id, name, description, sensors, onPress }: ActivityListCardProps) {
+export function ActivityListCard({
+  id,
+  name,
+  description,
+  sensors,
+  accentColor,
+  onPress,
+}: ActivityListCardProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
+  const chipColor = accentColor ?? colors.primary;
 
   const styles = useMemo(
     () =>
@@ -33,7 +42,7 @@ export function ActivityListCard({ id, name, description, sensors, onPress }: Ac
   );
 
   return (
-    <Card onPress={onPress} style={styles.card}>
+    <Card onPress={onPress} accentColor={accentColor} variant="outlined" style={styles.card}>
       <View style={styles.row}>
         <View style={styles.info}>
           <Text style={styles.name}>{t(`data.activities.${id}.name`, { defaultValue: name })}</Text>
@@ -48,11 +57,12 @@ export function ActivityListCard({ id, name, description, sensors, onPress }: Ac
                   defaultValue: t(`data.sensors.${sensor}.name`, { defaultValue: sensor.replace(/-/g, ' ') }),
                 })}
                 size="sm"
+                color={chipColor}
               />
             ))}
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={22} color={colors.textMuted} />
+        <Ionicons name="chevron-forward" size={22} color={chipColor} />
       </View>
     </Card>
   );

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   Alert,
   ScrollView,
   Modal as RNModal,
@@ -11,6 +10,9 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityInstructionsList } from './ActivityInstructionsList';
+import { ActivityIllustration } from './ActivityIllustration';
+import { EquipmentChecklist } from './EquipmentChecklist';
+import { ActivityTimerBar } from './ActivityTimerBar';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -45,6 +47,7 @@ interface Props {
   value: any;
   onChange: (value: any) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
 }
 
 const DEFAULT_TIME = 1800;
@@ -162,6 +165,7 @@ export function BreathingPaceForm({
   value,
   onChange,
   onSubmit,
+  isSubmitting = false,
 }: Props) {
   const styles = useBreathingPaceFormStyles();
   const { colors } = useTheme();
@@ -175,7 +179,7 @@ export function BreathingPaceForm({
   const [isLocked, setIsLocked] = useState(false);
 
   const equipmentList = [
-    t('data.activities.breathing-pace.equipmentPhone', { defaultValue: 'Mobile phone with STEMM Lab app' }),
+    t('data.activities.breathing-pace.equipmentPhone', { defaultValue: 'Mobile phone with Stemm Lab app' }),
     t('data.activities.breathing-pace.equipmentMat', { defaultValue: 'Flat surface or mat' }),
   ];
   const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
@@ -199,12 +203,6 @@ export function BreathingPaceForm({
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const defaultData = getInitialData();
   const data: BreathingPaceData = {
     ...defaultData,
@@ -212,15 +210,8 @@ export function BreathingPaceForm({
     trials: (value?.trials as BreathingTrial[]) || defaultData.trials,
   };
 
-  const startTimerOnInteraction = () => {
-    if (!isTimerRunning && !isLocked && timeLeft > 0) {
-      setIsTimerRunning(true);
-    }
-  };
-
   const updateData = (updates: Partial<BreathingPaceData>) => {
     if (isLocked) return;
-    startTimerOnInteraction();
     onChange({ ...data, ...updates });
   };
 
@@ -271,6 +262,29 @@ export function BreathingPaceForm({
   }, null);
 
   const tabs = ['setup', 'predictions', 'experiment', 'results'] as const;
+  const timerTitle = t('data.activities.breathing-pace.timerTitle', { defaultValue: 'Activity Timer (30 min)' });
+  const showTimerControls = activeTab !== 'setup' || isTimerRunning;
+
+  const promptResetTimer = () => {
+    Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('activities.startOver'), style: 'destructive', onPress: handleStartOver },
+    ]);
+  };
+
+  const renderTimerBar = () => (
+    <ActivityTimerBar
+      durationMinutes={30}
+      timeLeft={timeLeft}
+      isTimerRunning={isTimerRunning}
+      isLocked={isLocked}
+      timerTitle={timerTitle}
+      showControls={showTimerControls}
+      onPause={() => setIsTimerRunning(false)}
+      onResume={() => setIsTimerRunning(true)}
+      onReset={promptResetTimer}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -316,92 +330,45 @@ export function BreathingPaceForm({
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={{ marginBottom: Spacing.lg }}>
-          <View style={styles.stickyTimer}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.timerTitle}>
-                {t('data.activities.breathing-pace.timerTitle', { defaultValue: 'Activity Timer (30 min)' })}
-              </Text>
-              <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: colors.danger }]}>{formatTime(timeLeft)}</Text>
-            </View>
-            <View style={styles.timerButtons}>
-              <Button
-                title={isTimerRunning ? t('activities.timerPause', { defaultValue: 'Pause' }) : t('activities.timerStart', { defaultValue: 'Start' })}
-                onPress={() => {
-                  if (isTimerRunning) {
-                    Alert.alert(
-                      t('data.activities.parachute-drop.timerPauseTitle'),
-                      t('data.activities.parachute-drop.timerPauseWarning'),
-                      [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Pause', onPress: () => setIsTimerRunning(false) },
-                    ]);
-                  } else {
-                    setIsTimerRunning(true);
-                  }
-                }}
-                variant={isTimerRunning ? 'outlined' : 'primary'}
-                size="sm"
-                disabled={isLocked && timeLeft === 0}
-              />
-              <Button
-                title={t('common.reset', { defaultValue: 'Reset' })}
-                onPress={() => {
-                  Alert.alert(t('activities.resetTimerTitle'), t('activities.resetTimerMsg'), [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Start Over', style: 'destructive', onPress: handleStartOver },
-                  ]);
-                }}
-                variant="outlined"
-                size="sm"
-              />
-            </View>
-          </View>
-        </View>
-
         {activeTab === 'setup' && (
           <View>
             <Card style={styles.pageCard}>
-              <Text style={styles.sectionTitle}>{t('activities.equipmentTitle', { defaultValue: 'Equipment Needed' })}</Text>
-              {equipmentList.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.checklistItem}
-                  onPress={() => {
-                    if (!isLocked) {
-                      setCheckedEquipment((prev) => ({ ...prev, [item]: !prev[item] }));
-                      if (!isTimerRunning) setIsTimerRunning(true);
-                    }
-                  }}
-                  disabled={isLocked}
-                >
-                  <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
-                    {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
-                  </View>
-                  <Text style={styles.checklistText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </Card>
-
-            <Card style={styles.pageCard}>
               <ActivityInstructionsList
                 activityId="breathing-pace"
+                durationMinutes={30}
                 textStyle={styles.instructionText}
                 titleStyle={styles.sectionTitle}
               />
-              <Image
-                source={require('../../../assets/images/activity7illustration.jpeg')}
-                style={styles.illustration}
-                resizeMode="contain"
+              <ActivityIllustration activityId="breathing-pace" style={styles.illustration} />
+            </Card>
+
+            <Card style={styles.pageCard}>
+              <EquipmentChecklist
+                equipmentList={equipmentList}
+                checkedEquipment={checkedEquipment}
+                disabled={isLocked}
+                onToggle={(item) => {
+                  setCheckedEquipment((prev) => ({ ...prev, [item]: !prev[item] }));
+                }}
               />
             </Card>
 
-            <Button title={t('common.next', { defaultValue: 'Next' })} onPress={() => setActiveTab('predictions')} disabled={!allEquipmentChecked} />
+            {renderTimerBar()}
+
+            <Button
+              title={t('common.next', { defaultValue: 'Next' })}
+              onPress={() => {
+                setIsTimerRunning(true);
+                setActiveTab('predictions');
+              }}
+              disabled={!allEquipmentChecked}
+            />
           </View>
         )}
 
         {activeTab === 'predictions' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>
                 {t('data.activities.breathing-pace.predictionsTitle', { defaultValue: 'Questions Before the Experiment' })}
@@ -444,6 +411,7 @@ export function BreathingPaceForm({
 
         {activeTab === 'experiment' && (
           <View>
+            {renderTimerBar()}
             <BreathingPaceExperiment
               trials={data.trials}
               disabled={isLocked}
@@ -460,6 +428,7 @@ export function BreathingPaceForm({
 
         {activeTab === 'results' && (
           <View>
+            {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>
                 {t('data.activities.breathing-pace.resultsTitle', { defaultValue: 'Results' })}
@@ -519,7 +488,7 @@ export function BreathingPaceForm({
 
             <View style={styles.wizardNavBoth}>
               <Button title={t('common.previous', { defaultValue: 'Previous' })} variant="outlined" onPress={() => setActiveTab('experiment')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" loading={isSubmitting} />
             </View>
           </View>
         )}

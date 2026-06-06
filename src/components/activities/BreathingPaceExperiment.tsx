@@ -201,7 +201,7 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
     if (!available) {
       Alert.alert(
         'Sensor Unavailable',
-        'This device does not have an accelerometer. Use a physical phone with the STEMM Lab app.'
+        'This device does not have an accelerometer. Use a physical phone with the Stemm Lab app.'
       );
       return;
     }

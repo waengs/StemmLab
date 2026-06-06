@@ -51,7 +51,7 @@
       "Construct your first parachute design.",
       "Record a slow-motion video of the drop.",
       "Use the video playback to measure exact fall time.",
-      "Calculate forces or use Instant Calc (with penalty)."
+      "Calculate forces or use instant calculation (with penalty)."
     ],
     "hand-fan": [
       "Stand paper upright on a table.",
@@ -81,9 +81,10 @@
       "Upload results and complete the post-experiment quiz."
     ],
     "reaction-board": [
-      "Phase 1: Tap the screen as soon as the hidden button appears.",
-      "Phase 2: Repeat using your non-dominant hand.",
-      "Phase 3: Trace a moving shape on the screen to measure your coordination."
+      "Phase 1: Tap as fast as you can when the screen turns green — use your dominant hand (the hand you write with).",
+      "Phase 2: Repeat the reaction test with your non-dominant hand.",
+      "Phase 3: Trace the moving circle with your dominant hand for 6 seconds.",
+      "Phase 4: Trace the moving circle with your non-dominant hand for 6 seconds."
     ],
     "breathing-pace": [
       "Place the phone gently on your chest.",

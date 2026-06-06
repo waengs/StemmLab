@@ -2,11 +2,11 @@
   "expo": {
     "name": "StemmLab",
     "slug": "StemmLab",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "icon": "./assets/images/logo.jpeg",
     "extra": {
       "eas": {
-        "projectId": "13f75974-3f0a-453a-a6e8-f732bebdba28"
+        "projectId": "5a660196-e9a2-44d9-9761-1b78794f910a"
       }
     },
     "orientation": "portrait",
@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 2,
       "predictiveBackGestureEnabled": false,
       "package": "com.waengs.StemmLab",
       "googleServicesFile": "./google-services.json"
@@ -31,7 +32,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow STEMM Lab to use your location to map sound pollution data."
+          "locationAlwaysAndWhenInUsePermission": "Allow Stemm Lab to use your location to map sound pollution data."
         }
       ],
       "expo-audio"

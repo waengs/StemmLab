@@ -19,29 +19,33 @@ interface FeatureCardProps {
 }
 
 export function FeatureCard({ title, description, icon, iconColor, chipLabel, onPress }: FeatureCardProps) {
-  const { typography } = useTheme();
+  const { typography, colors } = useTheme();
 
   return (
-    <Card fill onPress={onPress} style={styles.card}>
+    <Card fill onPress={onPress} accentColor={iconColor} variant="outlined" style={styles.card}>
       <IconBadge name={icon} color={iconColor} />
-      <Text style={[typography.h3, styles.title]} numberOfLines={2}>
+      <Text style={[typography.h3, styles.title, { color: colors.text }]} numberOfLines={2}>
         {title}
       </Text>
-      <Text style={[typography.caption, styles.description]} numberOfLines={2}>
+      <Text style={[typography.caption, styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
         {description}
       </Text>
       {chipLabel ? (
         <View style={styles.chips}>
-          <Chip label={chipLabel} size="sm" />
+          <Chip label={chipLabel} size="sm" color={iconColor} />
         </View>
       ) : null}
+      <View style={styles.arrow}>
+        <Ionicons name="arrow-forward-circle" size={22} color={iconColor} />
+      </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { justifyContent: 'flex-start' },
+  card: { justifyContent: 'flex-start', position: 'relative' },
   title: { marginTop: Spacing.md, marginBottom: Spacing.xs },
-  description: { flex: 1 },
+  description: { flex: 1, paddingRight: Spacing.lg },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm },
+  arrow: { position: 'absolute', right: Spacing.lg, bottom: Spacing.lg },
 });
