@@ -1,14 +1,11 @@
 {
   "expo": {
     "name": "StemmLab",
+    "owner": "stemmlab",
     "slug": "StemmLab",
     "version": "2.0.0",
     "icon": "./assets/images/logo.jpeg",
-    "extra": {
-      "eas": {
-        "projectId": "5a660196-e9a2-44d9-9761-1b78794f910a"
-      }
-    },
+    "extra": {},
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "stemmlab",

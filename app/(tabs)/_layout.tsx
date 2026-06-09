@@ -36,9 +36,7 @@ export default function TabsLayout() {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  if (isHydrated && (!user || !team)) {
-    return <Redirect href="/" />;
-  }
+
 
   return (
     <Tabs

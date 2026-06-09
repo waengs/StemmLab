@@ -48,7 +48,7 @@ function applyAuthState(
   set({
     user,
     team,
-    needsTeam: Boolean(user && !user.teamDiscriminator),
+    needsTeam: Boolean(user && !team),
   });
 }
 

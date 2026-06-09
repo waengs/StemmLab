@@ -40,10 +40,16 @@ export async function registerForPushNotifications(uid: string): Promise<string 
     });
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
-  });
-  const token = tokenData.data;
+  let token: string | null = null;
+  try {
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    });
+    token = tokenData.data;
+  } catch (err) {
+    console.warn('[Push] Could not get push token:', err);
+    return null;
+  }
 
   const db = getFirestoreDb();
   await setDoc(

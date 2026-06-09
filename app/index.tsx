@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -250,6 +251,8 @@ export default function AuthSetup() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     onLightSurface
+                    testID="email_input"
+                    accessibilityLabel="email_input"
                   />
 
                   <Input
@@ -259,6 +262,8 @@ export default function AuthSetup() {
                     placeholder={t('setup.passwordPlaceholder')}
                     secureTextEntry
                     onLightSurface
+                    testID="password_input"
+                    accessibilityLabel="password_input"
                   />
 
                   <Button
