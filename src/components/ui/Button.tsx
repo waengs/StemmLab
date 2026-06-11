@@ -16,6 +16,8 @@ interface ButtonProps {
   iconRight?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  testID?: string;
+  accessibilityLabel?: string;
 }
 
 export function Button({
@@ -30,6 +32,8 @@ export function Button({
   iconRight,
   style,
   textStyle,
+  testID,
+  accessibilityLabel,
 }: ButtonProps) {
   const { colors, typography, isDark } = useTheme();
   const pendingRef = useRef(false);
@@ -134,6 +138,9 @@ export function Button({
   if (variant === 'primary' && !disabled) {
     return (
       <Pressable
+        testID={testID}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
         onPress={handlePress}
         disabled={disabled || isBusy}
         android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
@@ -153,6 +160,9 @@ export function Button({
 
   return (
     <Pressable
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
       style={pressableStyle}
       onPress={handlePress}
       disabled={disabled || isBusy}

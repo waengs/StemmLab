@@ -273,6 +273,8 @@ export default function AuthSetup() {
                     fullWidth
                     loading={isAuthBusy}
                     style={{ marginTop: Spacing.lg }}
+                    testID="sign_in_button"
+                    accessibilityLabel="sign_in_button"
                   />
                 </>
               ) : (
