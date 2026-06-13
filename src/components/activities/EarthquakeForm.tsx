@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Modal as RNModal, Vibration } from 'react-native';
+import { Gyroscope } from 'expo-sensors';
 import Slider from '@react-native-community/slider';
 import { useTranslation } from 'react-i18next';
 import { ActivityInstructionsList } from './ActivityInstructionsList';
@@ -15,6 +16,8 @@ import { Card } from '../ui/Card';
 import { Spacing, Typography, BorderRadius  } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { useRequireAuth } from '../../stores';
+import { EarthquakeResults } from './EarthquakeResults';
 import {
   EARTHQUAKE_INTENSITY_KEYS,
   EARTHQUAKE_PRESET_DESIGNS,
@@ -31,13 +34,17 @@ export interface EarthquakeTrial {
   id: string;
   design: string;
   outcomeMovement: string;
-  wereYouRight: string;
+  outcomeMovementCm?: string;
+  predictedMovement?: string;
+  predictedMovementCm?: string;
+  wereYouRight?: string;
 }
 
 export interface EarthquakeData {
   predictedBestDesign: string;
   trials: EarthquakeTrial[];
   surprises: string;
+  checkedEquipment?: Record<string, boolean>;
 }
 
 interface Props {
@@ -151,7 +158,9 @@ function useEarthquakeFormStyles() {
   wizardNavBoth: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.md,
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
   trialBlock: {
     padding: Spacing.md,
@@ -237,13 +246,24 @@ export function EarthquakeForm({
   const { colors, typography } = useTheme();
   const { t } = useTranslation();
   
-  const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment'>('setup');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const initialTab = (value as any)?.__activeTab || 'setup';
+  const [activeTab, setActiveTabState] = useState<'setup' | 'predictions' | 'experiment' | 'results'>(initialTab);
+  
+  const timerEndTs = (value as any)?.__timerEndTs;
+  const initialTimeLeft = timerEndTs 
+    ? Math.max(0, Math.floor((timerEndTs - Date.now()) / 1000))
+    : DEFAULT_TIME;
+    
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTab !== 'setup' && initialTimeLeft > 0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isVibrating, setIsVibrating] = useState(false);
   const [vibrationIntensity, setVibrationIntensity] = useState<EarthquakeIntensityKey>('medium');
+  const gyroscopeSubscription = useRef<any>(null);
+  const accumulatedDegrees = useRef(0);
+  const [liveDegrees, setLiveDegrees] = useState(0);
+  const [activeTrialId, setActiveTrialId] = useState<string | null>(null);
 
   const equipmentString = t('data.activities.earthquake.equipment');
   const designLabels = useMemo(() => getEarthquakeDesignLabels(t), [t]);
@@ -259,9 +279,7 @@ export function EarthquakeForm({
     [equipmentString]
   );
   const yesNoOptions = useMemo(() => [t('common.yes'), t('common.no')], [t]);
-  const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-  const allEquipmentChecked = equipmentList.every(item => checkedEquipment[item]);
-
+  
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning && timeLeft > 0) {
@@ -291,9 +309,8 @@ export function EarthquakeForm({
     predictedBestDesign: '',
     surprises: '',
     trials: [
-      { id: '1', design: '4 folds + 4 pillars', outcomeMovement: '', wereYouRight: '' },
-      { id: '2', design: '10 folds + 4 pillars', outcomeMovement: '', wereYouRight: '' },
-      { id: '3', design: '3 folds and 6 pillars', outcomeMovement: '', wereYouRight: '' }
+      { id: '1', design: '', outcomeMovement: '' },
+      { id: '2', design: '', outcomeMovement: '' }
     ]
   });
 
@@ -306,28 +323,54 @@ export function EarthquakeForm({
 
   const updateData = (updates: Partial<EarthquakeData>) => onChange({ ...data, ...updates });
 
+  const checkedEquipment = data.checkedEquipment || {};
+  const setCheckedEquipment = (updater: any) => {
+    if (typeof updater === 'function') {
+      updateData({ checkedEquipment: updater(checkedEquipment) });
+    } else {
+      updateData({ checkedEquipment: updater });
+    }
+  };
+  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every((item: string) => checkedEquipment[item]);
+  
+  const setActiveTab = (tab: 'setup' | 'predictions' | 'experiment' | 'results') => {
+    setActiveTabState(tab);
+    let updates: any = { __activeTab: tab };
+    if (tab !== 'setup' && !(data as any).__timerEndTs) {
+      updates.__timerEndTs = Date.now() + DEFAULT_TIME * 1000;
+    }
+    onChange({ ...data, ...updates });
+  };
+
   const updateTrial = (id: string, updates: Partial<EarthquakeTrial>) => {
     const newTrials = data.trials.map(t => t.id === id ? { ...t, ...updates } : t);
+    updateData({ trials: newTrials });
+  };
+
+  const addTrial = () => {
+    if (data.trials.length >= 5) return;
+    const newId = Date.now().toString();
+    const newTrials = [...data.trials, { id: newId, design: '', outcomeMovement: '', outcomeMovementCm: '', predictedMovement: '', predictedMovementCm: '' }];
     updateData({ trials: newTrials });
   };
 
   const isFormValid = () => {
     if (!data.predictedBestDesign) return false;
     for (const t of data.trials) {
-      if (!t.design || !t.outcomeMovement || !t.wereYouRight) return false;
+      if (!t.design || !t.outcomeMovement || !t.predictedMovement || !t.outcomeMovementCm?.trim() || !t.predictedMovementCm?.trim()) return false;
     }
     if (!data.surprises?.trim()) return false;
     return true;
   };
 
-  const predictionsValid = !!data.predictedBestDesign;
-  const experimentValid = data.trials.every(t => t.outcomeMovement && t.wereYouRight);
+  const predictionsValid = !!data.predictedBestDesign && data.trials.every(t => t.design && t.predictedMovement?.trim() && t.predictedMovementCm?.trim());
+  const experimentValid = data.trials.every(t => t.outcomeMovement?.trim() && t.outcomeMovementCm?.trim());
 
   const handleComplete = () => {
     if (!isFormValid()) {
       Alert.alert(
-        t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }), 
-        t('activities.incompleteMsg', { defaultValue: 'Please fill out all fields before submitting.' })
+        t('activities.incompleteTitle', { defaultValue: 'Almost there!' }), 
+        t('activities.incompleteMsg', { defaultValue: 'It looks like some required fields haven\'t been filled out yet. Please double-check the tabs to make sure everything is complete before submitting.' })
       );
       return;
     }
@@ -346,11 +389,31 @@ export function EarthquakeForm({
     setActiveTab('setup');
   };
 
-  const toggleVibration = () => {
+  const toggleVibration = async (trialId?: string) => {
     if (isVibrating) {
       Vibration.cancel();
       setIsVibrating(false);
+      if (gyroscopeSubscription.current) {
+        gyroscopeSubscription.current.remove();
+        gyroscopeSubscription.current = null;
+      }
+      if (activeTrialId && accumulatedDegrees.current > 0) {
+        updateTrial(activeTrialId, { outcomeMovement: `${accumulatedDegrees.current.toFixed(1)}°` });
+      }
+      setActiveTrialId(null);
     } else {
+      if (trialId) setActiveTrialId(trialId);
+      accumulatedDegrees.current = 0;
+      setLiveDegrees(0);
+      const available = await Gyroscope.isAvailableAsync();
+      if (available) {
+        Gyroscope.setUpdateInterval(100);
+        gyroscopeSubscription.current = Gyroscope.addListener(({ x, y, z }) => {
+          const totalRadSec = Math.abs(x) + Math.abs(y) + Math.abs(z);
+          accumulatedDegrees.current += (totalRadSec * 0.1 * (180 / Math.PI));
+          setLiveDegrees(accumulatedDegrees.current);
+        });
+      }
       Vibration.vibrate(getVibrationPattern(vibrationIntensity), true); // loop
       setIsVibrating(true);
     }
@@ -363,6 +426,15 @@ export function EarthquakeForm({
       Vibration.vibrate(getVibrationPattern(vibrationIntensity), true);
     }
   }, [vibrationIntensity]);
+
+  useEffect(() => {
+    return () => {
+      if (gyroscopeSubscription.current) {
+        gyroscopeSubscription.current.remove();
+      }
+      Vibration.cancel();
+    };
+  }, []);
 
   const timerTitle = t('activities.timerTitle', { defaultValue: 'Activity Timer (60 Min)' });
   const showTimerControls = activeTab !== 'setup' || isTimerRunning;
@@ -404,7 +476,7 @@ export function EarthquakeForm({
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {['setup', 'predictions', 'experiment'].map((tab) => (
+          {['setup', 'predictions', 'experiment', 'results'].map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
@@ -468,14 +540,67 @@ export function EarthquakeForm({
             {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.predictionsTitle')}</Text>
-              <Select
-                label={t('data.activities.earthquake.predictBestDesignLabel')}
-                value={data.predictedBestDesign}
-                options={[...EARTHQUAKE_PRESET_DESIGNS]}
-                optionLabels={presetDesignOptionLabels}
-                onValueChange={(v) => updateData({ predictedBestDesign: v })}
-                disabled={isLocked}
-              />
+              <Text style={styles.instructionText}>{t('data.activities.earthquake.predictInstruction', { defaultValue: 'Name the structural designs you will test and predict how much they will move in both degrees and cm:' })}</Text>
+              {data.trials.map((trial, index) => (
+                <View key={`pred-${trial.id}`} style={{ marginBottom: Spacing.lg, paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderLight }}>
+                  <Text style={styles.subSectionTitle}>{t('data.activities.earthquake.designNumber', { defaultValue: 'Design {{n}}', n: index + 1 })}</Text>
+                  <Input
+                    label={t('data.activities.earthquake.designNameLabel', { defaultValue: 'Design Name' })}
+                    value={trial.design}
+                    onChangeText={(v) => updateTrial(trial.id, { design: v })}
+                    placeholder={t('data.activities.earthquake.designNamePlaceholder', { defaultValue: 'e.g. 4 folds + 4 pillars' })}
+                    editable={!isLocked}
+                    onLightSurface
+                  />
+                  <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Input
+                        label={t('data.activities.earthquake.predictAngleLabel', { defaultValue: 'Predicted Angle (°)' })}
+                        value={trial.predictedMovement || ''}
+                        onChangeText={(v) => updateTrial(trial.id, { predictedMovement: v })}
+                        keyboardType="numeric"
+                        placeholder={t('data.activities.earthquake.predictAnglePlaceholder', { defaultValue: 'e.g. 45' })}
+                        editable={!isLocked}
+                        onLightSurface
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Input
+                        label={t('data.activities.earthquake.predictDistLabel', { defaultValue: 'Predicted Dist (cm)' })}
+                        value={trial.predictedMovementCm || ''}
+                        onChangeText={(v) => updateTrial(trial.id, { predictedMovementCm: v })}
+                        keyboardType="numeric"
+                        placeholder={t('data.activities.earthquake.predictDistPlaceholder', { defaultValue: 'e.g. 10' })}
+                        editable={!isLocked}
+                        onLightSurface
+                      />
+                    </View>
+                  </View>
+                </View>
+              ))}
+
+              {data.trials.length < 5 && !isLocked && (
+                <Button
+                  title={t('data.activities.earthquake.addDesign', { defaultValue: 'Add Another Design' })}
+                  onPress={addTrial}
+                  variant="outlined"
+                  icon={<Ionicons name="add" size={16} color={colors.primary} />}
+                  style={{ alignSelf: 'flex-start' }}
+                />
+              )}
+
+              <View style={{ marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
+                <Select
+                  label={t('data.activities.earthquake.predictBestDesignLabel')}
+                  value={data.predictedBestDesign}
+                  options={data.trials.filter(t => (t.design || '').trim() !== '').map(t => t.id)}
+                  optionLabels={Object.fromEntries(
+                    data.trials.map(t => [t.id, t.design || `Design ${t.id}`])
+                  )}
+                  onValueChange={(v) => updateData({ predictedBestDesign: v })}
+                  disabled={isLocked || data.trials.every(t => (t.design || '').trim() === '')}
+                />
+              </View>
             </Card>
 
             <View style={styles.wizardNavBoth}>
@@ -547,12 +672,6 @@ export function EarthquakeForm({
                   </View>
                 </View>
 
-                <Button 
-                  title={isVibrating ? t('data.activities.earthquake.stopEarthquake') : t('data.activities.earthquake.startEarthquake')} 
-                  onPress={toggleVibration} 
-                  variant={isVibrating ? "danger" : "primary"}
-                  fullWidth
-                />
               </View>
             </Card>
 
@@ -560,70 +679,74 @@ export function EarthquakeForm({
               <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md}}>
                 <Text style={styles.sectionTitle}>{t('activities.trialsTitle')}</Text>
               </View>
+
+              <Text style={styles.instructionText}>{t('data.activities.earthquake.gyroscopeInstruction')}</Text>
               
               {data.trials.map((trial, index) => (
-                <View key={trial.id} style={styles.trialBlock}>
-                  <Text style={styles.trialTitle}>{t('data.activities.earthquake.designNumber', { n: index + 1 })}</Text>
-                  
-                  <Select
-                    label={t('data.activities.earthquake.designDescription')}
-                    value={trial.design}
-                    options={designOptionsForTrial(trial.design)}
-                    optionLabels={Object.fromEntries(
-                      designOptionsForTrial(trial.design).map((d) => [d, resolveEarthquakeDesign(d, t)])
-                    )}
-                    onValueChange={(v) => updateTrial(trial.id, { design: v })}
-                    disabled={isLocked}
-                  />
+                <View key={`exp-${trial.id}`} style={styles.trialBlock}>
+                  <Text style={styles.trialTitle}>{t('activities.trialNumber', { n: index + 1 })}: {trial.design || 'Unnamed Design'}</Text>
 
-                  <View style={{flexDirection: 'row', gap: Spacing.sm}}>
-                    <View style={{flex: 1}}>
+                  <View style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-end', marginBottom: Spacing.md }}>
+                    <View style={{ flex: 1 }}>
                       <Input
-                        label={t('data.activities.earthquake.outcomeMovement')}
+                        label={t('data.activities.earthquake.actualAngleLabel', { defaultValue: 'Actual Angle (°)' })}
                         value={trial.outcomeMovement}
                         onChangeText={(v) => updateTrial(trial.id, { outcomeMovement: v })}
-                        placeholder={t('data.activities.earthquake.outcomePlaceholder')}
-                        editable={!isLocked}
+                        editable={false}
                         onLightSurface
+                        containerStyle={{ marginBottom: 0 }}
                       />
                     </View>
-                    <View style={{flex: 1}}>
-                      <Select
-                        label={t('activities.wereYouRight')}
-                        value={trial.wereYouRight}
-                        options={yesNoOptions}
-                        onValueChange={(v) => updateTrial(trial.id, { wereYouRight: v })}
-                        disabled={isLocked}
+                    <View style={{ flex: 1 }}>
+                      <Input
+                        label={t('data.activities.earthquake.actualDistLabel', { defaultValue: 'Actual Dist (cm)' })}
+                        value={trial.outcomeMovementCm || ''}
+                        onChangeText={(v) => updateTrial(trial.id, { outcomeMovementCm: v })}
+                        keyboardType="numeric"
+                        editable={!isLocked}
+                        onLightSurface
+                        containerStyle={{ marginBottom: 0 }}
                       />
                     </View>
                   </View>
+
+                  <View style={{ marginTop: Spacing.md }}>
+                    {isVibrating && activeTrialId === trial.id && (
+                      <View style={{ backgroundColor: colors.surface, padding: Spacing.md, borderRadius: BorderRadius.sm, marginBottom: Spacing.md, alignItems: 'center', borderWidth: 1, borderColor: colors.secondary + '40' }}>
+                        <Ionicons name="compass" size={32} color={colors.secondary} style={{ transform: [{ rotate: `${liveDegrees % 360}deg` }] }} />
+                        <Text style={{ ...typography.bodySmall, color: colors.secondary, marginTop: Spacing.xs }}>Recording {trial.design ? `for ${resolveEarthquakeDesign(trial.design, t)}` : 'Trial'}</Text>
+                        <Text style={{ ...typography.h2, color: colors.text }}>{liveDegrees.toFixed(1)}°</Text>
+                        <Text style={{ ...typography.caption, color: colors.textSecondary }}>Total Rotation</Text>
+                      </View>
+                    )}
+
+                    {!isLocked && (
+                      <Button 
+                        title={isVibrating && activeTrialId === trial.id ? t('data.activities.earthquake.stopEarthquake') : t('data.activities.earthquake.recordEarthquake', { defaultValue: 'Record Earthquake' })} 
+                        onPress={() => toggleVibration(trial.id)} 
+                        variant={isVibrating && activeTrialId === trial.id ? "danger" : "primary"}
+                        disabled={isVibrating && activeTrialId !== trial.id}
+                        fullWidth
+                      />
+                    )}
+                  </View>
                 </View>
               ))}
-              
-              {!isLocked && (
-                <Button 
-                  title={t('data.activities.earthquake.addDesign')} 
-                  variant="ghost" 
-                  onPress={() => {
-                    const newId = (data.trials.length + 1).toString();
-                    updateData({
-                      trials: [
-                        ...data.trials,
-                        {
-                          id: newId,
-                          design: newExtraEarthquakeDesignId(data.trials.length + 1),
-                          outcomeMovement: '',
-                          wereYouRight: '',
-                        },
-                      ],
-                    });
-                  }} 
-                  icon={<Ionicons name="add" size={16} color={colors.primary} />}
-                />
-              )}
             </Card>
 
-            <Card style={styles.pageCard}>
+            <View style={styles.wizardNavBoth}>
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('predictions')} />
+              <Button title={t('common.next')} onPress={() => setActiveTab('results')} disabled={!experimentValid} />
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'results' && (
+          <View>
+            {renderTimerBar()}
+            <EarthquakeResults results={[{ data }]} hideReflection={true} />
+            
+            <Card style={[styles.pageCard, { marginTop: Spacing.md }]}>
               <Text style={styles.sectionTitle}>{actT('shared.reflectionTitle')}</Text>
               <Input
                 label={t('data.activities.earthquake.surprisesLabel')}
@@ -637,7 +760,7 @@ export function EarthquakeForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('predictions')} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('experiment')} />
               <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid || !data.surprises?.trim()} loading={isSubmitting} />
             </View>
           </View>

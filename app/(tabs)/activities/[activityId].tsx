@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { useAsyncAction } from '../../../src/hooks/useAsyncAction';
 import { Spacing, BorderRadius, Shadows } from '../../../src/theme';
 import { useRequireAuth, useActivityResultsStore, useResultsForActivity, calculateScore } from '../../../src/stores';
 import type { ActivityResult } from '../../../src/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface FormField {
   name: string;
@@ -75,10 +76,69 @@ export default function ActivityDetail() {
     resultField: { ...typography.bodySmall, marginBottom: 2, color: c.textSecondary },
     resultFieldName: { fontWeight: '600', color: c.text },
   }));
-  const { activityId } = useLocalSearchParams<{ activityId: string }>();
+  const { activityId, ts } = useLocalSearchParams<{ activityId: string; ts?: string }>();
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const { user, team } = useRequireAuth();
+
+  const draftKey = `draft_${team?.discriminator}_${activityId}`;
+
+  const loadDraft = useCallback(async () => {
+    try {
+      const draftStr = await AsyncStorage.getItem(draftKey);
+      if (draftStr) {
+        setHasDraft(true);
+      } else {
+        setHasDraft(false);
+      }
+    } catch (e) {}
+    setDraftLoaded(true);
+  }, [draftKey]);
+
+  useEffect(() => {
+    setFormData({});
+    setHasDraft(false);
+    setDraftLoaded(false);
+
+    if (team?.discriminator && activityId) {
+      loadDraft();
+    }
+  }, [team?.discriminator, activityId, ts, loadDraft]);
+
+  // Save draft whenever formData changes meaningfully (has keys)
+  useEffect(() => {
+    if (!draftLoaded || !team?.discriminator || !activityId) return;
+    
+    const saveDraft = async () => {
+      if (Object.keys(formData).length > 0) {
+        await AsyncStorage.setItem(draftKey, JSON.stringify(formData));
+        setHasDraft(true);
+      }
+    };
+    
+    // Simple debounce via timeout
+    const timeout = setTimeout(saveDraft, 1000);
+    return () => clearTimeout(timeout);
+  }, [formData, draftKey, draftLoaded, team?.discriminator, activityId]);
+
+  const handleContinueDraft = useCallback(async () => {
+    try {
+      const draftStr = await AsyncStorage.getItem(draftKey);
+      if (draftStr) {
+        setFormData(JSON.parse(draftStr));
+        if (activityId === 'parachute-drop') setParachuteViewState('form');
+        else if (activityId === 'hand-fan') setHandFanViewState('form');
+        else if (activityId === 'sound-pollution') setSoundPollutionViewState('form');
+        else if (activityId === 'earthquake') setEarthquakeViewState('form');
+        else if (activityId === 'human-performance') setHumanPerformanceViewState('form');
+        else if (activityId === 'breathing-pace') setBreathingPaceViewState('form');
+        else if (activityId === 'reaction-board') setReactionBoardViewState('form');
+      }
+    } catch (e) {}
+  }, [draftKey, activityId]);
+
   const pastResults = useResultsForActivity(team?.discriminator, activityId);
   const addResult = useActivityResultsStore((s) => s.addResult);
   const removeResult = useActivityResultsStore((s) => s.removeResult);
@@ -95,52 +155,61 @@ export default function ActivityDetail() {
   const [humanPerformanceViewState, setHumanPerformanceViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
   const [breathingPaceViewState, setBreathingPaceViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
   const [reactionBoardViewState, setReactionBoardViewState] = useState<'form' | 'menu' | 'quiz' | 'forum' | 'past-result'>('form');
+  const menuShownForTs = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    // If they open the activity and already have results, default to the menu
-    if (activityId === 'parachute-drop' && pastResults.length > 0 && parachuteViewState === 'form') {
-      const justLoaded = Object.keys(formData).length === 0;
-      if (justLoaded) {
+    if (!draftLoaded) return;
+    if (ts === menuShownForTs.current) return;
+    
+    let shouldShowMenu = false;
+    const justLoaded = Object.keys(formData).length === 0;
+
+    // If they open the activity and already have results or a draft, default to the menu
+    if (activityId === 'parachute-drop' && (pastResults.length > 0 || hasDraft) && parachuteViewState === 'form') {
+      if (justLoaded || ts) {
         setParachuteViewState('menu');
+        shouldShowMenu = true;
       }
     }
-    if (activityId === 'hand-fan' && pastResults.length > 0 && handFanViewState === 'form') {
-      const justLoaded = Object.keys(formData).length === 0;
-      if (justLoaded) {
+    if (activityId === 'hand-fan' && (pastResults.length > 0 || hasDraft) && handFanViewState === 'form') {
+      if (justLoaded || ts) {
         setHandFanViewState('menu');
+        shouldShowMenu = true;
       }
     }
-    if (activityId === 'sound-pollution' && pastResults.length > 0 && soundPollutionViewState === 'form') {
-      const justLoaded = Object.keys(formData).length === 0;
-      if (justLoaded) {
+    if (activityId === 'sound-pollution' && (pastResults.length > 0 || hasDraft) && soundPollutionViewState === 'form') {
+      if (justLoaded || ts) {
         setSoundPollutionViewState('menu');
+        shouldShowMenu = true;
       }
     }
-    if (activityId === 'earthquake' && pastResults.length > 0 && earthquakeViewState === 'form') {
-      const justLoaded = Object.keys(formData).length === 0;
-      if (justLoaded) {
+    if (activityId === 'earthquake' && (pastResults.length > 0 || hasDraft) && earthquakeViewState === 'form') {
+      if (justLoaded || ts) {
         setEarthquakeViewState('menu');
+        shouldShowMenu = true;
       }
     }
-    if (activityId === 'human-performance' && pastResults.length > 0 && humanPerformanceViewState === 'form') {
-      const justLoaded = Object.keys(formData).length === 0;
-      if (justLoaded) {
+    if (activityId === 'human-performance' && (pastResults.length > 0 || hasDraft) && humanPerformanceViewState === 'form') {
+      if (justLoaded || ts) {
         setHumanPerformanceViewState('menu');
+        shouldShowMenu = true;
       }
     }
-    if (activityId === 'breathing-pace' && pastResults.length > 0 && breathingPaceViewState === 'form') {
-      const justLoaded = Object.keys(formData).length === 0;
-      if (justLoaded) {
+    if (activityId === 'breathing-pace' && (pastResults.length > 0 || hasDraft) && breathingPaceViewState === 'form') {
+      if (justLoaded || ts) {
         setBreathingPaceViewState('menu');
+        shouldShowMenu = true;
       }
     }
-    if (activityId === 'reaction-board' && pastResults.length > 0 && reactionBoardViewState === 'form') {
-      const justLoaded = Object.keys(formData).length === 0;
-      if (justLoaded) {
+    if (activityId === 'reaction-board' && (pastResults.length > 0 || hasDraft) && reactionBoardViewState === 'form') {
+      if (justLoaded || ts) {
         setReactionBoardViewState('menu');
+        shouldShowMenu = true;
       }
     }
-  }, [activityId, pastResults.length]);
+
+    menuShownForTs.current = ts;
+  }, [activityId, pastResults.length, hasDraft, ts, draftLoaded]);
 
   const activity = activityId ? ACTIVITIES[activityId as keyof typeof ACTIVITIES] : null;
 
@@ -167,6 +236,8 @@ export default function ActivityDetail() {
 
     await addResult(result);
     setFormData({});
+    AsyncStorage.removeItem(draftKey);
+    setHasDraft(false);
     Alert.alert(t('activities.savedTitle'), t('activities.savedMsg'));
     
     if (activity.id === 'parachute-drop') {
@@ -332,8 +403,12 @@ export default function ActivityDetail() {
                     onDiscussions={() => setParachuteViewState('forum')}
                     onNewExperiment={() => {
                       setFormData({});
+                      AsyncStorage.removeItem(draftKey);
+                      setHasDraft(false);
                       setParachuteViewState('form');
                     }}
+                    hasDraft={hasDraft}
+                    onContinueDraft={handleContinueDraft}
                   />
                 )}
               </>
@@ -350,8 +425,12 @@ export default function ActivityDetail() {
                     onDiscussions={() => setHandFanViewState('forum')}
                     onNewExperiment={() => {
                       setFormData({});
+                      AsyncStorage.removeItem(draftKey);
+                      setHasDraft(false);
                       setHandFanViewState('form');
                     }}
+                    hasDraft={hasDraft}
+                    onContinueDraft={handleContinueDraft}
                   />
                 )}
               </>
@@ -368,8 +447,12 @@ export default function ActivityDetail() {
                     onDiscussions={() => setHumanPerformanceViewState('forum')}
                     onNewExperiment={() => {
                       setFormData({});
+                      AsyncStorage.removeItem(draftKey);
+                      setHasDraft(false);
                       setHumanPerformanceViewState('form');
                     }}
+                    hasDraft={hasDraft}
+                    onContinueDraft={handleContinueDraft}
                   />
                 )}
               </>
@@ -386,8 +469,12 @@ export default function ActivityDetail() {
                     onDiscussions={() => setBreathingPaceViewState('forum')}
                     onNewExperiment={() => {
                       setFormData({});
+                      AsyncStorage.removeItem(draftKey);
+                      setHasDraft(false);
                       setBreathingPaceViewState('form');
                     }}
+                    hasDraft={hasDraft}
+                    onContinueDraft={handleContinueDraft}
                   />
                 )}
               </>
@@ -440,8 +527,12 @@ export default function ActivityDetail() {
                     onDiscussions={() => setSoundPollutionViewState('forum')}
                     onNewExperiment={() => {
                       setFormData({});
+                      AsyncStorage.removeItem(draftKey);
+                      setHasDraft(false);
                       setSoundPollutionViewState('form');
                     }}
+                    hasDraft={hasDraft}
+                    onContinueDraft={handleContinueDraft}
                   />
                 )}
               </>
@@ -458,8 +549,12 @@ export default function ActivityDetail() {
                     onDiscussions={() => setEarthquakeViewState('forum')}
                     onNewExperiment={() => {
                       setFormData({});
+                      AsyncStorage.removeItem(draftKey);
+                      setHasDraft(false);
                       setEarthquakeViewState('form');
                     }}
+                    hasDraft={hasDraft}
+                    onContinueDraft={handleContinueDraft}
                   />
                 )}
               </>
@@ -476,8 +571,12 @@ export default function ActivityDetail() {
                     onDiscussions={() => setReactionBoardViewState('forum')}
                     onNewExperiment={() => {
                       setFormData({});
+                      AsyncStorage.removeItem(draftKey);
+                      setHasDraft(false);
                       setReactionBoardViewState('form');
                     }}
+                    hasDraft={hasDraft}
+                    onContinueDraft={handleContinueDraft}
                   />
                 )}
               </>
@@ -534,7 +633,7 @@ export default function ActivityDetail() {
                  <ParachuteDropPostActivity result={latestResult} onComplete={() => setParachuteViewState('forum')} />
               )}
               {parachuteViewState === 'forum' && (
-                 <ParachuteDropDiscussion />
+                 <ParachuteDropDiscussion onComplete={() => setParachuteViewState('past-result')} />
               )}
               {parachuteViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>
@@ -554,7 +653,7 @@ export default function ActivityDetail() {
                           </TouchableOpacity>
                         </View>
                       </View>
-                      <ParachuteDropResults data={result.data} />
+                      <ParachuteDropResults results={[result]} />
                     </Card>
                   ))}
                 </View>
@@ -566,7 +665,7 @@ export default function ActivityDetail() {
                  <HandFanPostActivity result={latestResult} onComplete={() => setHandFanViewState('forum')} />
               )}
               {handFanViewState === 'forum' && (
-                 <HandFanDiscussion />
+                 <HandFanDiscussion onComplete={() => setHandFanViewState('past-result')} />
               )}
               {handFanViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>
@@ -598,7 +697,7 @@ export default function ActivityDetail() {
                  <SoundPollutionPostActivity result={latestResult} onComplete={() => setSoundPollutionViewState('forum')} />
               )}
               {soundPollutionViewState === 'forum' && (
-                 <SoundPollutionDiscussion />
+                 <SoundPollutionDiscussion onComplete={() => setSoundPollutionViewState('past-result')} />
               )}
               {soundPollutionViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>
@@ -630,7 +729,7 @@ export default function ActivityDetail() {
                  <EarthquakePostActivity result={latestResult} onComplete={() => setEarthquakeViewState('forum')} />
               )}
               {earthquakeViewState === 'forum' && (
-                 <EarthquakeDiscussion />
+                 <EarthquakeDiscussion onComplete={() => setEarthquakeViewState('past-result')} />
               )}
               {earthquakeViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>
@@ -662,7 +761,7 @@ export default function ActivityDetail() {
                  <HumanPerformancePostActivity result={latestResult} onComplete={() => setHumanPerformanceViewState('forum')} />
               )}
               {humanPerformanceViewState === 'forum' && (
-                 <HumanPerformanceDiscussion />
+                 <HumanPerformanceDiscussion onComplete={() => setHumanPerformanceViewState('past-result')} />
               )}
               {humanPerformanceViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>
@@ -694,7 +793,7 @@ export default function ActivityDetail() {
                 <BreathingPacePostActivity result={latestResult} onComplete={() => setBreathingPaceViewState('forum')} />
               )}
               {breathingPaceViewState === 'forum' && (
-                <BreathingPaceDiscussion />
+                <BreathingPaceDiscussion onComplete={() => setBreathingPaceViewState('past-result')} />
               )}
               {breathingPaceViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>
@@ -726,7 +825,7 @@ export default function ActivityDetail() {
                 <ReactionBoardPostActivity result={latestResult} onComplete={() => setReactionBoardViewState('forum')} />
               )}
               {reactionBoardViewState === 'forum' && (
-                <ReactionBoardDiscussion />
+                <ReactionBoardDiscussion onComplete={() => setReactionBoardViewState('past-result')} />
               )}
               {reactionBoardViewState === 'past-result' && pastResults.length > 0 && (
                 <View style={styles.resultsSection}>

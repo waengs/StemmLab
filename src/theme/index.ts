@@ -100,8 +100,6 @@ export function createTypography(colors: ThemeColors) {
 
 export type Typography = ReturnType<typeof createTypography>;
 
-/** @deprecated Use useTheme().colors instead */
-export { lightColors as Colors } from './colors';
 
 /** Static light typography — prefer useTheme().typography for themed screens */
 export const Typography = createTypography(lightColors);

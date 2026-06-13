@@ -14,6 +14,8 @@ interface ActivityMenuDashboardProps {
   onQuiz: () => void;
   onDiscussions: () => void;
   onNewExperiment: () => void;
+  hasDraft?: boolean;
+  onContinueDraft?: () => void;
 }
 
 export function ActivityMenuDashboard({
@@ -23,6 +25,8 @@ export function ActivityMenuDashboard({
   onQuiz,
   onDiscussions,
   onNewExperiment,
+  hasDraft,
+  onContinueDraft,
 }: ActivityMenuDashboardProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -68,9 +72,18 @@ export function ActivityMenuDashboard({
         title={t('activities.menu.doAnotherExperiment')}
         onPress={onNewExperiment}
         style={styles.menuBtn}
-        icon={<Ionicons name="flask" size={18} color={colors.primary} />}
-        variant="outlined"
+        icon={<Ionicons name="flask" size={18} color={hasDraft ? colors.primary : colors.white} />}
+        variant={hasDraft ? "outlined" : "primary"}
       />
+      {hasDraft && onContinueDraft && (
+        <Button
+          title={t('activities.menu.continueExperiment', { defaultValue: 'Continue Experiment' })}
+          onPress={onContinueDraft}
+          style={styles.menuBtn}
+          icon={<Ionicons name="play" size={18} color={colors.white} />}
+          variant="primary"
+        />
+      )}
     </View>
   );
 }

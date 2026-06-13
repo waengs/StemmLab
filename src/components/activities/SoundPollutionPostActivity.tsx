@@ -1,9 +1,11 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { Spacing, BorderRadius } from '../../theme';
 import { ActivityMcqPostQuiz } from './ActivityMcqPostQuiz';
 import { ActivityDiscussionCard } from './ActivityDiscussionCard';
+import { Button } from '../ui/Button';
 import type { ActivityResult } from '../../types';
 
 interface Props {
@@ -93,11 +95,19 @@ export function SoundPollutionPostActivity({ result, onComplete }: Props) {
   );
 }
 
-export function SoundPollutionDiscussion() {
+export function SoundPollutionDiscussion({ onComplete }: { onComplete?: () => void }) {
+  const { t } = useTranslation();
   const styles = useSoundPollutionPostStyles();
   return (
     <View style={styles.container}>
       <ActivityDiscussionCard activityId="sound-pollution" styles={styles} showHighSchoolTables={false} />
+          {onComplete && (
+        <Button 
+          title={t('activities.viewResults', { defaultValue: 'View Results' })} 
+          onPress={onComplete} 
+          style={{ marginTop: 24, marginBottom: 24 }} 
+        />
+      )}
     </View>
   );
 }

@@ -145,7 +145,7 @@ function useHumanPerformanceExperimentStyles() {
   resultText: { ...typography.body, fontWeight: '700', marginBottom: Spacing.xs },
   resultSubtext: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 2 },
   actionRow: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.lg },
-  actionBtn: { flex: 1, paddingVertical: Spacing.md },
+  actionBtn: { flex: 1 },
   }));
 }
 
@@ -429,14 +429,8 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
 
               {!disabled && (
                 <View style={styles.actionRow}>
-                  <Button
-                    title={t(`${exp}.retry`)}
-                    onPress={() => { setLastResult(null); setStep('prompt'); }}
-                    variant="outlined"
-                    size="lg"
-                    style={styles.actionBtn}
-                  />
-                  <Button title={t('common.next')} onPress={handleNext} size="lg" style={styles.actionBtn} icon={<Ionicons name="arrow-forward" size={20} color={colors.white} />} />
+                  <Button title={t(`${exp}.retry`, { defaultValue: 'Ulangi' })} onPress={() => { setLastResult(null); setStep('prompt'); }} variant="outlined" size="md" style={[styles.actionBtn, { flex: 1 }]} />
+                  <Button title={t('common.next', { defaultValue: 'Next' })} onPress={handleNext} size="md" style={[styles.actionBtn, { flex: 1.5 }]} iconRight={<Ionicons name="arrow-forward" size={20} color={colors.white} />} />
                 </View>
               )}
             </View>

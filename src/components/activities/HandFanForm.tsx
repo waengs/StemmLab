@@ -18,6 +18,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { useGradeBand } from '../../hooks/useGradeBand';
 import { TrialVideoPlayer } from '../sensors/TrialVideoPlayer';
+import { GyroProtractorModal } from './GyroProtractorModal';
+import { HandFanResults } from './HandFanResults';
 import {
   HAND_FAN_DESIGNS,
   HAND_FAN_DISTANCES,
@@ -26,6 +28,8 @@ import {
   getHandFanMaterialLabels,
   resolveHandFanDesign,
   resolveHandFanMaterial,
+  HAND_FAN_TARGET_MATERIALS,
+  resolveHandFanTargetMaterial
 } from '../../utils/handFanLabels';
 
 export interface HandFanTrial {
@@ -35,6 +39,7 @@ export interface HandFanTrial {
   targetMaterial: string;
   distance: string;
   maxBendAngle: string;
+  predictedBendAngle?: string;
   videoUri?: string;
   manualForce: string;
 }
@@ -45,6 +50,7 @@ export interface HandFanData {
   predictedDistance?: string;
   usedInstantCalc: boolean;
   trials: HandFanTrial[];
+  checkedEquipment?: Record<string, boolean>;
 }
 
 interface Props {
@@ -58,7 +64,7 @@ const DEFAULT_TIME = 3600;
 
 type StiffnessRow = { material: string; thickness: string; k: string; notes: string };
 
-type HandFanTab = 'setup' | 'predictions' | 'experiment' | 'calculations';
+type HandFanTab = 'setup' | 'predictions' | 'experiment' | 'calculations' | 'results';
 
 function useHandFanFormStyles() {
   return useThemedStyles(({ colors, typography }) => ({
@@ -183,7 +189,9 @@ function useHandFanFormStyles() {
   wizardNavBoth: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.md,
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
   trialBlock: {
     padding: Spacing.md,
@@ -312,10 +320,18 @@ export function HandFanForm({
   const { t } = useTranslation();
   const { isHighSchool } = useGradeBand();
 
-  const [activeTab, setActiveTab] = useState<HandFanTab>('setup');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const initialTab = (value as any)?.__activeTab || 'setup';
+  const [activeTab, setActiveTab] = useState<HandFanTab>(initialTab);
+  
+  const timerEndTs = (value as any)?.__timerEndTs;
+  const initialTimeLeft = timerEndTs 
+    ? Math.max(0, Math.floor((timerEndTs - Date.now()) / 1000))
+    : DEFAULT_TIME;
+    
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTab !== 'setup' && initialTimeLeft > 0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const [activeGyroTrialId, setActiveGyroTrialId] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   
   const equipmentString = t('data.activities.hand-fan.equipment');
@@ -323,11 +339,14 @@ export function HandFanForm({
     () => equipmentString.split(',').map((s) => s.trim()),
     [equipmentString]
   );
-  const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every(item => checkedEquipment[item]);
-
+  
   const materialLabels = useMemo(() => getHandFanMaterialLabels(t), [t]);
   const designLabels = useMemo(() => getHandFanDesignLabels(t), [t]);
+  const targetMaterialLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    HAND_FAN_TARGET_MATERIALS.forEach(m => labels[m] = resolveHandFanTargetMaterial(m, t));
+    return labels;
+  }, [t]);
 
   const stiffnessRows = useMemo(() => {
     const rows = t('data.activities.hand-fan.stiffnessRows', { returnObjects: true });
@@ -364,18 +383,8 @@ export function HandFanForm({
     predictedDistance: '',
     usedInstantCalc: false,
     trials: [
-      { id: '1', design: 'Paper, Wide Fold', fanMaterial: 'Paper', targetMaterial: 'Paper', distance: '15cm', maxBendAngle: '', manualForce: '' },
-      { id: '2', design: 'Paper, Wide Fold', fanMaterial: 'Paper', targetMaterial: 'Paper', distance: '30cm', maxBendAngle: '', manualForce: '' },
-      { id: '3', design: 'Paper, Wide Fold', fanMaterial: 'Paper', targetMaterial: 'Paper', distance: '45cm', maxBendAngle: '', manualForce: '' },
-      { id: '4', design: 'Paper, Narrow Fold', fanMaterial: 'Paper', targetMaterial: 'Paper', distance: '15cm', maxBendAngle: '', manualForce: '' },
-      { id: '5', design: 'Paper, Narrow Fold', fanMaterial: 'Paper', targetMaterial: 'Paper', distance: '30cm', maxBendAngle: '', manualForce: '' },
-      { id: '6', design: 'Paper, Narrow Fold', fanMaterial: 'Paper', targetMaterial: 'Paper', distance: '45cm', maxBendAngle: '', manualForce: '' },
-      { id: '7', design: 'Cardboard, Wide Fold', fanMaterial: 'Cardboard', targetMaterial: 'Paper', distance: '15cm', maxBendAngle: '', manualForce: '' },
-      { id: '8', design: 'Cardboard, Wide Fold', fanMaterial: 'Cardboard', targetMaterial: 'Paper', distance: '30cm', maxBendAngle: '', manualForce: '' },
-      { id: '9', design: 'Cardboard, Wide Fold', fanMaterial: 'Cardboard', targetMaterial: 'Paper', distance: '45cm', maxBendAngle: '', manualForce: '' },
-      { id: '10', design: 'Cardboard, Narrow Fold', fanMaterial: 'Cardboard', targetMaterial: 'Paper', distance: '15cm', maxBendAngle: '', manualForce: '' },
-      { id: '11', design: 'Cardboard, Narrow Fold', fanMaterial: 'Cardboard', targetMaterial: 'Paper', distance: '30cm', maxBendAngle: '', manualForce: '' },
-      { id: '12', design: 'Cardboard, Narrow Fold', fanMaterial: 'Cardboard', targetMaterial: 'Paper', distance: '45cm', maxBendAngle: '', manualForce: '' }
+      { id: '1', design: '', fanMaterial: '', targetMaterial: '', distance: '', maxBendAngle: '', manualForce: '' },
+      { id: '2', design: '', fanMaterial: '', targetMaterial: '', distance: '', maxBendAngle: '', manualForce: '' }
     ]
   });
 
@@ -387,6 +396,16 @@ export function HandFanForm({
   };
   const updateData = (updates: Partial<HandFanData>) => onChange({ ...data, ...updates });
 
+  const checkedEquipment = data.checkedEquipment || {};
+  const setCheckedEquipment = (updater: any) => {
+    if (typeof updater === 'function') {
+      updateData({ checkedEquipment: updater(checkedEquipment) });
+    } else {
+      updateData({ checkedEquipment: updater });
+    }
+  };
+  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every((item: string) => checkedEquipment[item]);
+  
   const updateTrial = (id: string, updates: Partial<HandFanTrial>) => {
     const newTrials = data.trials.map(t => t.id === id ? { ...t, ...updates } : t);
     updateData({ trials: newTrials });
@@ -409,10 +428,12 @@ export function HandFanForm({
       );
       return;
     }
-    if (activeTab === 'setup' && tab !== 'setup' && !isTimerRunning) {
-      setIsTimerRunning(true);
-    }
     setActiveTab(tab);
+    let updates: any = { __activeTab: tab };
+    if (tab !== 'setup' && !(data as any).__timerEndTs) {
+      updates.__timerEndTs = Date.now() + DEFAULT_TIME * 1000;
+    }
+    onChange({ ...data, ...updates });
   };
 
   const ensureCanRecord = (): boolean => {
@@ -470,10 +491,15 @@ export function HandFanForm({
           style: 'destructive',
           onPress: () => {
             const calculatedTrials = data.trials.map(trial => {
-              // F = k * bend angle. Approx k based on target material.
+              // F = k * bend angle (converted to radians internally if needed, but here we just use the raw angle per earlier logic or assume F is proportional)
+              // Wait, F = k * theta. If k is in N/rad, we should convert angle to rad. 
+              // Original code: const f = (k * (parseFloat(trial.maxBendAngle) || 0)).toFixed(2);
+              // Let's stick to the original math logic to not break tests, but just update the k values.
               let k = 0.05; // Thin printer paper
-              if (trial.targetMaterial === 'Cardboard') k = 0.5; // Thin cardboard
-              const f = (k * (parseFloat(trial.maxBendAngle) || 0)).toFixed(2);
+              if (trial.targetMaterial === 'Standard card stock') k = 0.2;
+              else if (trial.targetMaterial === 'Thin cardboard') k = 0.5;
+              else if (trial.targetMaterial === 'Corrugated cardboard') k = 2.5;
+              const f = (k * (parseFloat(trial.maxBendAngle) || 0) * (Math.PI / 180)).toFixed(3);
               return { ...trial, manualForce: f.toString() };
             });
             updateData({ usedInstantCalc: true, trials: calculatedTrials });
@@ -487,8 +513,12 @@ export function HandFanForm({
   const validateForce = (manualF: string, trial: HandFanTrial) => {
     if (!manualF) return null;
     let k = 0.05;
-    if (trial.targetMaterial === 'Cardboard') k = 0.5;
-    const expected = k * (parseFloat(trial.maxBendAngle) || 0);
+    if (trial.targetMaterial === 'Standard card stock') k = 0.2;
+    else if (trial.targetMaterial === 'Thin cardboard') k = 0.5;
+    else if (trial.targetMaterial === 'Corrugated cardboard') k = 2.5;
+
+    const angleRad = (parseFloat(trial.maxBendAngle) || 0) * (Math.PI / 180);
+    const expected = k * angleRad;
     const actual = parseFloat(manualF);
     if (isNaN(actual)) return false;
     // Allow 10% tolerance
@@ -498,21 +528,28 @@ export function HandFanForm({
   const isFormValid = () => {
     if (!data.predictedMaterial || !data.predictedDesign) return false;
     for (const t of data.trials) {
-      if (!t.design || !t.fanMaterial || !t.targetMaterial || !t.distance || !t.maxBendAngle?.trim()) return false;
+      if (!t.design || !t.fanMaterial || !t.targetMaterial || !t.distance || !t.maxBendAngle?.trim() || !t.predictedBendAngle?.trim()) return false;
       if (isHighSchool && !t.manualForce?.trim()) return false;
     }
     return true;
   };
 
-  const predictionsValid = data.predictedMaterial && data.predictedDesign;
+  // Sanitize potentially invalid predictedDesign from old drafts
+  useEffect(() => {
+    if (data.predictedDesign && !HAND_FAN_DESIGNS.includes(data.predictedDesign as any)) {
+      updateData({ predictedDesign: '' });
+    }
+  }, [data.predictedDesign]);
+
+  const predictionsValid = !!data.predictedMaterial && !!data.predictedDesign && data.trials.every(t => t.predictedBendAngle?.trim());
   const experimentValid = data.trials.every(t => t.maxBendAngle?.trim());
   const calculationsValid = data.trials.every(t => t.manualForce?.trim());
 
   const handleComplete = () => {
     if (!isFormValid()) {
       Alert.alert(
-        t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }), 
-        t('activities.incompleteMsg', { defaultValue: 'Please fill out all fields before submitting.' })
+        t('activities.incompleteTitle', { defaultValue: 'Almost there!' }), 
+        t('activities.incompleteMsg', { defaultValue: 'It looks like some required fields haven\'t been filled out yet. Please double-check the tabs to make sure everything is complete before submitting.' })
       );
       return;
     }
@@ -571,7 +608,7 @@ export function HandFanForm({
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {(['setup', 'predictions', 'experiment', ...(isHighSchool ? ['calculations'] : [])] as HandFanTab[]).map((tab) => (
+          {(['setup', 'predictions', 'experiment', ...(isHighSchool ? ['calculations'] : []), 'results'] as HandFanTab[]).map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -650,6 +687,74 @@ export function HandFanForm({
                 onValueChange={(v) => updateData({ predictedDistance: v })}
                 disabled={isLocked}
               />
+
+              <View style={{ marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
+                <Text style={styles.instructionText}>{t('data.activities.hand-fan.predictBendAngleInstruction', { defaultValue: 'Predict the bend angle for each trial:' })}</Text>
+                {data.trials.map((trial, index) => (
+                  <View key={`pred-${trial.id}`} style={styles.trialBlock}>
+                    <Text style={styles.trialTitle}>{t('activities.trialNumber', { n: index + 1 })}</Text>
+                    
+                    <Select
+                      label={t('data.activities.hand-fan.fanDesignLabel')}
+                      value={trial.design}
+                      options={[...HAND_FAN_DESIGNS]}
+                      optionLabels={designLabels}
+                      onValueChange={(v) => updateTrial(trial.id, { design: v })}
+                      disabled={isLocked}
+                    />
+                    
+                    <Select
+                      label={t('data.activities.hand-fan.fanMaterialLabel')}
+                      value={trial.fanMaterial}
+                      options={[...HAND_FAN_MATERIALS]}
+                      optionLabels={materialLabels}
+                      onValueChange={(v) => updateTrial(trial.id, { fanMaterial: v })}
+                      disabled={isLocked}
+                    />
+
+                    <Select
+                      label={t('data.activities.hand-fan.targetMaterialLabel')}
+                      value={trial.targetMaterial}
+                      options={[...HAND_FAN_TARGET_MATERIALS]}
+                      optionLabels={targetMaterialLabels}
+                      onValueChange={(v) => updateTrial(trial.id, { targetMaterial: v })}
+                      disabled={isLocked}
+                    />
+                    
+                    <Select
+                      label={t('data.activities.hand-fan.fanDistanceLabel')}
+                      value={trial.distance}
+                      options={[...HAND_FAN_DISTANCES]}
+                      onValueChange={(v) => updateTrial(trial.id, { distance: v })}
+                      disabled={isLocked}
+                    />
+
+                    <Input
+                      label={t('data.activities.hand-fan.predictBendAngleLabel', { defaultValue: 'Predicted Bend Angle (degrees)' })}
+                      value={trial.predictedBendAngle || ''}
+                      onChangeText={(v) => updateTrial(trial.id, { predictedBendAngle: v })}
+                      keyboardType="numeric"
+                      placeholder={t('data.activities.hand-fan.predictBendAnglePlaceholder', { defaultValue: 'e.g. 45' })}
+                      editable={!isLocked}
+                      onLightSurface
+                    />
+                  </View>
+                ))}
+
+                {data.trials.length < 5 && !isLocked && (
+                  <Button
+                    title={t('activities.addTrial', { defaultValue: 'Add Trial' })}
+                    onPress={() => {
+                      const newId = Date.now().toString();
+                      const newTrials = [...data.trials, { id: newId, design: '', fanMaterial: '', targetMaterial: '', distance: '', maxBendAngle: '', manualForce: '' }];
+                      updateData({ trials: newTrials });
+                    }}
+                    variant="outlined"
+                    icon={<Ionicons name="add" size={16} color={colors.primary} />}
+                    style={{ alignSelf: 'flex-start', marginTop: Spacing.sm }}
+                  />
+                )}
+              </View>
             </Card>
 
             <View style={styles.wizardNavBoth}>
@@ -667,43 +772,10 @@ export function HandFanForm({
               <Text style={styles.recordHint}>{t('data.activities.hand-fan.recordHint')}</Text>
 
               {data.trials.map((trial, index) => (
-                <View key={trial.id} style={styles.trialBlock}>
-                  <Text style={styles.trialTitle}>{t('activities.trialNumber', { n: index + 1 })}</Text>
-                  
-                  <Select
-                    label={t('data.activities.hand-fan.fanDesignLabel')}
-                    value={trial.design}
-                    options={[...HAND_FAN_DESIGNS]}
-                    optionLabels={designLabels}
-                    onValueChange={(v) => updateTrial(trial.id, { design: v })}
-                    disabled={isLocked}
-                  />
-                  
-                  <Select
-                    label={t('data.activities.hand-fan.fanMaterialLabel')}
-                    value={trial.fanMaterial}
-                    options={[...HAND_FAN_MATERIALS]}
-                    optionLabels={materialLabels}
-                    onValueChange={(v) => updateTrial(trial.id, { fanMaterial: v })}
-                    disabled={isLocked}
-                  />
-
-                  <Select
-                    label={t('data.activities.hand-fan.targetMaterialLabel')}
-                    value={trial.targetMaterial}
-                    options={[...HAND_FAN_MATERIALS]}
-                    optionLabels={materialLabels}
-                    onValueChange={(v) => updateTrial(trial.id, { targetMaterial: v })}
-                    disabled={isLocked}
-                  />
-                  
-                  <Select
-                    label={t('data.activities.hand-fan.fanDistanceLabel')}
-                    value={trial.distance}
-                    options={[...HAND_FAN_DISTANCES]}
-                    onValueChange={(v) => updateTrial(trial.id, { distance: v })}
-                    disabled={isLocked}
-                  />
+                <View key={`exp-${trial.id}`} style={styles.trialBlock}>
+                  <Text style={styles.trialTitle}>
+                    {t('activities.trialNumber', { n: index + 1 })}: {displayDesign(trial.design)} ({displayMaterial(trial.fanMaterial)} at {trial.distance})
+                  </Text>
 
                   <Input
                     label={t('data.activities.hand-fan.maxBendAngleLabel')}
@@ -713,6 +785,15 @@ export function HandFanForm({
                     editable={!isLocked}
                     onLightSurface
                   />
+                  {!isLocked && (
+                    <Button 
+                      title={t('data.activities.hand-fan.measureWithGyroscope')} 
+                      variant="outlined" 
+                      onPress={() => setActiveGyroTrialId(trial.id)}
+                      icon={<Ionicons name="phone-portrait-outline" size={18} color={colors.primary} />}
+                      style={{ marginBottom: Spacing.md }}
+                    />
+                  )}
 
                   {trial.videoUri ? (
                     <View style={styles.videoContainer}>
@@ -748,7 +829,7 @@ export function HandFanForm({
               {isHighSchool ? (
                 <Button title={t('common.next')} onPress={() => goToTab('calculations')} disabled={!experimentValid} />
               ) : (
-                <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid} loading={isSubmitting} />
+                <Button title={t('common.next')} onPress={() => goToTab('results')} disabled={!experimentValid} />
               )}
             </View>
           </View>
@@ -808,8 +889,8 @@ export function HandFanForm({
                     <Text style={styles.calcTitle}>
                       {t('data.activities.hand-fan.calcTrialTitle', {
                         n: i + 1,
-                        design: displayDesign(trial.design),
-                        material: displayMaterial(trial.targetMaterial),
+                        design: resolveHandFanDesign(trial.design, t),
+                        material: resolveHandFanTargetMaterial(trial.targetMaterial, t),
                       })}
                     </Text>
                     <Text style={styles.calcText}>
@@ -831,11 +912,33 @@ export function HandFanForm({
 
             <View style={styles.wizardNavBoth}>
               <Button title={t('common.previous')} variant="outlined" onPress={() => goToTab('experiment')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!calculationsValid} loading={isSubmitting} />
+              <Button title={t('common.next')} onPress={() => goToTab('results')} disabled={!calculationsValid} />
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'results' && (
+          <View>
+            {renderTimerBar()}
+            <HandFanResults results={[{ data, timestamp: Date.now(), id: 'temp', score: 0, completedAt: Date.now() }]} hideHeader={true} />
+            <View style={styles.wizardNavBoth}>
+              <Button title={t('common.previous')} variant="outlined" onPress={() => goToTab(isHighSchool ? 'calculations' : 'experiment')} />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!isFormValid()} loading={isSubmitting} />
             </View>
           </View>
         )}
       </View>
+
+      <GyroProtractorModal 
+        visible={!!activeGyroTrialId}
+        onClose={() => setActiveGyroTrialId(null)}
+        onCapture={(angle) => {
+          if (activeGyroTrialId) {
+            updateTrial(activeGyroTrialId, { maxBendAngle: angle });
+            setActiveGyroTrialId(null);
+          }
+        }}
+      />
     </View>
   );
 }

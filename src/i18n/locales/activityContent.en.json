@@ -23,8 +23,8 @@
     "continueDiscussion": "Continue to Discussion",
     "retakeQuiz": "Retake Quiz",
     "quizScore": "You scored {{score}} out of {{total}}!",
-    "quizIncomplete": "Please answer all multiple choice and reflection questions before submitting.",
-    "quizIncompleteReflection": "Please answer all reflection questions before continuing.",
+    "quizIncomplete": "Oops, you missed a spot! Make sure to answer all the quiz and reflection questions before submitting your brilliant work.",
+    "quizIncompleteReflection": "Don't forget your reflection! Write down your thoughts before continuing.",
     "reflectionHeading": "Reflection questions",
     "answerPlaceholder": "Write your answer…",
     "discussionTitle": "Discussion",
@@ -742,6 +742,26 @@
             "Remove all sound"
           ],
           "answerIndex": 0
+        },
+        {
+          "question": "What should you do during an earthquake?",
+          "options": [
+            "Run outside",
+            "Hide under a sturdy table",
+            "Stand near windows",
+            "Go to the roof"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "Which building design is safest during an earthquake?",
+          "options": [
+            "Tall and narrow",
+            "Wide and flexible",
+            "Made of glass",
+            "Top-heavy"
+          ],
+          "answerIndex": 1
         }
       ],
       "highSchool": [
@@ -774,6 +794,26 @@
             "Using weaker materials"
           ],
           "answerIndex": 1
+        },
+        {
+          "question": "What causes tectonic plates to move and create earthquakes?",
+          "options": [
+            "Wind currents",
+            "Convection currents in the mantle",
+            "Lunar gravity",
+            "Ocean tides"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "What is the primary purpose of cross-bracing in earthquake-resistant structures?",
+          "options": [
+            "To make the building taller",
+            "To increase building weight",
+            "To absorb and distribute seismic forces",
+            "To improve the building's aesthetics"
+          ],
+          "answerIndex": 2
         }
       ]
     },
@@ -808,6 +848,26 @@
             "Cover your eyes only"
           ],
           "answerIndex": 0
+        },
+        {
+          "question": "What is a good way to reduce sound pollution?",
+          "options": [
+            "Yelling louder",
+            "Planting more trees",
+            "Honking car horns",
+            "Turning up the TV"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "Which of these sounds is most likely to hurt your ears?",
+          "options": [
+            "Whispering",
+            "Leaves rustling",
+            "An airplane taking off",
+            "A cat purring"
+          ],
+          "answerIndex": 2
         }
       ],
       "highSchool": [
@@ -840,6 +900,26 @@
             "Temporary ringing"
           ],
           "answerIndex": 2
+        },
+        {
+          "question": "How does prolonged exposure to high decibel levels (above 85 dB) affect human health?",
+          "options": [
+            "It improves hearing sensitivity",
+            "It can lead to noise-induced hearing loss",
+            "It has no long-term effects",
+            "It strengthens the eardrum"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "Which of the following is an effective urban planning strategy to mitigate sound pollution?",
+          "options": [
+            "Removing all vegetation",
+            "Building acoustic barriers and green belts",
+            "Increasing traffic speed limits",
+            "Using more reflective building materials"
+          ],
+          "answerIndex": 1
         }
       ]
     }
@@ -940,9 +1020,38 @@
           {
             "heading": "Material Stiffness & Plasticity",
             "body": "The force required to bend an object depends on its stiffness. When the paper bends and returns to its original shape, it is behaving elastically. If it bends too far and stays bent, it has been stressed too much. Repeated bending can weaken the paper."
+          },
+          {
+            "heading": "Estimating Force",
+            "body": "You can approximate the aerodynamic force applied to the paper using the formula F ≈ k · θ, where F is the applied force in Newtons, θ is the bend angle in radians, and k is the stiffness coefficient. This allows you to rank forces by stiffness and bend angle without exact units."
           }
         ],
         "tables": [
+          {
+            "title": "Approximate Stiffness Coefficients (k)",
+            "headers": [
+              "Material",
+              "Stiffness k (N/rad)"
+            ],
+            "rows": [
+              [
+                "Thin printer paper (0.1mm)",
+                "0.05"
+              ],
+              [
+                "Standard card stock (0.25mm)",
+                "0.2"
+              ],
+              [
+                "Thin cardboard (0.5mm)",
+                "0.5"
+              ],
+              [
+                "Corrugated cardboard (3mm)",
+                "2–3"
+              ]
+            ]
+          },
           {
             "title": "Key Factors Influencing Airflow Force",
             "headers": [

@@ -138,7 +138,7 @@ export function LocationSensorPanel({
         <Text style={styles.hint}>{t('sensors.locationPermissionHint')}</Text>
         <Button
           title={t('sensors.locationGrantPermission')}
-          onPress={requestPermission}
+          onPress={() => { void requestPermission(); }}
           size="lg"
           fullWidth
           icon={<Ionicons name="location" size={20} color={colors.white} />}

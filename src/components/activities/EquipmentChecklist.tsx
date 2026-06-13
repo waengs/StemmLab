@@ -81,7 +81,7 @@ export function EquipmentChecklist({
           <View style={[styles.checkbox, checkedEquipment[item] && styles.checkboxChecked]}>
             {checkedEquipment[item] && <Ionicons name="checkmark" size={16} color={colors.white} />}
           </View>
-          <Text style={styles.checklistText}>{item}</Text>
+          <Text style={styles.checklistText}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
         </TouchableOpacity>
       ))}
     </View>

@@ -27,7 +27,7 @@ export default function Dashboard() {
   const openActivity = useCallback(
     (activityId: string) => {
       setCompletedModalVisible(false);
-      router.push(`/(tabs)/activities/${activityId}`);
+      router.push(`/(tabs)/activities/${activityId}?ts=${Date.now()}`);
     },
     [router]
   );

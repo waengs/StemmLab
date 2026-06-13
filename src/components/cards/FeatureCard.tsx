@@ -30,12 +30,12 @@ export function FeatureCard({ title, description, icon, iconColor, chipLabel, on
       <Text style={[typography.caption, styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
         {description}
       </Text>
-      {chipLabel ? (
-        <View style={styles.chips}>
-          <Chip label={chipLabel} size="sm" color={iconColor} />
-        </View>
-      ) : null}
-      <View style={styles.arrow}>
+      <View style={styles.footer}>
+        {chipLabel ? (
+          <View style={styles.chips}>
+            <Chip label={chipLabel} size="sm" color={iconColor} />
+          </View>
+        ) : <View style={{ flex: 1 }} />}
         <Ionicons name="arrow-forward-circle" size={22} color={iconColor} />
       </View>
     </Card>
@@ -43,9 +43,9 @@ export function FeatureCard({ title, description, icon, iconColor, chipLabel, on
 }
 
 const styles = StyleSheet.create({
-  card: { justifyContent: 'flex-start', position: 'relative' },
+  card: { justifyContent: 'space-between', flex: 1 },
   title: { marginTop: Spacing.md, marginBottom: Spacing.xs },
-  description: { flex: 1, paddingRight: Spacing.lg },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm },
-  arrow: { position: 'absolute', right: Spacing.lg, bottom: Spacing.lg },
+  description: { flex: 1, marginBottom: Spacing.md },
+  footer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 'auto' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, flex: 1, paddingRight: Spacing.sm },
 });

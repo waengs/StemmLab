@@ -1,7 +1,6 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
-import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import '../src/i18n';
 import { StoreHydrator } from '../src/components/StoreHydrator';
@@ -40,27 +39,12 @@ function RootNavigator() {
 
   const canUseApp = Boolean(user && team && !needsTeam);
 
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    const inTabsGroup = segments[0] === '(tabs)';
-
-    if (canUseApp && !inTabsGroup) {
-      router.replace('/(tabs)');
-    } else if (!canUseApp && inTabsGroup) {
-      router.replace('/');
-    }
-  }, [isHydrated, canUseApp, segments[0], router]);
-
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="index" redirect={canUseApp} />
+        <Stack.Screen name="(tabs)" redirect={!canUseApp} />
       </Stack>
     </>
   );

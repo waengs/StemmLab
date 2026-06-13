@@ -41,6 +41,7 @@ export interface BreathingTrial {
 export interface BreathingPaceData {
   predictedMostMovement: string;
   trials: BreathingTrial[];
+  checkedEquipment?: Record<string, boolean>;
 }
 
 interface Props {
@@ -54,8 +55,8 @@ const DEFAULT_TIME = 1800;
 
 const CONDITIONS: { id: BreathingConditionId; label: string }[] = [
   { id: 'atRest', label: 'Breathing at Rest' },
-  { id: 'afterJog', label: 'After Jog' },
-  { id: 'afterStarJump', label: 'After Star Jumps' },
+  { id: 'afterJog', label: 'Jog one minute on the spot' },
+  { id: 'afterStarJump', label: '100 star jumps' },
 ];
 
 function getInitialTrials(): BreathingTrial[] {
@@ -124,7 +125,7 @@ function useBreathingPaceFormStyles() {
   checklistText: { ...typography.body, flex: 1 },
   instructionText: { ...typography.body, marginBottom: Spacing.sm },
   illustration: { width: '100%', height: 200, marginTop: Spacing.md, borderRadius: BorderRadius.md },
-  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
+  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.md, marginTop: Spacing.md },
   tableRowHeader: {
     flexDirection: 'row',
     backgroundColor: colors.background,
@@ -172,9 +173,30 @@ export function BreathingPaceForm({
 
   const { t } = useTranslation();
 
-  const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment' | 'results'>('setup');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  const getPredictionLabel = (val: string | undefined) => {
+    if (!val) return '';
+    if (val === 'Jog one minute on the spot') return t('data.activities.breathing-pace.jogOnSpot', { defaultValue: 'Jog one minute on the spot' });
+    if (val === '100 star jumps') return t('data.activities.breathing-pace.starJumps', { defaultValue: '100 star jumps' });
+    return val;
+  };
+
+  const getTrialLabel = (id: string, defaultLabel: string) => {
+    if (id === 'atRest') return t('data.activities.breathing-pace.experiment.atRestLabel', { defaultValue: 'Breathing at Rest' });
+    if (id === 'afterJog') return t('data.activities.breathing-pace.experiment.afterJogLabel', { defaultValue: 'After Jog' });
+    if (id === 'afterStarJump') return t('data.activities.breathing-pace.experiment.afterStarJumpLabel', { defaultValue: 'After Star Jumps' });
+    return t(defaultLabel, { defaultValue: defaultLabel });
+  };
+  const initialTab = (value as any)?.__activeTab || 'setup';
+  const [activeTab, setActiveTabState] = useState<'setup' | 'predictions' | 'experiment' | 'results'>(initialTab);
+  
+  const timerEndTs = (value as any)?.__timerEndTs;
+  const initialTimeLeft = timerEndTs 
+    ? Math.max(0, Math.floor((timerEndTs - Date.now()) / 1000))
+    : DEFAULT_TIME;
+    
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTab !== 'setup' && initialTimeLeft > 0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
 
@@ -182,9 +204,7 @@ export function BreathingPaceForm({
     t('data.activities.breathing-pace.equipmentPhone', { defaultValue: 'Mobile phone with Stemm Lab app' }),
     t('data.activities.breathing-pace.equipmentMat', { defaultValue: 'Flat surface or mat' }),
   ];
-  const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-  const allEquipmentChecked = equipmentList.every((item) => checkedEquipment[item]);
-
+  
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning && timeLeft > 0) {
@@ -211,7 +231,26 @@ export function BreathingPaceForm({
   };
 
   const updateData = (updates: Partial<BreathingPaceData>) => {
-    if (isLocked) return;
+      if (isLocked) return;
+    onChange({ ...data, ...updates });
+  };
+
+  const checkedEquipment = data.checkedEquipment || {};
+  const setCheckedEquipment = (updater: any) => {
+    if (typeof updater === 'function') {
+      updateData({ checkedEquipment: updater(checkedEquipment) });
+    } else {
+      updateData({ checkedEquipment: updater });
+    }
+  };
+  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every((item: string) => checkedEquipment[item]);
+
+  const setActiveTab = (tab: 'setup' | 'predictions' | 'experiment' | 'results') => {
+    setActiveTabState(tab);
+    let updates: any = { __activeTab: tab };
+    if (tab !== 'setup' && !(data as any).__timerEndTs) {
+      updates.__timerEndTs = Date.now() + DEFAULT_TIME * 1000;
+    }
     onChange({ ...data, ...updates });
   };
 
@@ -233,8 +272,8 @@ export function BreathingPaceForm({
   const handleComplete = () => {
     if (!isFormValid()) {
       Alert.alert(
-        t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }),
-        t('activities.incompleteMsg', { defaultValue: 'Please fill out all fields before submitting.' })
+        t('activities.incompleteTitle', { defaultValue: 'Almost there!' }),
+        t('activities.incompleteMsg', { defaultValue: 'It looks like some required fields haven\'t been filled out yet. Please double-check the tabs to make sure everything is complete before submitting.' })
       );
       return;
     }
@@ -379,7 +418,10 @@ export function BreathingPaceForm({
                   defaultValue: 'Predict which exercise makes the phone move the most on your chest',
                 })}
                 value={data.predictedMostMovement}
-                options={['After Jog', 'After Star Jumps']}
+                options={[
+                  t('data.activities.breathing-pace.jogOnSpot', { defaultValue: 'Jog one minute on the spot' }), 
+                  t('data.activities.breathing-pace.starJumps', { defaultValue: '100 star jumps' })
+                ]}
                 onValueChange={(v) => updateData({ predictedMostMovement: v })}
                 disabled={isLocked}
               />
@@ -391,7 +433,7 @@ export function BreathingPaceForm({
               {data.trials.map((trial) => (
                 <Input
                   key={trial.id}
-                  label={trial.label}
+                  label={getTrialLabel(trial.id, trial.label)}
                   value={trial.predictedBpm}
                   onChangeText={(v) => updateTrial(trial.id, { predictedBpm: v })}
                   keyboardType="numeric"
@@ -435,42 +477,49 @@ export function BreathingPaceForm({
               </Text>
 
               <View style={styles.tableRowHeader}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>Condition</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Pred. BPM</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Actual BPM</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>Movement</Text>
+                <Text style={[styles.tableCell, { flex: 2, fontWeight: '700' }]}>{t('common.condition', { defaultValue: 'Condition' })}</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', fontWeight: '700' }]}>{t('data.activities.breathing-pace.predBpm', { defaultValue: 'Pred. BPM' })}</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', fontWeight: '700' }]}>{t('data.activities.breathing-pace.actualBpm', { defaultValue: 'Actual BPM' })}</Text>
+                <Text style={[styles.tableCell, { flex: 0.8, textAlign: 'center', fontWeight: '700' }]}>{t('activities.difference', { defaultValue: 'Diff' })}</Text>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', fontWeight: '700' }]}>{t('data.activities.breathing-pace.movement', { defaultValue: 'Movement' })}</Text>
               </View>
 
-              {data.trials.map((trial) => (
-                <View key={trial.id} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{trial.label}</Text>
-                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.predictedBpm || '—'}</Text>
-                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.breathsPerMinute || '—'}</Text>
-                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.movementAvg ? `${trial.movementAvg} cm` : '—'}</Text>
-                </View>
-              ))}
+              {data.trials.map((trial) => {
+                const pred = parseFloat(trial.predictedBpm || '');
+                const act = parseFloat(trial.breathsPerMinute || '');
+                const diff = !isNaN(pred) && !isNaN(act) ? Math.abs(pred - act).toFixed(1) : '—';
+                return (
+                  <View key={trial.id} style={styles.tableRow}>
+                    <Text style={[styles.tableCell, { flex: 2 }]}>{getTrialLabel(trial.id, trial.label)}</Text>
+                    <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.predictedBpm || '—'}</Text>
+                    <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.breathsPerMinute || '—'}</Text>
+                    <Text style={[styles.tableCell, { flex: 0.8, textAlign: 'center', color: diff !== '—' && parseFloat(diff) > 5 ? colors.danger : colors.textSecondary }]}>{diff}</Text>
+                    <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{trial.movementAvg ? `${trial.movementAvg} cm` : '—'}</Text>
+                  </View>
+                );
+              })}
 
               {movementWinner && data.predictedMostMovement && (
                 <View style={styles.predictionCheck}>
-                  <Text style={styles.predictionCheckTitle}>Most chest movement:</Text>
-                  <Text style={styles.predictionCheckText}>You predicted: {data.predictedMostMovement}</Text>
+                  <Text style={styles.predictionCheckTitle}>{t('data.activities.breathing-pace.mostChestMovement', { defaultValue: 'Most chest movement:' })}</Text>
+                  <Text style={styles.predictionCheckText}>{t('data.activities.breathing-pace.youPredicted', { defaultValue: 'You predicted:' })} {getPredictionLabel(data.predictedMostMovement)}</Text>
                   <Text style={styles.predictionCheckText}>
-                    Highest movement: {CONDITIONS.find((condition) => condition.id === movementWinner.id)?.label} ({movementWinner.avg.toFixed(1)} cm avg)
+                    {t('data.activities.breathing-pace.highestMovement', { defaultValue: 'Highest movement:' })} {getTrialLabel(movementWinner.id, CONDITIONS.find((condition) => condition.id === movementWinner.id)?.label || '')} ({movementWinner.avg.toFixed(1)} cm avg)
                   </Text>
                   <Text style={styles.predictionResultText}>
-                    {data.predictedMostMovement === CONDITIONS.find((condition) => condition.id === movementWinner.id)?.label
-                      ? 'Your movement prediction matched the results.'
-                      : 'Your movement prediction differed from the results.'}
+                    {getPredictionLabel(data.predictedMostMovement) === getTrialLabel(movementWinner.id, CONDITIONS.find((condition) => condition.id === movementWinner.id)?.label || '')
+                      ? t('data.activities.breathing-pace.movementMatch', { defaultValue: 'Your movement prediction matched the results.' })
+                      : t('data.activities.breathing-pace.movementDiffers', { defaultValue: 'Your movement prediction differed from the results.' })}
                   </Text>
                 </View>
               )}
 
-              <Text style={styles.subSectionTitle}>Outcome details</Text>
+              <Text style={styles.subSectionTitle}>{t('data.activities.breathing-pace.outcomeDetails', { defaultValue: 'Outcome details' })}</Text>
               {data.trials.map((trial) => (
                 <View key={`${trial.id}-detail`} style={styles.detailBlock}>
-                  <Text style={styles.detailTitle}>{trial.label}</Text>
+                  <Text style={styles.detailTitle}>{getTrialLabel(trial.id, trial.label)}</Text>
                   <Text style={styles.detailText}>
-                    {trial.recordingDuration || '60'}s recording | {trial.breathsPerMinute || '—'} breaths/min | movement {trial.movementAvg || '—'} cm avg, {trial.movementPeak || '—'} cm peak
+                    {t('data.activities.breathing-pace.detailFormat', { duration: trial.recordingDuration || '60', bpm: trial.breathsPerMinute || '—', avg: trial.movementAvg || '—', peak: trial.movementPeak || '—', defaultValue: `${trial.recordingDuration || '60'}s recording | ${trial.breathsPerMinute || '—'} breaths/min | movement ${trial.movementAvg || '—'} cm avg, ${trial.movementPeak || '—'} cm peak` })}
                   </Text>
                   <Input
                     label={t('common.notes')}

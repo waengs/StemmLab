@@ -52,6 +52,7 @@ export interface HumanPerformanceData {
   predictedHardestMovement: string;
   usedInstantCalc: boolean;
   trials: MovementTrial[];
+  checkedEquipment?: Record<string, boolean>;
 }
 
 interface Props {
@@ -66,7 +67,7 @@ const DEFAULT_TIME = 1800; // 30 minutes
 function getInitialTrials(t: (key: string) => string): MovementTrial[] {
   return MOVEMENT_IDS.map((id) => ({
     id,
-    label: getMovementLabel(id, t),
+    label: getMovementLabel(id, t as any),
     predictedVibration: '',
     vibrationAvg: '',
     vibrationAvgWithFeedback: '',
@@ -130,7 +131,7 @@ function useHumanPerformanceFormStyles() {
   checklistText: { ...typography.body, flex: 1 },
   instructionText: { ...typography.body, marginBottom: Spacing.sm },
   illustration: { width: '100%', height: 200, marginTop: Spacing.md, borderRadius: BorderRadius.md },
-  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
+  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.md, marginTop: Spacing.md },
   hintText: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: Spacing.lg },
   tableRowHeader: {
     flexDirection: 'row',
@@ -190,9 +191,16 @@ export function HumanPerformanceForm({
     team?.gradeLevel === 'Lower High School (Grades 7–9)' ||
     (team?.gradeLevel?.includes('High') && !team?.gradeLevel?.includes('Upper'));
 
-  const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment' | 'results' | 'calculations'>('setup');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const initialTab = (value as any)?.__activeTab || 'setup';
+  const [activeTab, setActiveTabState] = useState<'setup' | 'predictions' | 'experiment' | 'results' | 'calculations'>(initialTab);
+  
+  const timerEndTs = (value as any)?.__timerEndTs;
+  const initialTimeLeft = timerEndTs 
+    ? Math.max(0, Math.floor((timerEndTs - Date.now()) / 1000))
+    : DEFAULT_TIME;
+    
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTab !== 'setup' && initialTimeLeft > 0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
 
@@ -203,9 +211,7 @@ export function HumanPerformanceForm({
     ],
     [t]
   );
-  const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-  const allEquipmentChecked = equipmentList.every((item) => checkedEquipment[item]);
-
+  
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning && timeLeft > 0) {
@@ -237,12 +243,34 @@ export function HumanPerformanceForm({
     return id ?? data.predictedHardestMovement;
   }, [data.predictedHardestMovement, t]);
 
-  const movementOptionLabels = useMemo(
-    () => MOVEMENT_IDS.map((id) => getMovementLabel(id, t)),
-    [t]
-  );
+  const movementOptionLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    MOVEMENT_IDS.forEach((id) => {
+      labels[id] = getMovementLabel(id, t);
+    });
+    return labels;
+  }, [t]);
 
   const updateData = (updates: Partial<HumanPerformanceData>) => onChange({ ...data, ...updates });
+
+  const checkedEquipment = data.checkedEquipment || {};
+  const setCheckedEquipment = (updater: any) => {
+    if (typeof updater === 'function') {
+      updateData({ checkedEquipment: updater(checkedEquipment) });
+    } else {
+      updateData({ checkedEquipment: updater });
+    }
+  };
+  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every((item: string) => checkedEquipment[item]);
+  
+  const setActiveTab = (tab: 'setup' | 'predictions' | 'experiment' | 'results' | 'calculations') => {
+    setActiveTabState(tab);
+    let updates: any = { __activeTab: tab };
+    if (tab !== 'setup' && !(data as any).__timerEndTs) {
+      updates.__timerEndTs = Date.now() + DEFAULT_TIME * 1000;
+    }
+    onChange({ ...data, ...updates });
+  };
 
   const updateTrial = (id: MovementId, updates: Partial<MovementTrial>) => {
     const newTrials = data.trials.map((trial) => (trial.id === id ? { ...trial, ...updates } : trial));
@@ -301,8 +329,8 @@ export function HumanPerformanceForm({
   const handleComplete = () => {
     if (!isFormValid()) {
       Alert.alert(
-        t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }),
-        t('activities.incompleteMsg', { defaultValue: 'Please fill out all fields before submitting.' })
+        t('activities.incompleteTitle', { defaultValue: 'Almost there!' }),
+        t('activities.incompleteMsg', { defaultValue: 'It looks like some required fields haven\'t been filled out yet. Please double-check the tabs to make sure everything is complete before submitting.' })
       );
       return;
     }
@@ -388,7 +416,7 @@ export function HumanPerformanceForm({
                   Alert.alert(t('activities.timerRequiredTitle'), t('activities.timerRequiredMsg'));
                   return;
                 }
-                setActiveTab(tab);
+                setActiveTab(tab as any);
               }}
               disabled={!isTimerRunning && activeTab !== tab}
             >

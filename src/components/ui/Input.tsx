@@ -102,7 +102,7 @@ export function Input({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>}
       {isPasswordField ? (
         <View style={[styles.inputRow, error && styles.inputRowError]}>
           {inputElement}

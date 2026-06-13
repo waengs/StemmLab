@@ -1,7 +1,8 @@
 import type { TFunction } from 'i18next';
 
 /** Resolve stored trial label (any locale) to the current UI language. */
-export function resolveParachuteTrialLabel(label: string, t: TFunction): string {
+export function resolveParachuteTrialLabel(label: string | undefined, t: TFunction): string {
+  if (!label) return '';
   const baselineEn = 'Baseline (No Parachute)';
   const baselineIdPrefix = 'Dasar';
   if (label === baselineEn || label.startsWith(baselineIdPrefix)) {
@@ -21,7 +22,8 @@ export function resolveParachuteTrialLabel(label: string, t: TFunction): string 
   return label;
 }
 
-export function isParachuteBaselineTrial(label: string): boolean {
+export function isParachuteBaselineTrial(label?: string): boolean {
+  if (!label) return false;
   return (
     label === 'Baseline (No Parachute)' ||
     label.startsWith('Dasar') ||

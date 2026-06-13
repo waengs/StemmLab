@@ -1,4 +1,4 @@
-import { Accelerometer } from 'expo-sensors';
+import { Accelerometer, Gyroscope } from 'expo-sensors';
 
 const GRAVITY_MS2 = 9.81;
 const VIBRATION_CM_SCALE = 1.8;
@@ -132,3 +132,55 @@ export async function recordMotion(
     complete: completePromise,
   };
 }
+
+export async function isGyroscopeAvailable(): Promise<boolean> {
+  try {
+    return await Gyroscope.isAvailableAsync();
+  } catch {
+    return false;
+  }
+}
+
+export async function recordGyroscopeMotion(
+  durationSec: number, 
+  onTick: (remainingSec: number) => void, 
+  onLiveReading?: (radPerSec: number) => void
+): Promise<{ stop: () => number, complete: Promise<number> }> {
+  const available = await isGyroscopeAvailable();
+  if (!available) throw new Error('Gyroscope not available');
+  Gyroscope.setUpdateInterval(100);
+  let totalDegrees = 0;
+  let elapsedSec = 0;
+  let finished = false;
+  let countdownTimer: ReturnType<typeof setInterval> | null = null;
+  let resolveComplete: ((val: number) => void) | null = null;
+  const completePromise = new Promise<number>((res) => { 
+    resolveComplete = r => { 
+      if (!finished) { 
+        finished = true; 
+        subscription.remove(); 
+        if (countdownTimer) clearInterval(countdownTimer); 
+        res(r); 
+      } 
+    }; 
+  });
+  const subscription = Gyroscope.addListener(({ x, y, z }) => {
+    if (finished) return;
+    const totalRadSec = Math.abs(x) + Math.abs(y) + Math.abs(z);
+    onLiveReading?.(totalRadSec);
+    totalDegrees += (totalRadSec * 0.1 * (180 / Math.PI));
+  });
+  const finish = () => {
+    resolveComplete?.(totalDegrees);
+    return totalDegrees;
+  };
+  onTick(durationSec);
+  countdownTimer = setInterval(() => {
+    elapsedSec += 1;
+    const remaining = durationSec - elapsedSec;
+    if (remaining <= 0) finish();
+    else onTick(remaining);
+  }, 1000);
+  return { stop: finish, complete: completePromise };
+}
+

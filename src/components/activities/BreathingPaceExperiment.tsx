@@ -39,23 +39,23 @@ interface Props {
 const CONDITIONS: ConditionConfig[] = [
   {
     id: 'atRest',
-    label: 'Breathing at Rest',
+    label: 'data.activities.breathing-pace.experiment.atRestLabel',
     needsExercise: false,
   },
   {
     id: 'afterJog',
-    label: 'After Jog',
+    label: 'data.activities.breathing-pace.experiment.afterJogLabel',
     needsExercise: true,
-    exerciseTitle: 'Jog on the spot',
-    exerciseText: 'Jog in place for 1 minute. When finished, lie on your back and place the phone gently on your chest.',
+    exerciseTitle: 'data.activities.breathing-pace.experiment.jogExerciseTitle',
+    exerciseText: 'data.activities.breathing-pace.experiment.jogExerciseText',
     exerciseTimerSec: 60,
   },
   {
     id: 'afterStarJump',
-    label: 'After Star Jumps',
+    label: 'data.activities.breathing-pace.experiment.afterStarJumpLabel',
     needsExercise: true,
-    exerciseTitle: '100 star jumps',
-    exerciseText: 'Do 100 star jumps. When finished, lie on your back and place the phone gently on your chest.',
+    exerciseTitle: 'data.activities.breathing-pace.experiment.starJumpExerciseTitle',
+    exerciseText: 'data.activities.breathing-pace.experiment.starJumpExerciseText',
   },
 ];
 
@@ -64,6 +64,7 @@ function getFirstIncompleteIndex(trials: BreathingTrial[]): number {
 }
 
 function LiveBreathMeter({ value }: { value: string | null }) {
+  const { t } = useTranslation();
   const meterStyles = useThemedStyles(({ colors, typography }) => ({
     wrap: { width: '100%', marginTop: Spacing.md },
     label: { ...typography.bodySmall, fontWeight: '600', marginBottom: Spacing.xs, textAlign: 'center' },
@@ -76,7 +77,7 @@ function LiveBreathMeter({ value }: { value: string | null }) {
 
   return (
     <View style={meterStyles.wrap}>
-      <Text style={meterStyles.label}>Chest movement: {value} cm</Text>
+      <Text style={meterStyles.label}>{t('data.activities.breathing-pace.experiment.chestMovement', { value: value, defaultValue: `Chest movement: ${value} cm` })}</Text>
       <View style={meterStyles.track}>
         <View style={[meterStyles.fill, { width: `${fill}%` }]} />
       </View>
@@ -184,6 +185,7 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
       movementPeak: string;
       recordingDuration: string;
     }) => {
+      if (!currentCondition) return;
       onUpdateTrial(currentCondition.id, {
         breathCount: String(manualCount),
         breathsPerMinute: String(manualCount),
@@ -193,7 +195,7 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
         recordingDuration: sensorResult.recordingDuration,
       });
     },
-    [currentCondition.id, onUpdateTrial]
+    [currentCondition?.id, onUpdateTrial]
   );
 
   const runRecording = async () => {
@@ -256,33 +258,32 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
     saveResult(manualBreathCount, lastResult);
 
     const nextIndex = conditionIndex + 1;
+    setConditionIndex(nextIndex);
+    
     if (nextIndex < CONDITIONS.length) {
-      setConditionIndex(nextIndex);
       setStep(CONDITIONS[nextIndex].needsExercise ? 'intro' : 'prompt');
-      setManualBreathCount(0);
-      setLastResult(null);
-      setLiveReading(null);
-      setExerciseRemaining(null);
-      return;
     }
-
-    onAllComplete();
+    
+    setManualBreathCount(0);
+    setLastResult(null);
+    setLiveReading(null);
+    setExerciseRemaining(null);
   };
 
   if (!currentCondition) {
     return (
       <Card style={styles.card}>
-        <Text style={styles.doneTitle}>All recordings complete!</Text>
-        <Button title="View Results" onPress={onAllComplete} size="lg" />
+        <Text style={styles.doneTitle}>{t('data.activities.breathing-pace.experiment.allRecordingsComplete', { defaultValue: 'All recordings complete!' })}</Text>
+        <Button title={t('activities.viewResults', { defaultValue: 'View Results' })} onPress={onAllComplete} size="lg" />
       </Card>
     );
   }
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.phaseTitle}>{currentCondition.label}</Text>
+      <Text style={styles.phaseTitle}>{t(currentCondition.label)}</Text>
       <Text style={styles.progressText}>
-        Recordings complete: {CONDITIONS.filter((condition) => isRecorded(condition.id)).length}/{CONDITIONS.length}
+        {t('data.activities.breathing-pace.experiment.recordingsComplete', { done: CONDITIONS.filter((condition) => isRecorded(condition.id)).length, total: CONDITIONS.length, defaultValue: `Recordings complete: ${CONDITIONS.filter((condition) => isRecorded(condition.id)).length}/${CONDITIONS.length}` })}
       </Text>
 
       <View style={styles.progressList}>
@@ -293,7 +294,7 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
               size={18}
               color={isRecorded(condition.id) ? colors.secondary : colors.primary}
             />
-            <Text style={styles.progressLabel}>{condition.label}</Text>
+            <Text style={styles.progressLabel}>{t(condition.label)}</Text>
           </View>
         ))}
       </View>
@@ -301,33 +302,32 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
       {step === 'intro' && (
         <View style={styles.stepBox}>
           <Text style={styles.stepText}>
-            Place the phone gently on your chest. Lie on a flat surface or mat. Keep still and breathe normally for the
-            1-minute recording.
+            {t('data.activities.breathing-pace.experiment.introTextRest', { defaultValue: 'Place the phone gently on your chest. Lie on a flat surface or mat. Keep still and breathe normally for the 1-minute recording.' })}
           </Text>
           {currentCondition.needsExercise ? (
-            <Button title="Next: Exercise" onPress={() => setStep('exercise')} size="lg" disabled={disabled} />
+            <Button title={t('data.activities.breathing-pace.experiment.nextExercise', { defaultValue: 'Next: Exercise' })} onPress={() => setStep('exercise')} size="lg" disabled={disabled} />
           ) : (
-            <Button title="Start now?" onPress={() => setStep('prompt')} size="lg" disabled={disabled} />
+            <Button title={t('data.activities.breathing-pace.experiment.startNow', { defaultValue: 'Start now?' })} onPress={() => setStep('prompt')} size="lg" disabled={disabled} />
           )}
         </View>
       )}
 
       {step === 'exercise' && (
         <View style={styles.stepBox}>
-          <Text style={styles.exerciseTitle}>{currentCondition.exerciseTitle}</Text>
-          <Text style={styles.stepText}>{currentCondition.exerciseText}</Text>
+          <Text style={styles.exerciseTitle}>{t(currentCondition.exerciseTitle || '')}</Text>
+          <Text style={styles.stepText}>{t(currentCondition.exerciseText || '')}</Text>
           {currentCondition.exerciseTimerSec ? (
             <>
               <Text style={styles.exerciseTimer}>{exerciseRemaining ?? currentCondition.exerciseTimerSec}s</Text>
               {exerciseRemaining === null && (
-                <Button title="Start 1-minute jog" onPress={() => setExerciseRemaining(currentCondition.exerciseTimerSec!)} size="lg" />
+                <Button title={t('data.activities.breathing-pace.experiment.startJog', { defaultValue: 'Start 1-minute jog' })} onPress={() => setExerciseRemaining(currentCondition.exerciseTimerSec!)} size="lg" />
               )}
               {exerciseRemaining === 0 && (
-                <Button title="Ready to record breathing" onPress={() => setStep('prompt')} size="lg" />
+                <Button title={t('data.activities.breathing-pace.experiment.readyToRecord', { defaultValue: 'Ready to record breathing' })} onPress={() => setStep('prompt')} size="lg" />
               )}
             </>
           ) : (
-            <Button title="I finished 100 star jumps" onPress={() => setStep('prompt')} size="lg" disabled={disabled} />
+            <Button title={t('data.activities.breathing-pace.experiment.finishedStarJumps', { defaultValue: 'I finished 100 star jumps' })} onPress={() => setStep('prompt')} size="lg" disabled={disabled} />
           )}
         </View>
       )}
@@ -335,16 +335,15 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
       {step === 'prompt' && (
         <View style={styles.stepBox}>
           <Text style={styles.stepText}>
-            Lie on your back. Place the phone gently on your chest. Tap + each time you breathe in during the 1-minute
-            recording.
+            {t('data.activities.breathing-pace.experiment.promptText', { defaultValue: 'Lie on your back. Place the phone gently on your chest. Count your breaths in your head (or have a partner count them). You will enter the total after the 1-minute recording.' })}
           </Text>
-          <Button title="Start recording" onPress={runRecording} size="lg" disabled={disabled} icon={<Ionicons name="mic" size={18} color={colors.white} />} />
+          <Button title={t('data.activities.breathing-pace.experiment.startRecording', { defaultValue: 'Start recording' })} onPress={runRecording} size="lg" disabled={disabled} icon={<Ionicons name="mic" size={18} color={colors.white} />} />
         </View>
       )}
 
       {step === 'countdown' && (
         <View style={styles.countdownBox}>
-          <Text style={styles.countdownLabel}>Get ready…</Text>
+          <Text style={styles.countdownLabel}>{t('data.activities.breathing-pace.experiment.getReady', { defaultValue: 'Get ready…' })}</Text>
           <Text style={styles.countdownNumber}>{countdown}</Text>
         </View>
       )}
@@ -352,41 +351,26 @@ trials, disabled, onUpdateTrial, onAllComplete }: Props) {
       {step === 'recording' && (
         <View style={styles.recordingBox}>
           <Ionicons name="heart" size={24} color={colors.primary} />
-          <Text style={styles.recordingTitle}>Recording… {recordRemaining}s</Text>
-          <Text style={styles.recordingHint}>Count each breath and tap + below</Text>
+          <Text style={styles.recordingTitle}>{t('data.activities.breathing-pace.experiment.recording', { remaining: recordRemaining, defaultValue: `Recording… ${recordRemaining}s` })}</Text>
+          <Text style={styles.recordingHint}>{t('data.activities.breathing-pace.experiment.countBreathsHint', { defaultValue: 'Count your breaths in your head...' })}</Text>
           <LiveBreathMeter value={liveReading} />
-          <View style={styles.counterRow}>
-            <TouchableOpacity
-              style={styles.counterBtn}
-              onPress={() => setManualBreathCount((count) => Math.max(0, count - 1))}
-            >
-              <Ionicons name="remove" size={28} color={colors.white} />
-            </TouchableOpacity>
-            <View style={styles.counterDisplay}>
-              <Text style={styles.counterNumber}>{manualBreathCount}</Text>
-              <Text style={styles.counterLabel}>breaths counted</Text>
-            </View>
-            <TouchableOpacity style={[styles.counterBtn, styles.counterBtnPrimary]} onPress={() => setManualBreathCount((count) => count + 1)}>
-              <Ionicons name="add" size={28} color={colors.white} />
-            </TouchableOpacity>
-          </View>
         </View>
       )}
 
       {step === 'review' && lastResult && (
         <View style={styles.reviewBox}>
-          <Text style={styles.reviewTitle}>Recording complete</Text>
-          <Text style={styles.reviewLine}>Sensor estimate: {lastResult.breathsPerMinute} breaths/min</Text>
-          <Text style={styles.reviewSub}>Movement avg: {lastResult.movementAvg} cm | peak: {lastResult.movementPeak} cm</Text>
+          <Text style={styles.reviewTitle}>{t('data.activities.breathing-pace.experiment.recordingComplete', { defaultValue: 'Recording complete' })}</Text>
+          <Text style={styles.reviewLine}>{t('data.activities.breathing-pace.experiment.sensorEstimate', { bpm: lastResult.breathsPerMinute, defaultValue: `Sensor estimate: ${lastResult.breathsPerMinute} breaths/min` })}</Text>
+          <Text style={styles.reviewSub}>{t('data.activities.breathing-pace.experiment.movementStats', { avg: lastResult.movementAvg, peak: lastResult.movementPeak, defaultValue: `Movement avg: ${lastResult.movementAvg} cm | peak: ${lastResult.movementPeak} cm` })}</Text>
           <Input
-            label="Breaths you counted (1 minute)"
+            label={t('data.activities.breathing-pace.experiment.breathsCounted', { defaultValue: 'Breaths you counted (1 minute)' })}
             value={manualBreathCount > 0 ? String(manualBreathCount) : ''}
             onChangeText={(value) => setManualBreathCount(Math.max(0, parseInt(value, 10) || 0))}
             keyboardType="numeric"
             onLightSurface
           />
           <View style={styles.reviewActions}>
-            <Button title="Retry" onPress={() => setStep('prompt')} variant="outlined" size="sm" />
+            <Button title={t('data.activities.breathing-pace.experiment.retry', { defaultValue: 'Retry' })} onPress={() => setStep('prompt')} variant="outlined" size="sm" />
             <Button title={t('common.next')} onPress={handleConfirmReview} size="sm" />
           </View>
         </View>

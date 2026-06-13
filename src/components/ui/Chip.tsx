@@ -38,6 +38,8 @@ export function Chip({
       ]}
     >
       <Text
+        numberOfLines={1}
+        ellipsizeMode="tail"
         style={[
           styles.text,
           size === 'sm' ? styles.textSm : styles.textMd,

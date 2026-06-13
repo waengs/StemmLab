@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Animated, PanResponder, Alert } from 'react-native';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
+import { useTheme } from '../../context/ThemeContext';
 import { Spacing, BorderRadius } from '../../theme';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
@@ -15,6 +16,7 @@ type Phase = 1 | 2 | 3 | 4;
 export function ReactionBoardExperiment({ onComplete }: ReactionBoardExperimentProps) {
   const { t } = useTranslation();
   const exp = 'data.activities.reaction-board.experiment';
+  const { colors } = useTheme();
 
   const styles = useThemedStyles(({ colors, typography }) => ({
     container: { padding: Spacing.md, alignItems: 'center' },
@@ -69,10 +71,10 @@ export function ReactionBoardExperiment({ onComplete }: ReactionBoardExperimentP
   const [dominantTime, setDominantTime] = useState<number | null>(null);
   const [nonDominantTime, setNonDominantTime] = useState<number | null>(null);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  const [tracingStatus, setTracingStatus] = useState<'idle' | 'playing' | 'finished'>('idle');
+  const [tracingStatus, setTracingStatus] = useState<'idle' | 'waiting' | 'playing' | 'finished'>('idle');
   const [tracingAccuracy, setTracingAccuracy] = useState<number | null>(null);
   const [dominantTracingAccuracy, setDominantTracingAccuracy] = useState<number | null>(null);
   const [nonDominantTracingAccuracy, setNonDominantTracingAccuracy] = useState<number | null>(null);
@@ -139,9 +141,16 @@ export function ReactionBoardExperiment({ onComplete }: ReactionBoardExperimentP
   };
 
   const startTracing = () => {
-    setTracingStatus('playing');
+    setTracingStatus('waiting');
     scoreRef.current = 0;
     totalFramesRef.current = 0;
+  };
+
+  const tracingStatusRef = useRef(tracingStatus);
+  tracingStatusRef.current = tracingStatus;
+
+  const beginAnimation = () => {
+    setTracingStatus('playing');
 
     targetAnim.addListener(({ x, y }) => {
       totalFramesRef.current += 1;
@@ -149,38 +158,36 @@ export function ReactionBoardExperiment({ onComplete }: ReactionBoardExperimentP
       const dy = y + TARGET_SIZE / 2 - touchPos.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < 50) {
+      if (dist <= 20) {
         scoreRef.current += 1;
+      } else if (dist <= 70) {
+        // partial score if close
+        scoreRef.current += (70 - dist) / 50;
       }
     });
 
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(targetAnim, {
-          toValue: { x: TRACK_SIZE - TARGET_SIZE, y: 0 },
-          duration: 1500,
-          useNativeDriver: false,
-        }),
-        Animated.timing(targetAnim, {
-          toValue: { x: TRACK_SIZE - TARGET_SIZE, y: TRACK_SIZE - TARGET_SIZE },
-          duration: 1500,
-          useNativeDriver: false,
-        }),
-        Animated.timing(targetAnim, {
-          toValue: { x: 0, y: TRACK_SIZE - TARGET_SIZE },
-          duration: 1500,
-          useNativeDriver: false,
-        }),
-        Animated.timing(targetAnim, {
-          toValue: { x: 0, y: 0 },
-          duration: 1500,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-
-    setTimeout(() => {
-      targetAnim.stopAnimation();
+    Animated.sequence([
+      Animated.timing(targetAnim, {
+        toValue: { x: TRACK_SIZE - TARGET_SIZE, y: 0 },
+        duration: 1500,
+        useNativeDriver: false,
+      }),
+      Animated.timing(targetAnim, {
+        toValue: { x: TRACK_SIZE - TARGET_SIZE, y: TRACK_SIZE - TARGET_SIZE },
+        duration: 1500,
+        useNativeDriver: false,
+      }),
+      Animated.timing(targetAnim, {
+        toValue: { x: 0, y: TRACK_SIZE - TARGET_SIZE },
+        duration: 1500,
+        useNativeDriver: false,
+      }),
+      Animated.timing(targetAnim, {
+        toValue: { x: 0, y: 0 },
+        duration: 1500,
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
       targetAnim.removeAllListeners();
       const accuracy =
         totalFramesRef.current > 0
@@ -194,7 +201,7 @@ export function ReactionBoardExperiment({ onComplete }: ReactionBoardExperimentP
       }
       setTracingStatus('finished');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 6000);
+    });
   };
 
   const panResponder = PanResponder.create({
@@ -203,6 +210,13 @@ export function ReactionBoardExperiment({ onComplete }: ReactionBoardExperimentP
     onPanResponderGrant: (evt) => {
       touchPos.x = evt.nativeEvent.locationX;
       touchPos.y = evt.nativeEvent.locationY;
+      if (tracingStatusRef.current === 'waiting') {
+        const dx = touchPos.x - TARGET_SIZE / 2;
+        const dy = touchPos.y - TARGET_SIZE / 2;
+        if (Math.sqrt(dx * dx + dy * dy) <= TARGET_SIZE) {
+          beginAnimation();
+        }
+      }
     },
     onPanResponderMove: (evt) => {
       touchPos.x = evt.nativeEvent.locationX;
@@ -293,9 +307,15 @@ export function ReactionBoardExperiment({ onComplete }: ReactionBoardExperimentP
 
           {tracingStatus === 'idle' ? (
             <Button title={t(`${exp}.startTracing`)} onPress={startTracing} size="lg" />
-          ) : tracingStatus === 'playing' ? (
+          ) : (tracingStatus === 'playing' || tracingStatus === 'waiting') ? (
             <View style={styles.tracingArea} {...panResponder.panHandlers}>
+              {tracingStatus === 'waiting' && (
+                <Text style={{ position: 'absolute', top: 80, width: '100%', textAlign: 'center', color: colors.textSecondary }}>
+                  {t(`${exp}.touchToStart`, { defaultValue: 'Touch the circle to start' })}
+                </Text>
+              )}
               <Animated.View
+                pointerEvents="none"
                 style={[
                   styles.target,
                   {

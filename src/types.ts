@@ -200,4 +200,10 @@ export const SENSORS = {
     icon: 'battery-half',
     description: 'Device battery level and charging status',
   },
+  gyroscope: {
+    id: 'gyroscope',
+    name: 'Gyroscope Sensor',
+    icon: 'compass-outline',
+    description: 'Measure device rotation and tilt in degrees',
+  },
 };

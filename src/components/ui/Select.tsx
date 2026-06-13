@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing, Shadows, createTypography, lightColors, type ThemeColors } from '../../theme';
+import { useTranslation } from 'react-i18next';
 
 interface SelectProps {
   label?: string;
@@ -61,6 +62,7 @@ export function Select({
   onOpen,
   onClose,
 }: SelectProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const { colors, typography, isDark } = useTheme();
   const fieldColors = resolveFieldColors(colors, isDark, onLightSurface);
@@ -135,7 +137,7 @@ export function Select({
         android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
       >
         <Text style={[styles.triggerText, !value && styles.placeholder]}>
-          {(value && optionLabels?.[value]) || value || placeholder}
+          {(value && (optionLabels?.[value] || value)) || (placeholder === 'Select...' ? t('common.selectPlaceholder', { defaultValue: 'Select...' }) : placeholder)}
         </Text>
         <Ionicons name="chevron-down" size={18} color={fieldColors.textMuted} />
       </Pressable>

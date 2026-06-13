@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Redirect, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '../../src/context/ThemeContext';
 import { CustomTabBar } from '../../src/components/layout/CustomTabBar';
@@ -35,7 +35,6 @@ export default function TabsLayout() {
     });
     return () => unsubscribe();
   }, [user?.uid]);
-
 
 
   return (

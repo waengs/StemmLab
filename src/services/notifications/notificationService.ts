@@ -207,7 +207,6 @@ export async function presentNewNotifications(notifications: AppNotification[]):
         data: { postId: n.postId, notificationId: n.id },
       },
       trigger: null,
-      channelId: 'forum',
     });
   }
   await saveSeenNotificationIds(seen);

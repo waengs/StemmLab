@@ -66,6 +66,7 @@ export function Button({
           gap: Spacing.sm,
           borderRadius: BorderRadius.md,
           overflow: 'hidden',
+          flexShrink: 1,
         },
         fullWidth: { width: '100%' },
         disabled: { opacity: 0.5 },
@@ -121,7 +122,14 @@ export function Button({
   ) : (
     <>
       {icon}
-      <Text style={[styles.text, textVariantStyle, textSizeStyle, textStyle]}>{title}</Text>
+      <Text 
+        style={[styles.text, textVariantStyle, textSizeStyle, textStyle]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+      >
+        {title}
+      </Text>
       {iconRight}
     </>
   );

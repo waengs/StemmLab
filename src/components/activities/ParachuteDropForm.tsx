@@ -19,6 +19,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { useRequireAuth } from '../../stores';
 import { TrialVideoPlayer } from '../sensors/TrialVideoPlayer';
+import { ParachuteDropResults } from './ParachuteDropResults';
 import {
   isParachuteBaselineTrial,
   resolveParachuteTrialLabel,
@@ -27,6 +28,7 @@ import {
 interface TrialData {
   id: string;
   label: string;
+  customName?: string;
   predictedTime: string;
   actualTime: string;
   stoppingTime: string;
@@ -47,6 +49,7 @@ interface ParachuteDropData {
   toyMass: string;
   predictedDesign: string;
   usedInstantCalc: boolean;
+  surprises?: string;
   trials: TrialData[];
 }
 
@@ -100,6 +103,7 @@ function useParachuteDropFormStyles() {
   wizardNavBoth: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: Spacing.md,
     marginTop: Spacing.xl,
     paddingTop: Spacing.sm,
   },
@@ -332,19 +336,23 @@ export function ParachuteDropForm({
                        team?.gradeLevel === 'Lower High School (Grades 7–9)' || 
                        team?.gradeLevel?.includes('High');
   
-  const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment' | 'calculations'>('setup');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const initialTab = (value as any)?.__activeTab || 'setup';
+  const [activeTab, setActiveTabState] = useState<ParachuteDropTab>(initialTab);
+  
+  const timerEndTs = (value as any)?.__timerEndTs;
+  const initialTimeLeft = timerEndTs 
+    ? Math.max(0, Math.floor((timerEndTs - Date.now()) / 1000))
+    : DEFAULT_TIME;
+    
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTab !== 'setup' && initialTimeLeft > 0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   
   // Equipment Checklist State
   const equipmentString = t('data.activities.parachute-drop.equipment');
   const equipmentList = useMemo(() => equipmentString.split(',').map(s => s.trim()), [equipmentString]);
-  const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-
-  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every(item => checkedEquipment[item]);
-
+  
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning && timeLeft > 0) {
@@ -368,6 +376,7 @@ export function ParachuteDropForm({
     toyMass: '',
     predictedDesign: '',
     usedInstantCalc: false,
+    surprises: '',
     trials: [
       {
         id: Date.now().toString(),
@@ -406,10 +415,29 @@ export function ParachuteDropForm({
 
   const data = (value && value.trials) ? value : getInitialData();
 
-  const updateData = (updates: Partial<ParachuteDropData>) => {
-    if (isLocked) return;
+  const setActiveTab = (tab: 'setup' | 'predictions' | 'experiment' | 'calculations' | 'results') => {
+    setActiveTabState(tab);
+    let updates: any = { __activeTab: tab };
+    if (tab !== 'setup' && !(data as any).__timerEndTs) {
+      updates.__timerEndTs = Date.now() + DEFAULT_TIME * 1000;
+    }
     onChange({ ...data, ...updates });
   };
+
+  const updateData = (updates: Partial<ParachuteDropData>) => {
+      if (isLocked) return;
+    onChange({ ...data, ...updates });
+  };
+
+  const checkedEquipment = data.checkedEquipment || {};
+  const setCheckedEquipment = (updater: any) => {
+    if (typeof updater === 'function') {
+      updateData({ checkedEquipment: updater(checkedEquipment) });
+    } else {
+      updateData({ checkedEquipment: updater });
+    }
+  };
+  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every((item: string) => checkedEquipment[item]);
 
   const updateTrial = (trialId: string, updates: Partial<TrialData>) => {
     if (isLocked) return;
@@ -420,7 +448,7 @@ export function ParachuteDropForm({
 
   const addTrial = () => {
     if (isLocked || data.trials.length >= 4) return;
-    const newIdx = data.trials.filter((tr) => !isParachuteBaselineTrial(tr.label)).length + 1;
+    const newIdx = data.trials.filter((tr: TrialData) => !isParachuteBaselineTrial(tr.label)).length + 1;
     updateData({
       trials: [
         ...data.trials,
@@ -485,12 +513,17 @@ export function ParachuteDropForm({
       if (!isHighSchool && !t.manualSpeed?.trim()) return false;
       if (isHighSchool && (!t.manualVelocity?.trim() || !t.manualAcceleration?.trim() || !t.manualNetForce?.trim() || !t.manualDragForce?.trim() || !t.manualGForce?.trim())) return false;
     }
+    if (!data.surprises?.trim()) return false;
     return true;
   };
 
   const setupValid = data.dropHeight?.trim() && data.toyMass?.trim();
-  const predictionsValid = data.predictedDesign && data.trials.every(t => t.predictedTime?.trim());
-  const experimentValid = data.trials.every(t => t.actualTime?.trim() && t.stoppingTime?.trim() && (t.didBounce !== 'Yes' || t.reboundTime?.trim()));
+  const predictionsValid = data.predictedDesign && data.trials.every((t: TrialData) => t.predictedTime?.trim());
+  const experimentValid = data.trials.every((t: TrialData) => t.actualTime?.trim() && t.stoppingTime?.trim() && (t.didBounce !== 'Yes' || t.reboundTime?.trim()));
+  const calculationsValid = data.trials.every((t: TrialData) => {
+    if (!isHighSchool) return t.manualSpeed?.trim();
+    return t.manualVelocity?.trim() && t.manualAcceleration?.trim() && t.manualNetForce?.trim() && t.manualDragForce?.trim() && t.manualGForce?.trim();
+  });
 
   const handleFinalSave = () => {
     setIsTimerRunning(false); // Stop timer on submit
@@ -566,9 +599,15 @@ export function ParachuteDropForm({
   const designOptions = data.trials
     .filter((tr: TrialData) => !isParachuteBaselineTrial(tr.label))
     .map((tr: TrialData) => tr.label);
-  const designOptionLabels = designOptions.map((label: string) =>
-    resolveParachuteTrialLabel(label, t)
-  );
+  const designOptionLabels: Record<string, string> = {};
+  designOptions.forEach((label: string) => {
+    const tr = data.trials.find((t: TrialData) => t.label === label);
+    designOptionLabels[label] = tr?.customName?.trim() ? tr.customName : resolveParachuteTrialLabel(label, t);
+  });
+
+  const getTrialName = (trial: TrialData) => {
+    return trial.customName?.trim() ? trial.customName : resolveParachuteTrialLabel(trial.label, t);
+  };
 
   const toggleEquipment = (item: string) => {
     setCheckedEquipment(prev => ({ ...prev, [item]: !prev[item] }));
@@ -603,7 +642,7 @@ export function ParachuteDropForm({
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {['setup', 'predictions', 'experiment', ...(isHighSchool ? ['calculations'] : [])].map((tab) => (
+          {['setup', 'predictions', 'experiment', 'calculations', 'results'].map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
@@ -701,7 +740,20 @@ export function ParachuteDropForm({
             
             {data.trials.map((trial: TrialData) => (
               <View key={`pred-${trial.id}`} style={styles.tableRow}>
-                <Text style={[styles.tableBodyCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
+                {isParachuteBaselineTrial(trial.label) ? (
+                  <Text style={[styles.tableBodyCell, styles.flex2]}>{getTrialName(trial)}</Text>
+                ) : (
+                  <View style={styles.flex2}>
+                    <Input
+                      value={trial.customName || ''}
+                      onChangeText={(v) => updateTrial(trial.id, { customName: v })}
+                      placeholder={resolveParachuteTrialLabel(trial.label, t)}
+                      editable={!isLocked}
+                      onLightSurface
+                      containerStyle={{ marginBottom: 0, marginRight: Spacing.sm }}
+                    />
+                  </View>
+                )}
                 <View style={styles.flex3}>
                   <Input
                     value={trial.predictedTime}
@@ -766,7 +818,7 @@ export function ParachuteDropForm({
                     </View>
                   )}
                   <View style={styles.tableRow}>
-                    <Text style={[styles.tableBodyCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
+                    <Text style={[styles.tableBodyCell, styles.flex2]}>{getTrialName(trial)}</Text>
                     <View style={styles.flex2}>
                       <Input
                         value={trial.actualTime}
@@ -783,37 +835,35 @@ export function ParachuteDropForm({
                   </View>
 
                   <View style={styles.subInputsContainer}>
-                    <View style={styles.row}>
-                      <View style={{ flex: 1, marginRight: Spacing.xs }}>
+                    <View style={{ marginBottom: Spacing.sm }}>
+                      <Input
+                        label={t('data.activities.parachute-drop.stoppingTime')}
+                        value={trial.stoppingTime}
+                        onChangeText={(v) => updateTrial(trial.id, { stoppingTime: v })}
+                        keyboardType="numeric"
+                        onLightSurface
+                        editable={!isLocked}
+                      />
+                    </View>
+                    <View>
+                      {isLocked ? (
                         <Input
-                          label={t('data.activities.parachute-drop.stoppingTime')}
-                          value={trial.stoppingTime}
-                          onChangeText={(v) => updateTrial(trial.id, { stoppingTime: v })}
-                          keyboardType="numeric"
+                          label={t('data.activities.parachute-drop.bounceDetect')}
+                          value={trial.didBounce}
+                          editable={false}
                           onLightSurface
-                          editable={!isLocked}
                         />
-                      </View>
-                      <View style={{ flex: 1, marginLeft: Spacing.xs }}>
-                        {isLocked ? (
-                          <Input
-                            label={t('data.activities.parachute-drop.bounceDetect')}
-                            value={trial.didBounce}
-                            editable={false}
-                            onLightSurface
-                          />
-                        ) : (
-                          <Select
-                            label={t('data.activities.parachute-drop.bounceDetect')}
-                            value={trial.didBounce}
-                            options={[
-                              t('common.yes', { defaultValue: 'Yes' }),
-                              t('common.no', { defaultValue: 'No' })
-                            ]}
-                            onValueChange={(v) => updateTrial(trial.id, { didBounce: v })}
-                          />
-                        )}
-                      </View>
+                      ) : (
+                        <Select
+                          label={t('data.activities.parachute-drop.bounceDetect')}
+                          value={trial.didBounce}
+                          options={[
+                            t('common.yes', { defaultValue: 'Yes' }),
+                            t('common.no', { defaultValue: 'No' })
+                          ]}
+                          onValueChange={(v) => updateTrial(trial.id, { didBounce: v })}
+                        />
+                      )}
                     </View>
 
                     {trial.didBounce === t('common.yes') && (
@@ -932,7 +982,7 @@ export function ParachuteDropForm({
                   const isCorrect = validate(trial.manualSpeed, truePhys.speed);
                   return (
                     <View key={`calc-${trial.id}`} style={styles.tableRow}>
-                      <Text style={[styles.tableBodyCell, styles.flex2]}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
+                      <Text style={[styles.tableBodyCell, styles.flex2]}>{getTrialName(trial)}</Text>
                       <View style={styles.flex3}>
                         <Input
                           value={trial.manualSpeed}
@@ -954,7 +1004,7 @@ export function ParachuteDropForm({
                   const truePhys = calculateTruePhysics(trial);
                   return (
                     <View key={`calc-hs-${trial.id}`} style={styles.hsCalcBlock}>
-                      <Text style={styles.hsCalcTitle}>{resolveParachuteTrialLabel(trial.label, t)}</Text>
+                      <Text style={styles.hsCalcTitle}>{getTrialName(trial)}</Text>
                       <View style={styles.row}>
                         <View style={styles.flex1}>
                           <Input
@@ -1033,10 +1083,45 @@ export function ParachuteDropForm({
               icon={<Ionicons name="arrow-back" size={16} color={colors.primary} />}
             />
             <Button 
-              title={t('common.save')} 
+              title={t('common.next')} 
+              onPress={() => setActiveTab('results')} 
+              iconRight={<Ionicons name="arrow-forward" size={16} color={colors.white} />}
+              disabled={!calculationsValid}
+            />
+          </View>
+        </ScrollView>
+      )}
+
+      {activeTab === 'results' && (
+        <ScrollView style={{ flex: 1 }}>
+          {renderTimerBar()}
+          <ParachuteDropResults results={[{ data, timestamp: Date.now(), id: 'temp', score: 0, completedAt: Date.now() }]} hideReflection={true} />
+          
+          <Card style={[styles.pageCard, { marginTop: Spacing.md }]}>
+            <Text style={styles.sectionTitle}>{actT('shared.reflectionTitle')}</Text>
+            <Input
+              label={t('data.activities.parachute-drop.surprisesLabel', { defaultValue: 'What surprised you about the results?' })}
+              value={data.surprises}
+              onChangeText={(v) => updateData({ surprises: v })}
+              multiline
+              numberOfLines={3}
+              editable={!isLocked}
+              onLightSurface
+            />
+          </Card>
+
+          <View style={styles.wizardNavBoth}>
+            <Button 
+              title={t('common.previous')} 
+              variant="outlined"
+              onPress={() => setActiveTab('calculations')} 
+              icon={<Ionicons name="arrow-back" size={16} color={colors.primary} />}
+            />
+            <Button 
+              title={t('activities.complete', { defaultValue: 'Complete Activity' })} 
               onPress={handleFinalSave} 
               icon={<Ionicons name="save" size={16} color={colors.white} />}
-              disabled={!validateAllFields()}
+              disabled={!validateAllFields() || !data.surprises?.trim()}
               loading={isSubmitting}
             />
           </View>

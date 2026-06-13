@@ -91,7 +91,11 @@ export function ActivityTimerBar({
       <View style={styles.stickyTimer}>
         <View style={{ flex: 1 }}>
           <Text style={styles.timerTitle}>{timerTitle}</Text>
-          <Text style={[styles.timerDisplay, timeLeft <= 300 && { color: colors.danger }]}>
+          <Text 
+            style={[styles.timerDisplay, timeLeft <= 300 && { color: colors.danger }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {formatTime(timeLeft)}
           </Text>
         </View>

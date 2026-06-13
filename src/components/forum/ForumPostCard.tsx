@@ -7,6 +7,7 @@ import { Avatar } from '../ui/Avatar';
 import { Input } from '../ui/Input';
 import { Chip } from '../ui/Chip';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuthStore } from '../../stores/authStore';
 import { Spacing } from '../../theme';
 import type { ForumPost, ForumReply } from '../../types';
 import { translateText } from '../../utils/translate';
@@ -55,6 +56,13 @@ export function ForumPostCard({
   onPress,
 }: ForumPostCardProps) {
   const { t, i18n } = useTranslation();
+  const currentUser = useAuthStore((s) => s.user);
+
+  const resolveAuthorName = (uid: string, fallbackName: string) => {
+    if (uid === currentUser?.uid && currentUser?.displayName) return currentUser.displayName;
+    return fallbackName;
+  };
+
   const { colors, typography } = useTheme();
   const MAX_VISIBLE_DEPTH = 2;
   const [expandedBranches, setExpandedBranches] = useState<Record<string, boolean>>({});
@@ -381,7 +389,7 @@ export function ForumPostCard({
         <View key={reply.id} style={[styles.replyItem, depth > 0 && styles.nestedReplyItem]}>
           <View style={styles.replyHeader}>
             <Avatar
-              name={reply.authorName}
+              name={resolveAuthorName(reply.authorUid, reply.authorName)}
               size={depth > 0 ? 18 : 22}
               backgroundColor={depth > 0 ? colors.primary : colors.primaryLight}
             />
@@ -389,7 +397,7 @@ export function ForumPostCard({
               <View style={styles.replyTopRow}>
                 <View style={styles.replyTopLeft}>
                   <Text style={styles.replyTeam} numberOfLines={1}>
-                    {reply.authorName}
+                    {resolveAuthorName(reply.authorUid, reply.authorName)}
                     {reply.teamName ? ` • ${reply.teamName}` : ''}
                   </Text>
                 </View>
@@ -415,7 +423,7 @@ export function ForumPostCard({
                   {onReplyToReply ? (
                     <Pressable
                       style={styles.replyActionBtn}
-                      onPress={() => onReplyToReply(reply.id, reply.authorName)}
+                      onPress={() => onReplyToReply(reply.id, resolveAuthorName(reply.authorUid, reply.authorName))}
                       hitSlop={8}
                       android_ripple={Platform.OS === 'android' ? { color: 'transparent' } : undefined}
                     >
@@ -487,10 +495,10 @@ export function ForumPostCard({
   const cardContent = (
     <>
       <View style={styles.header}>
-        <Avatar name={post.authorName} size={36} />
+        <Avatar name={resolveAuthorName(post.authorUid, post.authorName)} size={36} />
         <View style={styles.meta}>
           <Text style={styles.team}>
-            {post.authorName} {post.teamName ? `• ${post.teamName}` : ''}
+            {resolveAuthorName(post.authorUid, post.authorName)} {post.teamName ? `• ${post.teamName}` : ''}
           </Text>
           <Text style={styles.date}>{formatDate(post.timestamp)}</Text>
         </View>

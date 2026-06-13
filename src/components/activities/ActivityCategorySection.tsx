@@ -63,7 +63,7 @@ export function ActivityCategorySection({
           description={activity.description}
           sensors={activity.sensors}
           accentColor={iconColor}
-          onPress={() => router.push(`/(tabs)/activities/${activity.id}`)}
+          onPress={() => router.push(`/(tabs)/activities/${activity.id}?ts=${Date.now()}`)}
         />
       ))}
     </View>

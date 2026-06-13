@@ -39,13 +39,13 @@ export function Card({
         pressableFill: { flex: 1 },
         default: { ...Shadows.md },
         elevated: { ...Shadows.lg },
-        accent: accentColor
-          ? {
-              borderLeftWidth: 4,
-              borderLeftColor: accentColor,
-              backgroundColor: isDark ? accentColor + '14' : accentColor + '10',
-            }
-          : undefined,
+          accent: accentColor
+            ? {
+                borderLeftWidth: 4,
+                borderLeftColor: accentColor,
+                backgroundColor: isDark ? accentColor + '14' : accentColor + '10',
+              }
+            : {},
         outlined: {
           borderWidth: 1,
           borderColor: accentColor

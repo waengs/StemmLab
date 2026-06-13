@@ -76,12 +76,12 @@ export function ForumMediaAttachment({
     const imageStyle =
       variant === 'thumbnail'
         ? { width: thumbnailSize, height: thumbnailSize, borderRadius: BorderRadius.md }
-        : { width: '100%', aspectRatio: 1.5, borderRadius: BorderRadius.md };
+        : { width: '100%' as any, aspectRatio: 1.5, borderRadius: BorderRadius.md };
 
     return (
       <ZoomableImage
         source={{ uri }}
-        style={[imageStyle, style]}
+        style={[imageStyle, style as any]}
         resizeMode="cover"
         accessibilityLabel={t('forum.imageAttachment')}
       />

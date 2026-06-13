@@ -19,7 +19,13 @@
     "viewFullImage": "Lihat gambar ukuran penuh",
     "error": "Kesalahan",
     "confirmDelete": "Apakah Anda yakin ingin menghapus ini?",
-    "cameraPermissionMsg": "Izin kamera diperlukan"
+    "cameraPermissionMsg": "Izin kamera diperlukan",
+    "saveLog": "Simpan Log",
+    "recordAgain": "Rekam Ulang",
+    "startMeasurement": "Mulai Pengukuran",
+    "selectPlaceholder": "Pilih...",
+    "capture": "Ambil",
+    "condition": "Kondisi"
   },
   "sounds": {
     "countThree": "tiga",
@@ -93,11 +99,11 @@
   },
   "dashboard": {
     "introTitle": "Laboratorium sains di saku kamu!",
-    "introScience": "Sains",
-    "introTechnology": "Teknologi",
-    "introEngineering": "Rekayasa",
-    "introMaths": "Matematika",
-    "introMedicine": "Kedokteran",
+    "introScience": "Science",
+    "introTechnology": "Technology",
+    "introEngineering": "Engineering",
+    "introMaths": "Mathematics",
+    "introMedicine": "Medicine",
     "introBody": "Selamat datang di Stemm Lab! Stemm singkatan dari Science (Sains), Technology (Teknologi), Engineering (Rekayasa), Maths (Matematika), dan Medicine (Kedokteran) — lima bidang seru yang membantumu memahami dunia, dari roket dan robot hingga detak jantungmu sendiri. Lakukan eksperimen sungguhan, gunakan sensor ponsel untuk mengukur dunia di sekitarmu, bekerja sama dengan teman, dan bagikan penemuanmu. Setiap ilmuwan hebat berawal dari rasa ingin tahu — dan perjalananmu dimulai di sini!",
     "welcome": "Selamat datang, {{name}}!",
     "teamId": "ID Tim: {{id}}",
@@ -136,8 +142,8 @@
     "timeBudgetHint": "Aktivitas ini membutuhkan sekitar {{minutes}} menit. Pastikan Anda punya cukup waktu, lalu ketuk Lanjut di Persiapan untuk mulai.",
     "timerBudgetHint": "Anda punya {{minutes}} menit untuk menyelesaikan aktivitas ini. Timer dimulai saat Anda mengetuk Lanjut di tab Persiapan.",
     "timerResume": "Lanjutkan",
-    "incompleteTitle": "Data tidak lengkap",
-    "incompleteMsg": "Lengkapi semua kolom wajib sebelum mengirim.",
+    "incompleteTitle": "Tunggu, Ilmuwan! 🛑",
+    "incompleteMsg": "Data kamu belum lengkap! Pastikan kamu sudah menjawab semua pertanyaan dan mencatat hasil eksperimen sebelum menyelesaikan aktivitas ini.",
     "timeoutTitle": "Waktu habis!",
     "timeoutMsg": "Waktu Anda habis. Anda hanya dapat meninjau data sekarang.",
     "timerTitle": "Timer aktivitas (60 menit)",
@@ -169,7 +175,8 @@
       "viewQuiz": "Lihat Kuis",
       "doQuiz": "Kerjakan Kuis",
       "discussions": "Diskusi",
-      "doAnotherExperiment": "Lakukan Eksperimen Lain"
+      "doAnotherExperiment": "Lakukan Eksperimen Baru",
+      "continueExperiment": "Lanjutkan Eksperimen"
     },
     "pauseTimerTitle": "Jeda timer?",
     "pauseTimerMsg": "Hanya jeda jika perlu. Timer yang terus berjalan menjaga integritas data.",
@@ -222,7 +229,22 @@
     "incorrectCalculation": "Perhitungan salah",
     "calcEncouragement": "Coba hitung jawabannya sendiri terlebih dahulu — menunjukkan perhitunganmu adalah bagian penting dari sains! Perhitungan instan tersedia jika kamu kesulitan, tetapi akan mengurangi 20 poin tim.",
     "calcWarningTitle": "Penalti Perhitungan Instan",
-    "calcWarningText": "Menggunakan perhitungan instan akan mengurangi 20 poin skor tim. Lanjutkan?"
+    "calcWarningText": "Menggunakan perhitungan instan akan mengurangi 20 poin skor tim. Lanjutkan?",
+    "difference": "Selisih",
+    "predicted": "Pred.",
+    "actual": "Akt.",
+    "predictedR1": "Pred. (R1)",
+    "predictionNumber": "Prediksi {{n}}",
+    "predictedDb": "Prediksi dB",
+    "predictedDbPlaceholder": "mis. 80",
+    "addPrediction": "Tambah Prediksi",
+    "viewResults": "Lihat Hasil",
+    "addTrial": "Tambah Percobaan",
+    "protractor": {
+      "title": "Busur Derajat Digital",
+      "error": "Akselerometer tidak tersedia di perangkat ini.",
+      "instruction": "Sejajarkan tepi ponsel Anda dengan bahan yang tertekuk untuk mengukur sudutnya."
+    }
   },
   "sensors": {
     "pageTitle": "Sensor",
@@ -329,7 +351,16 @@
     "vibrationIdleHint": "Pegang ponsel lalu ketuk Mulai. Hitung mundur 3-2-1, lalu rekam {{seconds}} detik. Bunyi selesai saat selesai.",
     "logEmptyError": "Catatan tidak boleh kosong.",
     "deleteLogTitle": "Hapus catatan",
-    "deleteLogConfirm": "Apakah Anda yakin ingin menghapus catatan sensor ini?"
+    "deleteLogConfirm": "Apakah Anda yakin ingin menghapus catatan sensor ini?",
+    "gyroscopeUnavailableTitle": "Sensor Tidak Tersedia",
+    "gyroscopeUnavailableMsg": "Giroskop tidak tersedia di perangkat ini.",
+    "gyroscopeErrorTitle": "Kesalahan",
+    "gyroscopeErrorMsg": "Gagal membaca dari Giroskop.",
+    "gyroscopeMeasurement": "Pengukuran Giroskop",
+    "gyroscopeMeasurementComplete": "Pengukuran Selesai",
+    "gyroscopeTotalRotation": "Total Rotasi: {{val}}°",
+    "gyroscopeHint": "Pegang perangkat dan ketuk mulai. Ini akan mengukur total rotasi sudut selama {{val}} detik.",
+    "gyroscopeRecording": "Merekam... {{val}}dtk"
   },
   "leaderboard": {
     "pageTitle": "Papan Peringkat",
@@ -481,6 +512,7 @@
         "btnSaveResults": "Selesaikan Aktivitas",
         "timerPauseTitle": "Jeda timer",
         "timerPauseWarning": "Hanya jeda timer jika benar-benar perlu. Jaga kejujuran data!",
+        "instantCalcPenalty": "Penalti perhitungan instan diterapkan (−20 poin)",
         "chips": {
           "slow-mo": "Kamera"
         },
@@ -488,6 +520,21 @@
           "gForce": "Gaya G Diukur",
           "dropHeight": "Tinggi Jatuh (cm)",
           "parachuteSize": "Ukuran Parasut (cm²)"
+        },
+        "conclusionTitle": "Kesimpulan",
+        "conclusionBest": "{{design}} memiliki waktu jatuh paling lambat dengan {{time}} detik!",
+        "conclusionPred": "Anda memprediksi {{design}} akan menjadi yang paling lambat. {{match}}",
+        "conclusionMatch": "Tebakan Anda tepat!",
+        "conclusionMismatch": "Hasil Anda berbeda dari yang diharapkan!",
+        "conclusionScience": "Gravitasi menarik semua benda ke bawah dengan percepatan yang sama, tetapi hambatan udara menahan. Parasut menciptakan luas permukaan yang besar yang menangkap lebih banyak udara, meningkatkan hambatan udara (drag) dan memperlambat jatuh. Semakin besar parasut, semakin lambat jatuhnya!",
+        "surprisesLabel": "Apa yang mengejutkanmu dari hasilnya?",
+        "riskLevels": {
+          "noInjury": "Tidak ada cedera",
+          "bruising": "Kemungkinan memar atau tegang",
+          "serious": "Kemungkinan cedera serius (patah tulang, geger otak)",
+          "severe": "Risiko tinggi cedera parah",
+          "lifeThreatening": "Kemungkinan cedera mengancam jiwa",
+          "riskLevelLabel": "Tingkat Risiko:"
         }
       },
       "sound-pollution": {
@@ -525,12 +572,31 @@
           "maxDecibels": "Tingkat Suara Maksimal (dB)",
           "avgDecibels": "Tingkat Suara Rata-rata (dB)",
           "location": "Lokasi"
-        }
+        },
+        "conclusionTitle": "Kesimpulan",
+        "conclusionBest": "{{action}} adalah sumber suara paling keras yang diukur pada {{db}} dB!",
+        "conclusionPred": "Anda memprediksi {{action}} akan menjadi yang paling keras. {{match}}",
+        "conclusionMatch": "Tebakan Anda sangat akurat!",
+        "conclusionMismatch": "Data menunjukkan hasil yang berbeda!",
+        "conclusionScience": "Suara merambat sebagai getaran melalui udara. Desibel (dB) mengukur intensitas gelombang suara ini. Peningkatan kecil dalam desibel berarti peningkatan besar dalam energi suara sebenarnya. Memahami polusi suara adalah langkah pertama untuk melindungi pendengaran kita dan lingkungan kita.",
+        "riskLevels": {
+          "noRisk": "Tidak ada risiko",
+          "safeLong": "Aman untuk waktu lama",
+          "safeFatigue": "Umumnya aman, tapi paparan lama bisa menyebabkan kelelahan",
+          "damageLong": "Kerusakan pendengaran mungkin terjadi setelah paparan lama",
+          "damageShort": "Kerusakan pendengaran mungkin terjadi setelah paparan singkat",
+          "seriousMinutes": "Kerusakan pendengaran serius dalam hitungan menit",
+          "painful": "Menyakitkan; kerusakan langsung mungkin terjadi",
+          "immediateSevere": "Kerusakan pendengaran langsung dan parah",
+          "instantPermanent": "Kerusakan pendengaran instan dan permanen",
+          "riskLevelLabel": "Risiko Pendengaran:"
+        },
+        "predictMultipleHint": "Tambahkan beberapa aksi dan prediksi seberapa keras bunyinya dalam desibel (dB)."
       },
       "hand-fan": {
         "name": "Tantangan Kipas Tangan",
         "desc": "Bandingkan bahan dan desain kipas untuk melihat seberapa besar gaya udara menekuk kertas target",
-        "equipment": "Kertas dan karton,Gunting,Ponsel,Selotip,Aplikasi Stemm Lab,Busur derajat",
+        "equipment": "Kertas dan karton, Gunting, Ponsel, Selotip, Aplikasi Stemm Lab, Busur derajat",
         "recordHint": "Untuk setiap percobaan, ketuk Rekam Video Gerak Lambat, kipasi kertas, lalu isi sudut lentur maksimum.",
         "predictMaterialLabel": "Prediksi material kipas mana yang paling baik",
         "predictDesignLabel": "Prediksi desain kipas mana yang paling baik",
@@ -568,10 +634,30 @@
           "Cardboard, Narrow Fold": "Karton, lipatan sempit"
         },
         "stiffnessRows": [
-          { "material": "Kertas printer tipis", "thickness": "0,1", "k": "0,05", "notes": "Sangat mudah lentur" },
-          { "material": "Kertas karton standar", "thickness": "0,25", "k": "0,2", "notes": "Lentur sedang" },
-          { "material": "Karton tipis", "thickness": "0,5", "k": "0,5", "notes": "Lebih sulit lentur" },
-          { "material": "Karton bergelombang", "thickness": "3", "k": "2–3", "notes": "Sangat kaku, hampir tidak lentur" }
+          {
+            "material": "Kertas printer tipis",
+            "thickness": "0,1",
+            "k": "0,05",
+            "notes": "Sangat mudah lentur"
+          },
+          {
+            "material": "Kertas karton standar",
+            "thickness": "0,25",
+            "k": "0,2",
+            "notes": "Lentur sedang"
+          },
+          {
+            "material": "Karton tipis",
+            "thickness": "0,5",
+            "k": "0,5",
+            "notes": "Lebih sulit lentur"
+          },
+          {
+            "material": "Karton bergelombang",
+            "thickness": "3",
+            "k": "2–3",
+            "notes": "Sangat kaku, hampir tidak lentur"
+          }
         ],
         "chips": {
           "slow-mo": "Kamera"
@@ -579,13 +665,29 @@
         "fields": {
           "windSpeed": "Kecepatan Angin (m/s)",
           "fanSize": "Diameter Kipas (cm)"
-        }
+        },
+        "conclusionTitle": "Kesimpulan",
+        "conclusionBest": "{{design}} membengkokkan kertas paling jauh, memberikan gaya terbesar dengan sudut {{angle}} derajat!",
+        "conclusionPred": "Anda memprediksi {{design}} yang terbuat dari {{material}} akan menjadi yang terbaik. {{match}}",
+        "conclusionMatch": "Tebakan Anda tepat!",
+        "conclusionMismatch": "Hasil Anda berbeda dari yang diharapkan!",
+        "conclusionScience": "Udara yang bergerak memberikan gaya pada objek. Kertas membengkok karena fleksibilitasnya, tetapi jika bahan yang lebih kuat digunakan, gaya yang sama tidak akan banyak membengkokkannya. Desain kipas yang berbeda mendorong jumlah udara yang berbeda, menciptakan gaya yang lebih kuat atau lebih lemah.",
+        "measureWithGyroscope": "Ukur dengan Giroskop",
+        "predictBendAngleInstruction": "Prediksi sudut tekukan untuk setiap percobaan:",
+        "targetThinPrinterPaper": "Kertas printer tipis",
+        "targetStandardCardStock": "Kertas karton standar",
+        "targetThinCardboard": "Kardus tipis",
+        "targetCorrugatedCardboard": "Kardus bergelombang",
+        "predictBendAngleLabel": "Prediksi Sudut Tekukan (derajat)",
+        "predictBendAnglePlaceholder": "mis. 45",
+        "calcAerodynamicForce": "Kalkulasi Gaya Aerodinamis",
+        "resultsPredBend": "Pred. Lentur"
       },
       "earthquake": {
         "name": "Struktur Tahan Gempa",
         "desc": "Lipat lapisan anti-getaran dari kertas dan uji seberapa banyak ponsel bergerak saat simulasi gempa",
         "overview": "Buat lapisan peredam getar dan uji seberapa banyak ponsel bergerak saat simulasi gempa.",
-        "equipment": "Karton, kertas, gunting, selotip, gelas plastik/kertas,Ponsel dengan aplikasi Stemm Lab (simulasi getar)",
+        "equipment": "Karton, Kertas, Gunting, Selotip, Gelas plastik/kertas, Ponsel dengan aplikasi Stemm Lab (simulasi getar)",
         "predictBestDesignLabel": "Prediksi desain lipatan mana yang membuat ponsel paling sedikit bergerak:",
         "predictBestDesignPlaceholder": "mis. 10 lipatan dengan 4 tiang",
         "simulatorTitle": "Simulator Gempa",
@@ -611,7 +713,7 @@
         "designPlaceholder": "mis. 4 lipatan + 4 tiang",
         "outcomeMovement": "Hasil (gerakan)",
         "outcomePlaceholder": "mis. +/- 1 cm atau 4 cm",
-        "addDesign": "Tambah desain",
+        "addDesign": "Tambah Desain Lain",
         "surprisesLabel": "Ada kejutan?",
         "chips": {
           "phone-vibration": "Motor getar"
@@ -620,7 +722,26 @@
           "vibrationLevel": "Getaran Maksimal (Hz)",
           "structureHeight": "Tinggi Struktur (cm)",
           "survived": "Struktur Bertahan"
-        }
+        },
+        "conclusionTitle": "Kesimpulan",
+        "conclusionBest": "{{design}} bergerak paling sedikit dengan hanya {{deg}}° dan perpindahan {{cm}}cm!",
+        "conclusionPred": "Anda memprediksi bahwa {{design}} akan menjadi yang terbaik. {{match}}",
+        "conclusionMatch": "Prediksi Anda benar!",
+        "conclusionMismatch": "Mari kita lihat mengapa hasilnya berbeda dari prediksi Anda!",
+        "conclusionScience": "Gempa bumi menyebabkan getaran tanah yang dapat meruntuhkan struktur yang dirancang dengan buruk. Struktur tahan gempa yang dirancang dengan baik menggunakan teknik seperti fondasi fleksibel (lapisan anti-getaran) atau penahan silang untuk menyerap dan mendistribusikan energi seismik, meminimalkan pergerakan bangunan itu sendiri.",
+        "gyroscopeInstruction": "Jalankan simulator gempa untuk setiap desain dan rekam pergerakannya. Giroskop akan mengukur sudut (°), tetapi Anda harus mengukur jarak (cm) secara manual.",
+        "predictInstruction": "Beri nama desain struktural yang akan kamu uji dan prediksi seberapa jauh mereka akan bergerak dalam derajat dan cm:",
+        "designNameLabel": "Nama Desain",
+        "designNamePlaceholder": "mis. 4 lipatan + 4 pilar",
+        "predictAngleLabel": "Prediksi Sudut (°)",
+        "predictAnglePlaceholder": "mis. 45",
+        "predictDistLabel": "Prediksi Jarak (cm)",
+        "predictDistPlaceholder": "mis. 10",
+        "actualAngleLabel": "Sudut Aktual (°)",
+        "actualDistLabel": "Jarak Aktual (cm)",
+        "recordEarthquake": "Rekam Gempa",
+        "resultsPredicted": "Prediksi",
+        "resultsActual": "Aktual"
       },
       "human-performance": {
         "name": "Laboratorium Kinerja Manusia",
@@ -713,7 +834,13 @@
           "bendAngle": "Sudut Tekuk Maksimal (derajat)",
           "speed": "Kecepatan Gerak (1-10)",
           "gracefulness": "Skor Keanggunan (1-10)"
-        }
+        },
+        "conclusionTitle": "Kesimpulan",
+        "conclusionBest": "{{movement}} memiliki gerakan yang paling halus dengan skor {{score}} dari 10!",
+        "conclusionPred": "Anda memprediksi {{movement}} akan menjadi yang paling sulit (paling tidak halus). {{match}}",
+        "conclusionMatch": "Menariknya, ternyata menjadi yang paling halus!",
+        "conclusionMismatch": "Data menunjukkan perbedaan dalam koordinasi!",
+        "conclusionScience": "Otot dan sendi bekerja sama untuk menciptakan gerakan. Bergantung pada jangkauan gerak dan stabilitas sendi, tindakan yang berbeda menghasilkan tingkat tremor (getaran) yang berbeda. Memberikan umpan balik langsung membantu peserta mengontrol gerakan mereka dan secara sadar meningkatkan kehalusan."
       },
       "reaction-board": {
         "name": "Tantangan Papan Reaksi",
@@ -772,7 +899,14 @@
         "fields": {
           "reactionTime": "Waktu Reaksi (md)",
           "accuracy": "Akurasi (%)"
-        }
+        },
+        "conclusionTitle": "Kesimpulan",
+        "conclusionBest": "Anda mencapai waktu reaksi {{time}} ms dan akurasi {{accuracy}}%!",
+        "conclusionPred": "Anda memprediksi waktu reaksi Anda adalah {{time}} ms. {{match}}",
+        "conclusionMatch": "Itu adalah prediksi yang sangat akurat!",
+        "conclusionMismatch": "Refleks sebenarnya Anda sedikit berbeda dari yang diharapkan!",
+        "conclusionScience": "Waktu reaksi mengukur seberapa cepat otak memproses informasi dan mengirim sinyal ke otot. Waktu reaksi yang lebih pendek menunjukkan pemrosesan saraf yang lebih cepat. Akurasi turun ketika kita mencoba bergerak terlalu cepat, menunjukkan pertukaran kecepatan-akurasi dalam kinerja manusia.",
+        "surprisesLabel": "Ada kejutan? Apakah Anda benar?"
       },
       "breathing-pace": {
         "name": "Pelatih Kecepatan Pernapasan",
@@ -783,7 +917,7 @@
         "timeUpText": "30 menit Anda habis. Formulir terkunci, tetapi Anda masih dapat meninjau data.",
         "equipmentPhone": "Ponsel dengan aplikasi Stemm Lab",
         "equipmentMat": "Permukaan datar atau matras",
-        "predictionsTitle": "Pertanyaan Sebelum Eksperimen",
+        "predictionsTitle": "Prediksi",
         "predictMostMovement": "Prediksi latihan mana yang membuat ponsel bergerak paling banyak di dada",
         "predictBpmTitle": "Prediksi napas per menit",
         "afterJog": "Setelah joging",
@@ -801,7 +935,58 @@
         "fields": {
           "breathsPerMinute": "Napas Per Menit",
           "consistency": "Skor Konsistensi (1-10)"
-        }
+        },
+        "conclusionTitle": "Kesimpulan",
+        "conclusionBest": "{{condition}} menghasilkan ritme pernapasan tercepat sebesar {{pace}} bpm!",
+        "conclusionPred": "Anda memprediksi {{condition}} akan menghasilkan ritme tercepat. {{match}}",
+        "conclusionMatch": "Prediksi Anda benar!",
+        "conclusionMismatch": "Mari kita analisis mengapa data menunjukkan hal lain!",
+        "conclusionScience": "Saat kita berolahraga atau mengalami stres, otot kita membutuhkan lebih banyak oksigen untuk menciptakan energi. Otak mendeteksi penumpukan karbon dioksida dan memberi sinyal pada paru-paru untuk bernapas lebih cepat dan lebih dalam untuk menukar gas dengan lebih cepat. Istirahat memungkinkan ritme kembali ke awal.",
+        "jogOnSpot": "Jogging di tempat selama satu menit",
+        "starJumps": "100 star jumps",
+        "experiment": {
+          "atRestLabel": "Bernapas saat Istirahat",
+          "afterJogLabel": "Setelah Joging",
+          "afterStarJumpLabel": "Setelah Bintang Loncat",
+          "jogExerciseTitle": "Joging di tempat",
+          "jogExerciseText": "Joging di tempat selama 1 menit. Setelah selesai, berbaring telentang dan letakkan ponsel di dada Anda secara perlahan.",
+          "starJumpExerciseTitle": "100 bintang loncat",
+          "starJumpExerciseText": "Lakukan 100 bintang loncat. Setelah selesai, berbaring telentang dan letakkan ponsel di dada Anda secara perlahan.",
+          "chestMovement": "Gerakan dada: {{value}} cm",
+          "allRecordingsComplete": "Semua rekaman selesai!",
+          "recordingsComplete": "Rekaman selesai: {{done}}/{{total}}",
+          "introTextRest": "Letakkan ponsel perlahan di dada Anda. Berbaringlah di permukaan datar atau matras. Tetap diam dan bernapas normal selama 1 menit rekaman.",
+          "nextExercise": "Selanjutnya: Latihan",
+          "startNow": "Mulai sekarang?",
+          "startJog": "Mulai joging 1 menit",
+          "readyToRecord": "Siap merekam pernapasan",
+          "finishedStarJumps": "Saya selesai 100 bintang loncat",
+          "promptText": "Berbaringlah telentang. Letakkan ponsel perlahan di dada Anda. Hitung napas Anda dalam hati (atau minta pasangan menghitungnya). Anda akan memasukkan totalnya setelah rekaman 1 menit.",
+          "startRecording": "Mulai merekam",
+          "getReady": "Bersiaplah…",
+          "recording": "Merekam… {{remaining}}s",
+          "countBreathsHint": "Hitung napas Anda dalam hati...",
+          "recordingComplete": "Rekaman selesai",
+          "sensorEstimate": "Perkiraan sensor: {{bpm}} napas/mnt",
+          "movementStats": "Rata-rata gerakan: {{avg}} cm | puncak: {{peak}} cm",
+          "breathsCounted": "Napas yang Anda hitung (1 menit)",
+          "retry": "Ulangi"
+        },
+        "predBpm": "Pred. BPM",
+        "actualBpm": "BPM Aktual",
+        "movement": "Gerakan",
+        "mostChestMovement": "Gerakan dada terbanyak:",
+        "youPredicted": "Anda memprediksi:",
+        "highestMovement": "Gerakan tertinggi:",
+        "movementMatch": "Prediksi gerakan Anda cocok dengan hasil.",
+        "movementDiffers": "Prediksi gerakan Anda berbeda dari hasil.",
+        "outcomeDetails": "Detail hasil",
+        "detailFormat": "{{duration}}s rekaman | {{bpm}} napas/mnt | gerakan {{avg}} cm rata-rata, {{peak}} cm puncak",
+        "mostMovementAfter": "Gerakan terbanyak setelah olahraga:",
+        "breathingResultsTitle": "Hasil Pernapasan",
+        "actual": "Aktual",
+        "pred": "Pred.",
+        "increaseFormat": "Tingkat pernapasan Anda meningkat {{increase}} napas per menit setelah berolahraga!"
       }
     },
     "sensors": {
@@ -834,6 +1019,11 @@
         "name": "Baterai",
         "desc": "Level baterai perangkat dan status pengisian",
         "chip": "API Baterai"
+      },
+      "gyroscope": {
+        "name": "Sensor Giroskop",
+        "desc": "Ukur tingkat rotasi dan sudut orientasi perangkat",
+        "chip": "Giroskop"
       }
     }
   }

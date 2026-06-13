@@ -55,11 +55,6 @@ export async function getAuthContext(): Promise<{ user: AppUser; team: Team | nu
   return getAuthSession();
 }
 
-/** @deprecated Use getAuthContext */
-export async function getTeam(): Promise<Team | null> {
-  const ctx = await getAuthSession();
-  return ctx?.team ?? null;
-}
 
 export async function getUser(): Promise<AppUser | null> {
   const ctx = await getAuthSession();

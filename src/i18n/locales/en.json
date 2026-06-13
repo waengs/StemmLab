@@ -19,7 +19,13 @@
     "viewFullImage": "View full-size image",
     "error": "Error",
     "confirmDelete": "Are you sure you want to delete this?",
-    "cameraPermissionMsg": "Camera permission is required"
+    "cameraPermissionMsg": "Camera permission is required",
+    "saveLog": "Save Log",
+    "recordAgain": "Record Again",
+    "startMeasurement": "Start Measurement",
+    "selectPlaceholder": "Select...",
+    "capture": "Capture",
+    "condition": "Condition"
   },
   "sounds": {
     "countThree": "three",
@@ -136,8 +142,8 @@
     "timeBudgetHint": "This activity takes about {{minutes}} minutes. Make sure you have enough time, then tap Next on Setup to begin.",
     "timerBudgetHint": "You have {{minutes}} minutes to finish this activity. The timer starts when you tap Next on the Setup tab.",
     "timerResume": "Resume",
-    "incompleteTitle": "Incomplete data",
-    "incompleteMsg": "Please complete all required fields before submitting.",
+    "incompleteTitle": "Wait, Scientists! 🛑",
+    "incompleteMsg": "You're missing some important data! Make sure you've answered all the questions and recorded your results before finishing the activity.",
     "timeoutTitle": "Time is up!",
     "timeoutMsg": "Your time is up. You can only review your data now.",
     "timerTitle": "Activity timer (60 min)",
@@ -169,7 +175,8 @@
       "viewQuiz": "View Quiz",
       "doQuiz": "Do Quiz",
       "discussions": "Discussions",
-      "doAnotherExperiment": "Do Another Experiment"
+      "doAnotherExperiment": "Do Another Experiment",
+      "continueExperiment": "Continue Experiment"
     },
     "pauseTimerTitle": "Pause timer?",
     "pauseTimerMsg": "Only pause if you need to. Keeping the timer running protects data integrity.",
@@ -222,7 +229,22 @@
     "incorrectCalculation": "Incorrect calculation",
     "calcEncouragement": "Try calculating the answers yourself first — showing your working is an important part of science! Instant calculation is available if you get stuck, but it will cost your team 20 points.",
     "calcWarningTitle": "Instant Calculation Penalty",
-    "calcWarningText": "Using instant calculation will deduct 20 points from your team's score. Continue?"
+    "calcWarningText": "Using instant calculation will deduct 20 points from your team's score. Continue?",
+    "difference": "Diff.",
+    "predicted": "Pred.",
+    "actual": "Act.",
+    "predictedR1": "Pred. (R1)",
+    "predictionNumber": "Prediction {{n}}",
+    "predictedDb": "Predicted dB",
+    "predictedDbPlaceholder": "e.g. 80",
+    "addPrediction": "Add Prediction",
+    "viewResults": "View Results",
+    "addTrial": "Add Trial",
+    "protractor": {
+      "title": "Digital Protractor",
+      "error": "Accelerometer is not available on this device.",
+      "instruction": "Align the edge of your phone with the bent material to measure its angle."
+    }
   },
   "sensors": {
     "pageTitle": "Sensors",
@@ -329,7 +351,16 @@
     "vibrationIdleHint": "Hold the phone and tap Start. Countdown 3-2-1, then {{seconds}} seconds of recording. Done plays when finished.",
     "logEmptyError": "Log cannot be empty.",
     "deleteLogTitle": "Delete log",
-    "deleteLogConfirm": "Are you sure you want to delete this sensor log?"
+    "deleteLogConfirm": "Are you sure you want to delete this sensor log?",
+    "gyroscopeUnavailableTitle": "Sensor Unavailable",
+    "gyroscopeUnavailableMsg": "Gyroscope is not available on this device.",
+    "gyroscopeErrorTitle": "Error",
+    "gyroscopeErrorMsg": "Failed to read from Gyroscope.",
+    "gyroscopeMeasurement": "Gyroscope Measurement",
+    "gyroscopeMeasurementComplete": "Measurement Complete",
+    "gyroscopeTotalRotation": "Total Rotation: {{val}}°",
+    "gyroscopeHint": "Hold the device and tap start. It will measure total angular rotation over {{val}} seconds.",
+    "gyroscopeRecording": "Recording... {{val}}s"
   },
   "leaderboard": {
     "pageTitle": "Leaderboard",
@@ -481,6 +512,7 @@
         "btnSaveResults": "Complete Activity",
         "timerPauseTitle": "Pause timer",
         "timerPauseWarning": "Only pause the timer if you need to. Keep your data honest!",
+        "instantCalcPenalty": "Instant calculation penalty applied (−20 pts)",
         "chips": {
           "slow-mo": "Camera"
         },
@@ -488,6 +520,21 @@
           "gForce": "G-Force Measured",
           "dropHeight": "Drop Height (cm)",
           "parachuteSize": "Parachute Size (cm²)"
+        },
+        "conclusionTitle": "Conclusion",
+        "conclusionBest": "{{design}} had the slowest fall with {{time}} seconds!",
+        "conclusionPred": "You predicted {{design}} would be the slowest. {{match}}",
+        "conclusionMatch": "You nailed it!",
+        "conclusionMismatch": "Your results were different than expected!",
+        "conclusionScience": "Gravity pulls all objects down with the same acceleration, but air resistance pushes back. A parachute creates a large surface area that catches more air, increasing air resistance (drag) and slowing the fall. The larger the parachute, the slower the fall!",
+        "surprisesLabel": "What surprised you about the results?",
+        "riskLevels": {
+          "noInjury": "No injury",
+          "bruising": "Possible bruising or strains",
+          "serious": "Serious injuries possible (broken bones, concussions)",
+          "severe": "High risk of severe injury",
+          "lifeThreatening": "Life-threatening injuries likely",
+          "riskLevelLabel": "Risk Level:"
         }
       },
       "sound-pollution": {
@@ -525,12 +572,31 @@
           "maxDecibels": "Max Sound Level (dB)",
           "avgDecibels": "Average Sound Level (dB)",
           "location": "Location"
-        }
+        },
+        "conclusionTitle": "Conclusion",
+        "conclusionBest": "{{action}} was the loudest source measured at {{db}} dB!",
+        "conclusionPred": "You predicted {{action}} would be the loudest. {{match}}",
+        "conclusionMatch": "Your prediction was spot on!",
+        "conclusionMismatch": "The data showed a different result!",
+        "conclusionScience": "Sound travels as vibrations through the air. Decibels (dB) measure the intensity of these sound waves. A small increase in decibels means a massive increase in actual sound energy. Understanding noise pollution is the first step to protecting our hearing and our environment.",
+        "riskLevels": {
+          "noRisk": "No risk",
+          "safeLong": "Safe for long periods",
+          "safeFatigue": "Generally safe, but long exposure can cause fatigue",
+          "damageLong": "Hearing damage possible after long exposure",
+          "damageShort": "Hearing damage likely after short exposure",
+          "seriousMinutes": "Serious hearing damage in minutes",
+          "painful": "Painful; immediate damage possible",
+          "immediateSevere": "Immediate and severe hearing damage",
+          "instantPermanent": "Instant, permanent hearing damage",
+          "riskLevelLabel": "Risk to Hearing:"
+        },
+        "predictMultipleHint": "Add some actions and predict how loud they will be in decibels (dB)."
       },
       "hand-fan": {
         "name": "Hand Fan Challenge",
         "desc": "Compare fan materials and designs to see how much air force bends a paper target",
-        "equipment": "Paper and cardboard,Scissors,Mobile phone,Sticky Tape,Stemm Lab app,Protractor",
+        "equipment": "Paper and cardboard, Scissors, Mobile phone, Sticky Tape, Stemm Lab app, Protractor",
         "recordHint": "For each trial, tap Record Slow-Mo Video, fan the paper, then enter the max bend angle.",
         "predictMaterialLabel": "Predict which fan material will perform the best",
         "predictDesignLabel": "Predict which fan design will perform the best",
@@ -568,10 +634,30 @@
           "Cardboard, Narrow Fold": "Cardboard, narrow fold"
         },
         "stiffnessRows": [
-          { "material": "Thin printer paper", "thickness": "0.1", "k": "0.05", "notes": "Bends very easily" },
-          { "material": "Standard card stock", "thickness": "0.25", "k": "0.2", "notes": "Moderate bend" },
-          { "material": "Thin cardboard", "thickness": "0.5", "k": "0.5", "notes": "Much harder to bend" },
-          { "material": "Corrugated cardboard", "thickness": "3", "k": "2–3", "notes": "Very stiff, almost no bend" }
+          {
+            "material": "Thin printer paper",
+            "thickness": "0.1",
+            "k": "0.05",
+            "notes": "Bends very easily"
+          },
+          {
+            "material": "Standard card stock",
+            "thickness": "0.25",
+            "k": "0.2",
+            "notes": "Moderate bend"
+          },
+          {
+            "material": "Thin cardboard",
+            "thickness": "0.5",
+            "k": "0.5",
+            "notes": "Much harder to bend"
+          },
+          {
+            "material": "Corrugated cardboard",
+            "thickness": "3",
+            "k": "2–3",
+            "notes": "Very stiff, almost no bend"
+          }
         ],
         "chips": {
           "slow-mo": "Camera"
@@ -579,13 +665,28 @@
         "fields": {
           "windSpeed": "Wind Speed (m/s)",
           "fanSize": "Fan Diameter (cm)"
-        }
+        },
+        "conclusionTitle": "Conclusion",
+        "conclusionBest": "{{design}} bent the paper most, applying the most force with {{angle}} degrees!",
+        "conclusionPred": "You predicted {{design}} made of {{material}} would be best. {{match}}",
+        "conclusionMatch": "You nailed it!",
+        "conclusionMismatch": "Your results were different than expected!",
+        "conclusionScience": "Moving air applies force to objects. Paper bends due to flexibility, but if a stronger material is used, the same force won't bend it as much. Different fan designs push different amounts of air, creating stronger or weaker forces.",
+        "measureWithGyroscope": "Measure with Gyroscope",
+        "targetThinPrinterPaper": "Thin printer paper",
+        "targetStandardCardStock": "Standard card stock",
+        "targetThinCardboard": "Thin cardboard",
+        "targetCorrugatedCardboard": "Corrugated cardboard",
+        "predictBendAngleLabel": "Predicted Bend Angle (degrees)",
+        "predictBendAnglePlaceholder": "e.g. 45",
+        "calcAerodynamicForce": "Calculated Aerodynamic Force",
+        "resultsPredBend": "Pred. Bend"
       },
       "earthquake": {
         "name": "Earthquake-Resistant Structure",
         "desc": "Fold paper anti-vibration layers and test how much the phone moves in a simulated quake",
         "overview": "Build anti-vibration layers and test how much the phone moves when you simulate an earthquake.",
-        "equipment": "Cardboard, paper, scissors, sticky tape, plastic/paper cups,Mobile phone with Stemm Lab app (vibration simulation)",
+        "equipment": "Cardboard, Paper, Scissors, Sticky tape, Plastic/paper cups, Mobile phone with Stemm Lab app (vibration simulation)",
         "predictBestDesignLabel": "Predict which fold design makes the phone move the least:",
         "predictBestDesignPlaceholder": "e.g. 10 folds with 4 pillars",
         "simulatorTitle": "Earthquake Simulator",
@@ -611,7 +712,7 @@
         "designPlaceholder": "e.g. 4 folds + 4 pillars",
         "outcomeMovement": "Outcome (movement)",
         "outcomePlaceholder": "e.g. +/- 1cm or 4cm",
-        "addDesign": "Add design",
+        "addDesign": "Add Another Design",
         "surprisesLabel": "Any surprises?",
         "chips": {
           "phone-vibration": "Vibration motor"
@@ -620,7 +721,26 @@
           "vibrationLevel": "Max Vibration (Hz)",
           "structureHeight": "Structure Height (cm)",
           "survived": "Structure Survived"
-        }
+        },
+        "conclusionTitle": "Conclusion",
+        "conclusionBest": "{{design}} moved the least with only {{deg}}° and {{cm}}cm of movement!",
+        "conclusionPred": "You predicted that {{design}} would be the best. {{match}}",
+        "conclusionMatch": "Your prediction was correct!",
+        "conclusionMismatch": "Let's see why the results differed from your prediction!",
+        "conclusionScience": "Earthquakes cause ground vibrations that can collapse poorly designed structures. A well-designed earthquake-resistant structure uses techniques like flexible foundations (anti-vibration layers) or cross-bracing to absorb and distribute the seismic energy, minimizing the movement of the building itself.",
+        "gyroscopeInstruction": "Run the earthquake simulator for each design and record the movement. The Gyroscope will measure the angle (°), but you must manually measure the distance (cm).",
+        "predictInstruction": "Name the structural designs you will test and predict how much they will move in both degrees and cm:",
+        "designNameLabel": "Design Name",
+        "designNamePlaceholder": "e.g. 4 folds + 4 pillars",
+        "predictAngleLabel": "Predicted Angle (°)",
+        "predictAnglePlaceholder": "e.g. 45",
+        "predictDistLabel": "Predicted Dist (cm)",
+        "predictDistPlaceholder": "e.g. 10",
+        "actualAngleLabel": "Actual Angle (°)",
+        "actualDistLabel": "Actual Dist (cm)",
+        "recordEarthquake": "Record Earthquake",
+        "resultsPredicted": "Predicted",
+        "resultsActual": "Actual"
       },
       "human-performance": {
         "name": "Human Performance Lab",
@@ -713,7 +833,13 @@
           "bendAngle": "Max Bend Angle (degrees)",
           "speed": "Movement Speed (1-10)",
           "gracefulness": "Gracefulness Score (1-10)"
-        }
+        },
+        "conclusionTitle": "Conclusion",
+        "conclusionBest": "{{movement}} had the smoothest movement with a score of {{score}} out of 10!",
+        "conclusionPred": "You predicted {{movement}} would be the hardest (least smooth). {{match}}",
+        "conclusionMatch": "Interestingly, it turned out to be the smoothest!",
+        "conclusionMismatch": "The data shows the differences in coordination!",
+        "conclusionScience": "Muscles and joints work together to create movement. Depending on the range of motion and joint stability, different actions produce different levels of tremor (vibration). Providing live feedback helps participants control their movements and consciously improve smoothness."
       },
       "reaction-board": {
         "name": "Reaction Board Challenge",
@@ -772,7 +898,14 @@
         "fields": {
           "reactionTime": "Reaction Time (ms)",
           "accuracy": "Accuracy (%)"
-        }
+        },
+        "conclusionTitle": "Conclusion",
+        "conclusionBest": "You achieved a reaction time of {{time}} ms and {{accuracy}}% accuracy!",
+        "conclusionPred": "You predicted your reaction time would be {{time}} ms. {{match}}",
+        "conclusionMatch": "That's a highly accurate prediction!",
+        "conclusionMismatch": "Your actual reflexes were slightly different than expected!",
+        "conclusionScience": "Reaction time measures how quickly the brain processes information and sends signals to muscles. A shorter reaction time indicates faster neural processing. Accuracy drops when we try to move too quickly, demonstrating the speed-accuracy tradeoff in human performance.",
+        "surprisesLabel": "Any surprises? Were you right?"
       },
       "breathing-pace": {
         "name": "Breathing Pace Trainer",
@@ -783,11 +916,11 @@
         "timeUpText": "Your 30 minutes are up. The form is now locked, but you can still review your data.",
         "equipmentPhone": "Mobile phone with Stemm Lab app",
         "equipmentMat": "Flat surface or mat",
-        "predictionsTitle": "Questions Before the Experiment",
+        "predictionsTitle": "Predictions",
         "predictMostMovement": "Predict which exercise makes the phone move the most on your chest",
         "predictBpmTitle": "Predict breaths per minute",
-        "afterJog": "After jog",
-        "afterStarJump": "After star jumps",
+        "afterJog": "Jog one minute on the spot",
+        "afterStarJump": "100 star jumps",
         "resultsTitle": "Results",
         "chips": {
           "vibration": "Accelerometer"
@@ -801,7 +934,58 @@
         "fields": {
           "breathsPerMinute": "Breaths Per Minute",
           "consistency": "Consistency Score (1-10)"
-        }
+        },
+        "conclusionTitle": "Conclusion",
+        "conclusionBest": "{{condition}} resulted in the fastest breathing pace of {{pace}} bpm!",
+        "conclusionPred": "You predicted {{condition}} would result in the fastest pace. {{match}}",
+        "conclusionMatch": "Your prediction was correct!",
+        "conclusionMismatch": "Let's analyze why the data showed something else!",
+        "conclusionScience": "When we exercise or experience stress, our muscles require more oxygen to create energy. The brain detects the build-up of carbon dioxide and signals the lungs to breathe faster and deeper to exchange gases more rapidly. Resting allows the pace to return to a baseline.",
+        "jogOnSpot": "Jog one minute on the spot",
+        "starJumps": "100 star jumps",
+        "experiment": {
+          "atRestLabel": "Breathing at Rest",
+          "afterJogLabel": "After Jog",
+          "afterStarJumpLabel": "After Star Jumps",
+          "jogExerciseTitle": "Jog on the spot",
+          "jogExerciseText": "Jog in place for 1 minute. When finished, lie on your back and place the phone gently on your chest.",
+          "starJumpExerciseTitle": "100 star jumps",
+          "starJumpExerciseText": "Do 100 star jumps. When finished, lie on your back and place the phone gently on your chest.",
+          "chestMovement": "Chest movement: {{value}} cm",
+          "allRecordingsComplete": "All recordings complete!",
+          "recordingsComplete": "Recordings complete: {{done}}/{{total}}",
+          "introTextRest": "Place the phone gently on your chest. Lie on a flat surface or mat. Keep still and breathe normally for the 1-minute recording.",
+          "nextExercise": "Next: Exercise",
+          "startNow": "Start now?",
+          "startJog": "Start 1-minute jog",
+          "readyToRecord": "Ready to record breathing",
+          "finishedStarJumps": "I finished 100 star jumps",
+          "promptText": "Lie on your back. Place the phone gently on your chest. Count your breaths in your head (or have a partner count them). You will enter the total after the 1-minute recording.",
+          "startRecording": "Start recording",
+          "getReady": "Get ready…",
+          "recording": "Recording… {{remaining}}s",
+          "countBreathsHint": "Count your breaths in your head...",
+          "recordingComplete": "Recording complete",
+          "sensorEstimate": "Sensor estimate: {{bpm}} breaths/min",
+          "movementStats": "Movement avg: {{avg}} cm | peak: {{peak}} cm",
+          "breathsCounted": "Breaths you counted (1 minute)",
+          "retry": "Retry"
+        },
+        "predBpm": "Pred. BPM",
+        "actualBpm": "Actual BPM",
+        "movement": "Movement",
+        "mostChestMovement": "Most chest movement:",
+        "youPredicted": "You predicted:",
+        "highestMovement": "Highest movement:",
+        "movementMatch": "Your movement prediction matched the results.",
+        "movementDiffers": "Your movement prediction differed from the results.",
+        "outcomeDetails": "Outcome details",
+        "detailFormat": "{{duration}}s recording | {{bpm}} breaths/min | movement {{avg}} cm avg, {{peak}} cm peak",
+        "mostMovementAfter": "Most movement after exercise:",
+        "breathingResultsTitle": "Breathing Results",
+        "actual": "Actual",
+        "pred": "Pred.",
+        "increaseFormat": "Your breathing rate increased by {{increase}} breaths per minute after exercise!"
       }
     },
     "sensors": {
@@ -834,6 +1018,11 @@
         "name": "Battery",
         "desc": "Device battery level and charging status",
         "chip": "Battery API"
+      },
+      "gyroscope": {
+        "name": "Gyroscope Sensor",
+        "desc": "Measure rotation rate and device orientation angles",
+        "chip": "Gyroscope"
       }
     }
   }

@@ -1,6 +1,12 @@
 import type { TFunction } from 'i18next';
 
 export const HAND_FAN_MATERIALS = ['Paper', 'Cardboard'] as const;
+export const HAND_FAN_TARGET_MATERIALS = [
+  'Thin printer paper',
+  'Standard card stock',
+  'Thin cardboard',
+  'Corrugated cardboard'
+] as const;
 export const HAND_FAN_DESIGNS = [
   'Paper, Wide Fold',
   'Paper, Narrow Fold',
@@ -34,4 +40,17 @@ export function resolveHandFanMaterial(material: string, t: TFunction): string {
 
 export function resolveHandFanDesign(design: string, t: TFunction): string {
   return getHandFanDesignLabels(t)[design] ?? design;
+}
+
+export function getHandFanTargetMaterialLabels(t: TFunction): Record<string, string> {
+  return {
+    'Thin printer paper': t('data.activities.hand-fan.targetThinPrinterPaper', { defaultValue: 'Thin printer paper' }),
+    'Standard card stock': t('data.activities.hand-fan.targetStandardCardStock', { defaultValue: 'Standard card stock' }),
+    'Thin cardboard': t('data.activities.hand-fan.targetThinCardboard', { defaultValue: 'Thin cardboard' }),
+    'Corrugated cardboard': t('data.activities.hand-fan.targetCorrugatedCardboard', { defaultValue: 'Corrugated cardboard' }),
+  };
+}
+
+export function resolveHandFanTargetMaterial(material: string, t: TFunction): string {
+  return getHandFanTargetMaterialLabels(t)[material] ?? material;
 }

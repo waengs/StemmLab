@@ -8,7 +8,7 @@ export type QuizMcqItem = {
 };
 
 export function actT(key: string, options?: Record<string, unknown>): string {
-  return i18n.t(`activityContent.${key}`, options as object);
+  return i18n.t(`activityContent.${key}` as any, options as any) as string;
 }
 
 export function getActivityInstructions(activityId: string): string[] {

@@ -86,7 +86,7 @@ export function getVibrationPattern(intensity: string): number[] {
 }
 
 export function designOptionsForTrial(design: string): string[] {
-  const options = [...EARTHQUAKE_PRESET_DESIGNS];
+  const options: string[] = [...EARTHQUAKE_PRESET_DESIGNS];
   if (design && !options.includes(design as EarthquakePresetDesign)) {
     options.push(design);
   }

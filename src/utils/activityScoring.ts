@@ -8,7 +8,7 @@ export const SCORE_WRONG_PREDICTION_PENALTY = 10;
 export const SCORE_QUIZ_PER_CORRECT = 2;
 
 export function finalizeScore(score: number): number {
-  return Math.max(0, Math.round(score));
+  return Math.min(100, Math.max(0, Math.round(score)));
 }
 
 export function applyInstantCalcPenalty(score: number, usedInstantCalc?: boolean): number {
@@ -66,11 +66,11 @@ export function scoreParachuteDrop(data: Record<string, unknown>): number {
   let score = SCORE_BASE;
   score = applyInstantCalcPenalty(score, Boolean(data.usedInstantCalc));
 
-  const trials = Array.isArray(data.trials) ? data.trials : [];
+  const trials = (Array.isArray(data.trials) ? data.trials : []) as any[];
   const experimentTrials = trials.slice(1);
 
   if (experimentTrials.length > 0) {
-    let bestTrial: { label?: string; actualTime?: string } | null = null;
+    let bestTrial: any = null;
     let bestTime = -Infinity;
     let totalTimeDiff = 0;
     let validTimeTrials = 0;
@@ -183,7 +183,7 @@ export function scoreHumanPerformance(data: Record<string, unknown>): number {
 export function scoreBreathingPace(data: Record<string, unknown>): number {
   let score = SCORE_BASE;
 
-  const trials = Array.isArray(data.trials) ? data.trials : [];
+  const trials = (Array.isArray(data.trials) ? data.trials : []) as any[];
   if (trials.length > 0) {
     let totalDiff = 0;
     let validTrials = 0;
@@ -207,7 +207,7 @@ export function scoreBreathingPace(data: Record<string, unknown>): number {
       afterStarJump: 'After Star Jumps',
     };
 
-    let movementWinner: { id: string; avg: number } | null = null;
+    let movementWinner: any = null;
     trials.forEach((trial: { id?: string; movementAvg?: string }) => {
       const avg = parseFloat(String(trial.movementAvg ?? '')) || 0;
       if (!movementWinner || avg > movementWinner.avg) {

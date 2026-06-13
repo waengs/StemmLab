@@ -119,10 +119,20 @@ export function buildLeaderboards(
   });
 
   Object.entries(teamStats).forEach(([discriminator, stats]) => {
+    let bestScoresSum = 0;
+    BOARD_KEYS.forEach((key) => {
+      if (key !== 'overall') {
+        const entry = boards[key].find((e) => e.teamDiscriminator === discriminator);
+        if (entry) {
+          bestScoresSum += entry.score;
+        }
+      }
+    });
+
     boards.overall.push({
       teamDiscriminator: discriminator,
       teamName: resolveTeamName(discriminator, teamNames),
-      score: stats.totalScore,
+      score: bestScoresSum,
       count: stats.count,
     });
   });

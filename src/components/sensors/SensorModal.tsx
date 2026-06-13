@@ -16,6 +16,7 @@ import { ReactionTestPanel } from './ReactionTestPanel';
 import { SoundMeterPanel } from './SoundMeterPanel';
 import { BatterySensorPanel } from './BatterySensorPanel';
 import { LocationSensorPanel } from './LocationSensorPanel';
+import { GyroscopeSensorPanel } from './GyroscopeSensorPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { BorderRadius, Spacing } from '../../theme';
 import { SENSORS } from '../../types';
@@ -167,6 +168,13 @@ export function SensorModal({
                 />
               ) : sensor.id === 'location' ? (
                 <LocationSensorPanel
+                  notes={notes}
+                  onNotesChange={onNotesChange}
+                  onResultReady={onResultReady}
+                  onSave={onSave}
+                />
+              ) : sensor.id === 'gyroscope' ? (
+                <GyroscopeSensorPanel
                   notes={notes}
                   onNotesChange={onNotesChange}
                   onResultReady={onResultReady}

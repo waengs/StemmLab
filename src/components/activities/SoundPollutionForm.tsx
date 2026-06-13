@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { SoundMeterPanel } from '../sensors/SoundMeterPanel';
@@ -17,6 +18,7 @@ import { Spacing, Typography, BorderRadius  } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { useRequireAuth } from '../../stores';
+import { SoundPollutionResults } from './SoundPollutionResults';
 
 export interface SoundPollutionTrial {
   id: string;
@@ -29,12 +31,20 @@ export interface SoundPollutionTrial {
   wereYouRight?: string;
 }
 
+export interface SoundPollutionPrediction {
+  id: string;
+  action: string;
+  predictedDb: string;
+}
+
 export interface SoundPollutionData {
-  predictedLoudestAction: string;
+  predictedLoudestAction?: string;
+  predictions?: SoundPollutionPrediction[];
   trials: SoundPollutionTrial[];
   surprises: string;
   /** @deprecated Removed from UI; may exist on old saves. */
   needEarMuffs?: string;
+  checkedEquipment?: Record<string, boolean>;
 }
 
 interface Props {
@@ -238,7 +248,9 @@ function useSoundPollutionFormStyles() {
   wizardNavBoth: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.md,
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
   modalOverlay: {
     flex: 1,
@@ -272,6 +284,7 @@ function useSoundPollutionFormStyles() {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
@@ -291,9 +304,17 @@ export function SoundPollutionForm({
   const { t } = useTranslation();
   const { team } = useRequireAuth();
   
-  const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment'>('setup');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const initialTab = (value as any)?.__activeTab || 'setup';
+  const [activeTab, setActiveTabState] = useState<'setup' | 'predictions' | 'experiment' | 'results'>(initialTab);
+  
+  const timerEndTs = (value as any)?.__timerEndTs;
+  const initialTimeLeft = timerEndTs 
+    ? Math.max(0, Math.floor((timerEndTs - Date.now()) / 1000))
+    : DEFAULT_TIME;
+    
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTab !== 'setup' && initialTimeLeft > 0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   
@@ -320,9 +341,7 @@ export function SoundPollutionForm({
     () => [t('data.activities.sound-pollution.equipmentPhone')],
     [t]
   );
-  const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-  const allEquipmentChecked = equipmentList.every((item) => checkedEquipment[item]);
-
+  
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -367,7 +386,11 @@ export function SoundPollutionForm({
   const getInitialData = (): SoundPollutionData => ({
     predictedLoudestAction: '',
     surprises: '',
-    trials: []
+    trials: [],
+    predictions: [
+      { id: 'pred_1', action: '', predictedDb: '' },
+      { id: 'pred_2', action: '', predictedDb: '' },
+    ]
   });
 
   const defaultData = getInitialData();
@@ -379,6 +402,25 @@ export function SoundPollutionForm({
 
   const updateData = (updates: Partial<SoundPollutionData>) => onChange({ ...data, ...updates });
 
+  const checkedEquipment = data.checkedEquipment || {};
+  const setCheckedEquipment = (updater: any) => {
+    if (typeof updater === 'function') {
+      updateData({ checkedEquipment: updater(checkedEquipment) });
+    } else {
+      updateData({ checkedEquipment: updater });
+    }
+  };
+  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every((item: string) => checkedEquipment[item]);
+  
+  const setActiveTab = (tab: 'setup' | 'predictions' | 'experiment' | 'results') => {
+    setActiveTabState(tab);
+    let updates: any = { __activeTab: tab };
+    if (tab !== 'setup' && !(data as any).__timerEndTs) {
+      updates.__timerEndTs = Date.now() + DEFAULT_TIME * 1000;
+    }
+    onChange({ ...data, ...updates });
+  };
+
   const isFormValid = () => {
     if (!data.predictedLoudestAction?.trim()) return false;
     if (data.trials.length < MIN_SOUND_TRIALS) return false;
@@ -389,8 +431,8 @@ export function SoundPollutionForm({
     return true;
   };
 
-  const predictionsValid = !!data.predictedLoudestAction?.trim();
-  const experimentValid = data.trials.length >= MIN_SOUND_TRIALS && data.trials.every(t => t.action?.trim() && t.outcomeDb?.trim()) && !!data.surprises?.trim();
+  const predictionsValid = (data.predictions || []).length > 0 && (data.predictions || []).every(p => p.action?.trim() && p.predictedDb?.trim()) && !!data.predictedLoudestAction?.trim();
+  const experimentValid = data.trials.length >= MIN_SOUND_TRIALS && data.trials.every(t => t.action?.trim() && t.outcomeDb?.trim());
 
   const getIncompleteMessage = () => {
     if (data.trials.length < MIN_SOUND_TRIALS) {
@@ -401,7 +443,7 @@ export function SoundPollutionForm({
 
   const handleComplete = () => {
     if (!isFormValid()) {
-      Alert.alert(t('activities.incompleteTitle'), getIncompleteMessage());
+      Alert.alert(t('activities.incompleteTitle', { defaultValue: 'Almost there!' }), getIncompleteMessage());
       return;
     }
     setIsTimerRunning(false);
@@ -519,14 +561,15 @@ export function SoundPollutionForm({
                   />
                 </View>
 
-                <Input
+                <Select
                   label={t('activities.actionDescription')}
                   value={actionDraft.action}
-                  onChangeText={(v) => {
+                  onValueChange={(v) => {
                     const newActions = [...modalActions];
-                    newActions[index].action = v;
+                    newActions[index] = { ...newActions[index], action: v };
                     setModalActions(newActions);
                   }}
+                  options={(data.predictions || []).map(p => p.action).filter(Boolean)}
                   placeholder={t('activities.actionPlaceholder')}
                 />
 
@@ -598,7 +641,7 @@ export function SoundPollutionForm({
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {['setup', 'predictions', 'experiment'].map((tab) => (
+          {['setup', 'predictions', 'experiment', 'results'].map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab, !isTimerRunning && activeTab !== tab && { opacity: 0.5 }]}
@@ -662,19 +705,95 @@ export function SoundPollutionForm({
             {renderTimerBar()}
             <Card style={styles.pageCard}>
               <Text style={styles.sectionTitle}>{t('activities.predictionsTitle')}</Text>
-              <Input
+              <Text style={styles.instructionText}>{t('data.activities.sound-pollution.predictMultipleHint', { defaultValue: 'Add some actions and predict how loud they will be in decibels (dB).' })}</Text>
+              
+              <View style={{ height: Spacing.md }} />
+              
+              {(data.predictions || []).map((pred, index) => (
+                <View key={pred.id} style={{ backgroundColor: colors.background, padding: Spacing.md, borderRadius: 8, marginBottom: Spacing.md, borderWidth: 1, borderColor: colors.borderLight }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
+                    <Text style={{ fontWeight: '700', color: colors.text }}>
+                      {t('activities.predictionNumber', { defaultValue: 'Prediction {{n}}', n: index + 1 })}
+                    </Text>
+                    {!isLocked && (data.predictions || []).length > 2 && (
+                      <Button 
+                        title={t('common.delete')}
+                        variant="danger" 
+                        size="sm" 
+                        onPress={() => {
+                          const newPreds = (data.predictions || []).filter(p => p.id !== pred.id);
+                          updateData({ predictions: newPreds });
+                        }}
+                      />
+                    )}
+                  </View>
+                  
+                  <Input
+                    label={t('activities.actionDescription')}
+                    value={pred.action}
+                    onChangeText={(v) => {
+                      const newPreds = [...(data.predictions || [])];
+                      newPreds[index] = { ...newPreds[index], action: v };
+                      updateData({ predictions: newPreds });
+                    }}
+                    placeholder={t('activities.actionPlaceholder')}
+                    editable={!isLocked}
+                    onLightSurface
+                  />
+
+                  <Input
+                    label={t('activities.predictedDb', { defaultValue: 'Predicted dB' })}
+                    value={pred.predictedDb}
+                    onChangeText={(v) => {
+                      const newPreds = [...(data.predictions || [])];
+                      newPreds[index] = { ...newPreds[index], predictedDb: v };
+                      updateData({ predictions: newPreds });
+                    }}
+                    keyboardType="numeric"
+                    placeholder={t('activities.predictedDbPlaceholder', { defaultValue: 'e.g. 80' })}
+                    editable={!isLocked}
+                    onLightSurface
+                  />
+                </View>
+              ))}
+
+              {!isLocked && (
+                <Button 
+                  title={t('activities.addPrediction', { defaultValue: 'Add Prediction' })}
+                  variant="outlined" 
+                  onPress={() => {
+                    const newPreds = [...(data.predictions || []), { id: `pred_${Date.now()}`, action: '', predictedDb: '' }];
+                    updateData({ predictions: newPreds });
+                  }}
+                  style={{ marginTop: Spacing.sm }}
+                />
+              )}
+              
+              <View style={{ height: Spacing.xl }} />
+
+              <Select
                 label={t('data.activities.sound-pollution.predictLoudestLabel')}
-                value={data.predictedLoudestAction}
-                onChangeText={(v) => updateData({ predictedLoudestAction: v })}
+                value={data.predictedLoudestAction || ''}
+                onValueChange={(v) => updateData({ predictedLoudestAction: v })}
+                options={(data.predictions || []).map(p => p.action).filter(Boolean)}
                 placeholder={t('data.activities.sound-pollution.predictLoudestPlaceholder')}
-                editable={!isLocked}
+                disabled={isLocked || (data.predictions || []).filter(p => p.action?.trim()).length === 0}
                 onLightSurface
               />
             </Card>
 
             <View style={styles.wizardNavBoth}>
               <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('setup')} />
-              <Button title={t('common.next')} onPress={() => setActiveTab('experiment')} disabled={!predictionsValid} />
+              <Button 
+                title={t('common.next')} 
+                onPress={() => {
+                  if (!predictionsValid) {
+                    Alert.alert(t('activities.incompleteTitle', { defaultValue: 'Almost there!' }), t('activities.incompleteMsg', { defaultValue: 'It looks like some required fields haven\'t been filled out yet. Please double-check the tabs to make sure everything is complete before submitting.' }));
+                    return;
+                  }
+                  setActiveTab('experiment');
+                }} 
+              />
             </View>
           </View>
         )}
@@ -820,7 +939,28 @@ export function SoundPollutionForm({
               )}
             </Card>
 
-            <Card style={styles.pageCard}>
+            <View style={styles.wizardNavBoth}>
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('predictions')} />
+              <Button 
+                title={t('common.next')} 
+                onPress={() => {
+                  if (!experimentValid) {
+                    Alert.alert(t('activities.incompleteTitle', { defaultValue: 'Almost there!' }), getIncompleteMessage());
+                    return;
+                  }
+                  setActiveTab('results');
+                }} 
+              />
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'results' && (
+          <View>
+            {renderTimerBar()}
+            <SoundPollutionResults results={[{ data }]} hideReflection={true} />
+            
+            <Card style={[styles.pageCard, { marginTop: Spacing.md }]}>
               <Text style={styles.sectionTitle}>{actT('shared.reflectionTitle')}</Text>
               <Input
                 label={t('data.activities.sound-pollution.surprisesLabel')}
@@ -834,8 +974,8 @@ export function SoundPollutionForm({
             </Card>
 
             <View style={styles.wizardNavBoth}>
-              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('predictions')} />
-              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" disabled={!experimentValid} loading={isSubmitting} />
+              <Button title={t('common.previous')} variant="outlined" onPress={() => setActiveTab('experiment')} />
+              <Button title={t('activities.complete', { defaultValue: 'Complete Activity' })} onPress={handleComplete} variant="primary" loading={isSubmitting} />
             </View>
           </View>
         )}
@@ -843,5 +983,3 @@ export function SoundPollutionForm({
     </View>
   );
 }
-
-

@@ -23,8 +23,8 @@
     "continueDiscussion": "Lanjut ke Diskusi",
     "retakeQuiz": "Ulangi Kuis",
     "quizScore": "Skormu {{score}} dari {{total}}!",
-    "quizIncomplete": "Harap jawab semua soal pilihan ganda dan refleksi sebelum mengirim.",
-    "quizIncompleteReflection": "Harap jawab semua pertanyaan refleksi sebelum melanjutkan.",
+    "quizIncomplete": "Ups, ada yang terlewat! Pastikan untuk menjawab semua pertanyaan kuis dan refleksi sebelum mengumpulkan hasil kerjamu yang luar biasa.",
+    "quizIncompleteReflection": "Jangan lupa refleksimu! Tuliskan pemikiranmu sebelum melanjutkan.",
     "reflectionHeading": "Pertanyaan refleksi",
     "answerPlaceholder": "Tulis jawabanmu…",
     "discussionTitle": "Diskusi",
@@ -742,6 +742,26 @@
             "Menghilangkan semua suara"
           ],
           "answerIndex": 0
+        },
+        {
+          "question": "Apa yang harus kamu lakukan saat terjadi gempa bumi?",
+          "options": [
+            "Lari ke luar",
+            "Bersembunyi di bawah meja yang kuat",
+            "Berdiri di dekat jendela",
+            "Naik ke atap"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "Desain bangunan mana yang paling aman saat gempa bumi?",
+          "options": [
+            "Tinggi dan sempit",
+            "Lebar dan fleksibel",
+            "Terbuat dari kaca",
+            "Berat di bagian atas"
+          ],
+          "answerIndex": 1
         }
       ],
       "highSchool": [
@@ -774,6 +794,26 @@
             "Menggunakan material lebih lemah"
           ],
           "answerIndex": 1
+        },
+        {
+          "question": "Apa yang menyebabkan lempeng tektonik bergerak dan menciptakan gempa bumi?",
+          "options": [
+            "Arus angin",
+            "Arus konveksi di dalam mantel bumi",
+            "Gravitasi bulan",
+            "Pasang surut laut"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "Apa tujuan utama dari penyangga silang (cross-bracing) pada struktur tahan gempa?",
+          "options": [
+            "Untuk membuat bangunan lebih tinggi",
+            "Untuk menambah berat bangunan",
+            "Untuk menyerap dan mendistribusikan gaya seismik",
+            "Untuk meningkatkan estetika bangunan"
+          ],
+          "answerIndex": 2
         }
       ]
     },
@@ -808,6 +848,26 @@
             "Hanya menutup mata"
           ],
           "answerIndex": 0
+        },
+        {
+          "question": "Apa cara yang baik untuk mengurangi polusi suara?",
+          "options": [
+            "Berteriak lebih keras",
+            "Menanam lebih banyak pohon",
+            "Membunyikan klakson mobil",
+            "Mengeraskan suara TV"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "Suara manakah yang paling mungkin melukai telingamu?",
+          "options": [
+            "Berbisik",
+            "Daun berdesir",
+            "Pesawat lepas landas",
+            "Kucing mendengkur"
+          ],
+          "answerIndex": 2
         }
       ],
       "highSchool": [
@@ -840,6 +900,26 @@
             "Denging sementara"
           ],
           "answerIndex": 2
+        },
+        {
+          "question": "Bagaimana paparan jangka panjang terhadap tingkat desibel tinggi (di atas 85 dB) memengaruhi kesehatan manusia?",
+          "options": [
+            "Meningkatkan sensitivitas pendengaran",
+            "Dapat menyebabkan gangguan pendengaran akibat kebisingan",
+            "Tidak memiliki efek jangka panjang",
+            "Memperkuat gendang telinga"
+          ],
+          "answerIndex": 1
+        },
+        {
+          "question": "Manakah dari berikut ini yang merupakan strategi perencanaan kota yang efektif untuk mengurangi polusi suara?",
+          "options": [
+            "Menghilangkan semua vegetasi",
+            "Membangun penghalang akustik dan sabuk hijau",
+            "Meningkatkan batas kecepatan lalu lintas",
+            "Menggunakan bahan bangunan yang lebih memantulkan suara"
+          ],
+          "answerIndex": 1
         }
       ]
     }
@@ -940,6 +1020,10 @@
           {
             "heading": "Kekakuan Material & Plastisitas",
             "body": "Gaya untuk melengkungkan benda bergantung pada kekakuannya. Saat kertas melengkung lalu kembali, itu elastis. Jika melengkung terlalu jauh dan tetap lentur, tegangannya berlebihan. Lenturan berulang dapat melemahkan kertas."
+          },
+          {
+            "heading": "Mengestimasi Gaya",
+            "body": "Anda dapat memperkirakan gaya aerodinamis yang diterapkan pada kertas menggunakan rumus F ≈ k · θ, di mana F adalah gaya yang diterapkan dalam Newton, θ adalah sudut tekuk dalam radian, dan k adalah koefisien kekakuan. Hal ini memungkinkan Anda untuk membandingkan gaya berdasarkan kekakuan dan sudut tekuk tanpa satuan ukur yang mutlak."
           }
         ],
         "tables": [
@@ -961,6 +1045,31 @@
               [
                 "Jarak Target",
                 "Aliran menyebar seiring jarak, tekanan turun signifikan."
+              ],
+              [
+                "Kardus bergelombang (3mm)",
+                "2–3"
+              ]
+            ]
+          },
+          {
+            "title": "Faktor Utama yang Mempengaruhi Gaya Aliran Udara",
+            "headers": [
+              "Faktor",
+              "Efek Ilmiah"
+            ],
+            "rows": [
+              [
+                "Luas Permukaan Kipas",
+                "Luas permukaan yang lebih besar memindahkan volume udara yang lebih besar pada setiap ayunan."
+              ],
+              [
+                "Kecepatan Mengipas",
+                "Tekanan dinamis meningkat dengan kuadrat kecepatan udara."
+              ],
+              [
+                "Jarak Target",
+                "Aliran udara menyebar ke luar seiring bertambahnya jarak, menyebabkan tekanan turun drastis seiring dengan bertambahnya jarak."
               ]
             ]
           }

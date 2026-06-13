@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { Spacing, BorderRadius } from '../../theme';
 import { getMovementLabel, resolveMovementLabel } from '../../utils/humanPerformanceMovements';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
 import type { HumanPerformanceData, MovementId } from './HumanPerformanceForm';
 
 interface HumanPerformanceResultsProps {
@@ -12,7 +14,9 @@ interface HumanPerformanceResultsProps {
 
 export function HumanPerformanceResults({ data }: HumanPerformanceResultsProps) {
   const { t } = useTranslation();
-  const hpData = data as HumanPerformanceData;
+  const { colors } = useTheme();
+  const hpData = data as unknown as HumanPerformanceData;
+  if (!hpData || !hpData.trials) return null;
   const rt = 'data.activities.human-performance.resultsTable';
 
   const styles = useThemedStyles(({ colors, typography }) => ({
@@ -101,21 +105,28 @@ export function HumanPerformanceResults({ data }: HumanPerformanceResultsProps) 
 
       <View style={styles.tableRowHeader}>
         <Text style={[styles.tableCell, styles.flex2]}>{t(`${rt}.movement`)}</Text>
-        <Text style={[styles.tableCell, styles.flex1]}>{t(`${rt}.pred`)}</Text>
+        <Text style={[styles.tableCell, styles.flex1]}>{t("activities.predicted", { defaultValue: "Pred." })}</Text>
         <Text style={[styles.tableCell, styles.flex1]}>{t(`${rt}.round1`)}</Text>
+        <Text style={[styles.tableCell, styles.flex1]}>{t("activities.difference", { defaultValue: "Diff." })}</Text>
         <Text style={[styles.tableCell, styles.flex1]}>{t(`${rt}.round2`)}</Text>
       </View>
 
-      {hpData.trials?.map((trial) => (
-        <View key={trial.id} style={styles.tableRow}>
-          <Text style={[styles.tableCell, styles.flex2]}>
-            {getMovementLabel(trial.id as MovementId, t)}
-          </Text>
-          <Text style={[styles.tableCell, styles.flex1]}>{trial.predictedVibration} cm</Text>
-          <Text style={[styles.tableCell, styles.flex1]}>{trial.vibrationAvg} cm</Text>
-          <Text style={[styles.tableCell, styles.flex1]}>{trial.vibrationAvgWithFeedback} cm</Text>
-        </View>
-      ))}
+      {hpData.trials?.map((trial) => {
+        const pred = parseFloat(trial.predictedVibration || '');
+        const r1 = parseFloat(trial.vibrationAvg || '');
+        const diff = !isNaN(pred) && !isNaN(r1) ? Math.abs(pred - r1).toFixed(1) : '—';
+        return (
+          <View key={trial.id} style={styles.tableRow}>
+            <Text style={[styles.tableCell, styles.flex2]}>
+              {getMovementLabel(trial.id as MovementId, t)}
+            </Text>
+            <Text style={[styles.tableCell, styles.flex1]}>{trial.predictedVibration ? `${trial.predictedVibration} cm` : '—'}</Text>
+            <Text style={[styles.tableCell, styles.flex1]}>{trial.vibrationAvg ? `${trial.vibrationAvg} cm` : '—'}</Text>
+            <Text style={[styles.tableCell, styles.flex1, { color: diff !== '—' && parseFloat(diff) > 2 ? colors.danger : colors.textSecondary }]}>{diff}</Text>
+            <Text style={[styles.tableCell, styles.flex1]}>{trial.vibrationAvgWithFeedback ? `${trial.vibrationAvgWithFeedback} cm` : '—'}</Text>
+          </View>
+        );
+      })}
 
       {hpData.trials?.some((tr) => tr.smoothness) && (
         <View style={styles.metricsBox}>
@@ -130,6 +141,40 @@ export function HumanPerformanceResults({ data }: HumanPerformanceResultsProps) 
           )}
         </View>
       )}
+
+      <View style={{ marginTop: Spacing.lg, padding: Spacing.md, borderRadius: BorderRadius.sm, backgroundColor: colors.primaryLight + '10', borderWidth: 1, borderColor: colors.primary }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm }}>
+          <Ionicons name="bulb-outline" size={24} color={colors.primary} style={{ marginRight: Spacing.xs }} />
+          <Text style={{ ...styles.tableTitle, marginBottom: 0, color: colors.primary }}>{t("data.activities.human-performance.conclusionTitle")}</Text>
+        </View>
+        {(() => {
+          let bestTrial = hpData.trials[0];
+          let maxSmooth = -Infinity;
+          hpData.trials.forEach((t: any) => {
+            const val = parseFloat(t.smoothness);
+            if (!isNaN(val) && val > maxSmooth) {
+              maxSmooth = val;
+              bestTrial = t;
+            }
+          });
+          const bestLabel = bestTrial ? getMovementLabel(bestTrial.id as MovementId, t) : 'your attempt';
+          return (
+            <View>
+              <Text style={{ ...styles.text, fontWeight: '700', marginBottom: Spacing.sm, fontSize: 14 }}>
+                {t("data.activities.human-performance.conclusionBest", { movement: bestLabel, score: maxSmooth !== -Infinity ? maxSmooth : "?" })}
+              </Text>
+              {hpData.predictedHardestMovement && (
+                <Text style={{ ...styles.text, color: colors.secondary, marginBottom: Spacing.sm, fontSize: 14 }}>
+                  {t("data.activities.human-performance.conclusionPred", { movement: getMovementLabel(hpData.predictedHardestMovement as any, t) || hpData.predictedHardestMovement, match: hpData.predictedHardestMovement === bestTrial?.id ? t("data.activities.human-performance.conclusionMatch") : t("data.activities.human-performance.conclusionMismatch") })}
+                </Text>
+              )}
+              <Text style={{ ...styles.text, color: colors.textSecondary, fontStyle: 'italic' }}>
+                {t("data.activities.human-performance.conclusionScience")}
+              </Text>
+            </View>
+          );
+        })()}
+      </View>
     </View>
   );
 }

@@ -29,6 +29,7 @@ export interface ReactionBoardData {
   reactionTime: number | null;
   accuracy: number | null;
   notes: string;
+  checkedEquipment?: Record<string, boolean>;
 }
 
 interface Props {
@@ -94,7 +95,7 @@ function useReactionBoardFormStyles() {
   checklistText: { ...typography.body, flex: 1 },
   instructionText: { ...typography.body, marginBottom: Spacing.sm },
   illustration: { width: '100%', height: 200, marginTop: Spacing.md, borderRadius: BorderRadius.md },
-  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
+  wizardNavBoth: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.md, marginTop: Spacing.md },
   tableRowHeader: {
     flexDirection: 'row',
     backgroundColor: colors.background,
@@ -130,9 +131,16 @@ export function ReactionBoardForm({
 
   const { t } = useTranslation();
 
-  const [activeTab, setActiveTab] = useState<'setup' | 'predictions' | 'experiment' | 'results'>('setup');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const initialTab = (value as any)?.__activeTab || 'setup';
+  const [activeTab, setActiveTabState] = useState<'setup' | 'predictions' | 'experiment' | 'results'>(initialTab);
+  
+  const timerEndTs = (value as any)?.__timerEndTs;
+  const initialTimeLeft = timerEndTs 
+    ? Math.max(0, Math.floor((timerEndTs - Date.now()) / 1000))
+    : DEFAULT_TIME;
+    
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isTimerRunning, setIsTimerRunning] = useState(initialTab !== 'setup' && initialTimeLeft > 0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
 
@@ -140,9 +148,7 @@ export function ReactionBoardForm({
     t('data.activities.reaction-board.equipmentPhone', { defaultValue: 'Mobile phone with Stemm Lab app' }),
     t('data.activities.reaction-board.equipmentSpace', { defaultValue: 'Clear working space' }),
   ];
-  const [checkedEquipment, setCheckedEquipment] = useState<Record<string, boolean>>({});
-  const allEquipmentChecked = equipmentList.every((item) => checkedEquipment[item]);
-
+  
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning && timeLeft > 0) {
@@ -168,7 +174,26 @@ export function ReactionBoardForm({
   };
 
   const updateData = (updates: Partial<ReactionBoardData>) => {
-    if (isLocked) return;
+      if (isLocked) return;
+    onChange({ ...data, ...updates });
+  };
+
+  const checkedEquipment = data.checkedEquipment || {};
+  const setCheckedEquipment = (updater: any) => {
+    if (typeof updater === 'function') {
+      updateData({ checkedEquipment: updater(checkedEquipment) });
+    } else {
+      updateData({ checkedEquipment: updater });
+    }
+  };
+  const allEquipmentChecked = equipmentList.length > 0 && equipmentList.every((item: string) => checkedEquipment[item]);
+
+  const setActiveTab = (tab: 'setup' | 'predictions' | 'experiment' | 'results') => {
+    setActiveTabState(tab);
+    let updates: any = { __activeTab: tab };
+    if (tab !== 'setup' && !(data as any).__timerEndTs) {
+      updates.__timerEndTs = Date.now() + DEFAULT_TIME * 1000;
+    }
     onChange({ ...data, ...updates });
   };
 
@@ -181,8 +206,8 @@ export function ReactionBoardForm({
   const handleComplete = () => {
     if (!isFormValid()) {
       Alert.alert(
-        t('activities.incompleteTitle', { defaultValue: 'Incomplete Data' }),
-        t('data.activities.reaction-board.incompleteExperimentMsg')
+        t('activities.incompleteTitle', { defaultValue: 'Almost there!' }),
+        t('activities.incompleteMsg', { defaultValue: 'It looks like some required fields haven\'t been filled out yet. Please double-check the tabs to make sure everything is complete before submitting.' })
       );
       return;
     }
@@ -344,8 +369,12 @@ export function ReactionBoardForm({
             <Card style={styles.pageCard}>
               <ReactionBoardExperiment
                 onComplete={(res) => {
-                  updateData({ reactionTime: res.reactionTime, accuracy: res.accuracy });
-                  setActiveTab('results');
+                  setActiveTabState('results');
+                  updateData({ 
+                    reactionTime: res.reactionTime, 
+                    accuracy: res.accuracy,
+                    __activeTab: 'results' as any
+                  });
                 }}
               />
             </Card>
@@ -399,7 +428,7 @@ export function ReactionBoardForm({
 
               <Text style={styles.subSectionTitle}>{actT('shared.reflectionNotes')}</Text>
               <Input
-                label={t('common.notes', { defaultValue: 'Any surprises? Were you right?' })}
+                label={t('data.activities.reaction-board.surprisesLabel', { defaultValue: 'Any surprises? Were you right?' })}
                 value={data.notes}
                 onChangeText={(v) => updateData({ notes: v })}
                 multiline
